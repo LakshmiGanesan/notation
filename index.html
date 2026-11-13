@@ -127,6 +127,17 @@ input[type=text]{font:inherit;color:inherit;-webkit-user-select:text;user-select
 .ctxbtn{height:36px;border-radius:10px;border:1px solid var(--line);background:var(--card);padding:0 12px;font-size:13px;font-weight:600;flex:none;margin-left:6px}
 .ctxbtn:disabled{opacity:.35}
 #popover{position:fixed;z-index:45;background:var(--paper);border:1px solid var(--line);border-radius:16px;box-shadow:0 20px 40px -18px rgba(14,17,32,.45);padding:14px;width:300px}
+.takes .take{display:flex;align-items:center;gap:10px;border:1px solid var(--line);background:var(--card);border-radius:12px;padding:8px 10px;margin-bottom:8px}
+.takes .take.on{border-color:var(--saffron);box-shadow:0 0 0 3px var(--saffron-soft)}
+.takes .tplay{width:38px;height:38px;border-radius:50%;border:none;background:var(--ink);color:#fff;display:grid;place-items:center;flex:none}
+.takes .tplay svg{width:16px;height:16px}
+.takes .tno{font-variant-numeric:tabular-nums;font-weight:700;color:var(--saffron-2);width:24px}
+.takes .tinfo{flex:1;min-width:0;display:flex;flex-direction:column}
+.takes .tinfo b{font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.takes .tinfo small{color:var(--muted);font-size:12px}
+.takes .mini:disabled{opacity:.3}
+.takeopts{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-top:12px;flex-wrap:wrap;font-size:14px}
+.takeopts input{width:18px;height:18px;vertical-align:-3px;accent-color:var(--saffron)}
 .speeds{display:flex;gap:6px}
 .speeds button{flex:1;min-height:50px;border-radius:11px;border:1px solid var(--line);background:var(--card);font-size:15px;font-weight:600;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:1px}
 .speeds button small{font-size:9.5px;font-weight:500;color:var(--muted)}
@@ -203,6 +214,7 @@ body.fingers .page canvas.fx{touch-action:none}
 .bm .pg{color:var(--muted);font-size:12px;flex:1}
 .mini{width:34px;height:34px;border-radius:9px;border:1px solid var(--line);background:#fff;font-size:12px;font-weight:600;display:grid;place-items:center}
 .mini svg{width:16px;height:16px}
+.bmhead{font-size:12px;font-weight:700;letter-spacing:.04em;color:var(--saffron-2);margin:12px 4px 6px}
 .dempty{color:var(--muted);padding:18px 10px;line-height:1.55;font-size:14px}
 
 /* dialogs & toast */
@@ -314,6 +326,7 @@ body.viewer .viewer-only{display:inline-flex}
     <button class="playbtn" id="pPlay" disabled title="Play / pause"></button>
     <div class="time" id="pTime"><b>0:00</b> / 0:00</div>
     <div class="track" id="pTrack"><div class="rail"></div><div class="fill"></div><div id="pTicks"></div><div class="knob"></div></div>
+    <button class="pill hidden" id="pTakes" title="Recordings: choose, order and name them"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M4 6h11M4 12h11M4 18h7"/><path d="M18 9v9" /><circle cx="16.5" cy="18" r="1.8"/></svg><span id="pTakesLbl">01</span></button>
     <button class="pill" id="pSpeed" title="Playback speed">1×</button>
     <button class="pill" id="pLoop" title="Loop the current bookmarked passage"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 2l3 3-3 3"/><path d="M4 11V9a4 4 0 0 1 4-4h12"/><path d="M7 22l-3-3 3-3"/><path d="M20 13v2a4 4 0 0 1-4 4H4"/></svg><span class="hide-sm">Loop</span></button>
     <button class="pill on hide-sm" id="pFollow" title="Scroll to follow the playing passage">Follow</button>
@@ -610,33 +623,73 @@ function renderFx(pi) {
 function roundRect(c, x, y, w, h, r) { c.beginPath(); c.moveTo(x + r, y); c.arcTo(x + w, y, x + w, y + h, r); c.arcTo(x + w, y + h, x, y + h, r); c.arcTo(x, y + h, x, y, r); c.arcTo(x, y, x + w, y, r); c.closePath(); }
 function renderAllFx() { views.forEach((_, i) => renderFx(i)); }
 
+/* ---------------- recordings (a note can hold several, in order) ----------------
+   note.takes = [{ id, label, mime, duration, created, size }]; audio bytes live in
+   IndexedDB 'audio' under "<noteId>:<takeId>". Every bookmarked stroke carries .take. */
+let takeBlobs = new Map(), curTake = null, playOn = LS.get('playOn', true);
+const hasAudio = () => !!(note && note.takes && note.takes.length);
+const takeIdx = id => note.takes.findIndex(t => t.id === id);
+const takeOf = id => note.takes.find(t => t.id === id);
+const curGroups = () => groups.filter(g => g.take === curTake);
+const takeNo = i => String(i + 1).padStart(2, '0');
+async function loadTakes(id, meta) {   // also migrates notes from before multiple recordings
+  takeBlobs = new Map();
+  let takes = meta.takes;
+  if (!takes) {
+    const old = await DB.get('audio', id); takes = [];
+    if (old && old.buf) {
+      takes = [{ id: 'a1', label: '', mime: old.mime || 'audio/mp4', duration: meta.duration || 0, created: meta.created || Date.now(), size: old.buf.byteLength }];
+      await DB.put('audio', id + ':a1', old); await DB.del('audio', id);
+    }
+    (meta.strokes || []).forEach(s => { if (s.t != null && !s.take) s.take = 'a1'; });
+  }
+  for (const t of takes) { const r = await DB.get('audio', id + ':' + t.id); if (r && r.buf) takeBlobs.set(t.id, new Blob([r.buf], { type: r.mime || t.mime })); }
+  return takes.filter(t => takeBlobs.has(t.id));
+}
+async function saveTake(t, blob) { if (!viewer) await DB.put('audio', note.id + ':' + t.id, { buf: await blob.arrayBuffer(), mime: blob.type || t.mime }); }
+function selectTake(id) {
+  return new Promise(res => {
+    if (!note || !id || !takeBlobs.has(id)) { curTake = null; setAudio(null); return res(); }
+    if (id === curTake && audioEl.getAttribute('src')) return res();
+    curTake = id; activeGroup = -1; loopRange = null;
+    const done = () => { audioEl.removeEventListener('loadedmetadata', done); clearTimeout(tm); res(); };
+    const tm = setTimeout(done, 3000);
+    audioEl.addEventListener('loadedmetadata', done);
+    setAudio(takeBlobs.get(id)); renderAllFx();
+  });
+}
+
 /* ---------------- bookmark groups ---------------- */
 function computeGroups() {
-  const bs = note.strokes.filter(s => s.t != null).sort((a, b) => a.t - b.t);
+  const order = id => { const i = note.takes ? takeIdx(id) : -1; return i < 0 ? 999 : i; };
+  const bs = note.strokes.filter(s => s.t != null).sort((a, b) => order(a.take) - order(b.take) || a.t - b.t);
   const out = [];
   for (const s of bs) {
     const b = bbox(s), cy = (b[1] + b[3]) / 2, last = out[out.length - 1];
-    if (last && last.page === s.page && s.t - last.tEnd < 2 && Math.abs(cy - last.cy) < 22 * pageScale(note.pages[s.page] || { w: 1920, h: 0 })) {
+    if (last && last.take === s.take && last.page === s.page && s.t - last.tEnd < 2 && Math.abs(cy - last.cy) < 22 * pageScale(note.pages[s.page] || { w: 1920, h: 0 })) {
       last.strokes.push(s); last.tEnd = s.t;
       last.bb = [Math.min(last.bb[0], b[0]), Math.min(last.bb[1], b[1]), Math.max(last.bb[2], b[2]), Math.max(last.bb[3], b[3])];
-    } else out.push({ page: s.page, t: s.t, tEnd: s.t, cy, bb: [...b], strokes: [s] });
+    } else out.push({ page: s.page, take: s.take, t: s.t, tEnd: s.t, cy, bb: [...b], strokes: [s] });
   }
   out.forEach((g, i) => g.i = i);
   groups = out;
   const n = groups.length; const bc = $('#bmCount'); bc.textContent = n; bc.classList.toggle('hidden', !n);
   renderTicks(); if ($('#drawer').classList.contains('open')) renderDrawer();
 }
-function groupAtTime(ct) { let k = -1; for (const g of groups) { if (ct + 0.06 >= Math.max(0, g.t - lead)) k = g.i; else break; } return k; }
+function groupAtTime(ct) { let k = -1; for (const g of curGroups()) { if (ct + 0.06 >= Math.max(0, g.t - lead)) k = g.i; else break; } return k; }
 function setActive(k, scroll) {
   if (k === activeGroup) return;
   const prev = groups[activeGroup]; activeGroup = k;
   if (prev) renderFx(prev.page);
   const g = groups[k]; if (g) renderFx(g.page);
-  $$('#pTicks .tick').forEach((t, i) => t.classList.toggle('on', i === k));
+  $$('#pTicks .tick').forEach(t => t.classList.toggle('on', +t.dataset.i === k));
   $$('#dList .bm').forEach(b => b.classList.toggle('on', +b.dataset.i === k));
   if (g && scroll && follow) scrollToGroup(g);
 }
-function jumpToGroup(g) { playFrom(g.t); setActive(g.i, false); scrollToGroup(g); }
+async function jumpToGroup(g, scroll = true) {
+  if (g.take && g.take !== curTake) await selectTake(g.take);
+  playFrom(g.t); setActive(g.i, false); if (scroll) scrollToGroup(g);
+}
 function scrollToGroup(g) {
   const v = views[g.page]; if (!v) return;
   const host = $('#pages'), wrap = v.wrap;
@@ -646,7 +699,7 @@ function scrollToGroup(g) {
 }
 
 /* ---------------- audio ---------------- */
-function audioDur() { const d = audioEl.duration; return isFinite(d) && d > 0 ? d : (note && note.duration) || 0; }
+function audioDur() { const d = audioEl.duration; if (isFinite(d) && d > 0) return d; const t = note && note.takes && takeOf(curTake); return (t && t.duration) || 0; }
 function setAudio(blob) {
   if (audioURL) URL.revokeObjectURL(audioURL);
   audioURL = null; audioEl.pause();
@@ -658,28 +711,32 @@ audioEl.addEventListener('loadedmetadata', () => {
   if (!isFinite(audioEl.duration)) { // Chrome webm: force duration discovery
     const fix = () => { audioEl.removeEventListener('timeupdate', fix); audioEl.currentTime = 0; updatePlayer(); };
     audioEl.addEventListener('timeupdate', fix); audioEl.currentTime = 1e7;
-  } else { if (note && Math.abs((note.duration || 0) - audioEl.duration) > 0.5) { note.duration = audioEl.duration; } updatePlayer(); }
+  } else { const t = note && note.takes && takeOf(curTake); if (t && Math.abs((t.duration || 0) - audioEl.duration) > 0.5) { t.duration = audioEl.duration; scheduleSave(); } updatePlayer(); }
 });
 audioEl.addEventListener('play', () => { updatePlayer(); tickLoop(); });
 audioEl.addEventListener('pause', updatePlayer);
-audioEl.addEventListener('ended', updatePlayer);
+audioEl.addEventListener('ended', async () => {
+  updatePlayer();
+  const i = note && note.takes ? takeIdx(curTake) : -1;   // play the recordings one after another
+  if (playOn && !loop && i >= 0 && i < note.takes.length - 1) { await selectTake(note.takes[i + 1].id); audioEl.currentTime = 0; audioEl.play().catch(() => { }); toast(`Recording ${takeNo(i + 1)}`, 1400); }
+});
 audioEl.addEventListener('error', () => { if (audioEl.getAttribute('src')) toast('This audio format could not be played here.'); });
 
 function playFrom(t) {
-  if (!note || !note.audio) { toast('No recording yet. Press Record during your lesson.'); return; }
+  if (!hasAudio()) { toast('No recording yet. Press Record during your lesson.'); return; }
   if (rec) return;
   audioEl.currentTime = Math.max(0, t - lead);
   if (loop) setLoopFromTime(Math.max(0, t - lead));
   const p = audioEl.play(); if (p && p.catch) p.catch(() => toast('Tap play to start audio.'));
 }
 function togglePlay() {
-  if (!note || !note.audio || rec) return;
+  if (!hasAudio() || rec) return;
   if (audioEl.paused) { if (audioEl.ended) audioEl.currentTime = 0; if (loop) setLoopFromTime(audioEl.currentTime); audioEl.play().catch(() => { }); } else audioEl.pause();
 }
 function setLoopFromTime(ct) {
-  const k = groupAtTime(ct);
-  if (k < 0) { loopRange = { a: 0, b: groups[0] ? Math.max(0.5, groups[0].t - lead) : audioDur() }; return; }
-  const g = groups[k], nx = groups[k + 1];
+  const cg = curGroups(), k = groupAtTime(ct), j = cg.findIndex(g => g.i === k);
+  if (j < 0) { loopRange = { a: 0, b: cg[0] ? Math.max(0.5, cg[0].t - lead) : audioDur() }; return; }
+  const g = cg[j], nx = cg[j + 1];
   loopRange = { a: Math.max(0, g.t - lead), b: nx ? Math.max(g.t + 0.5, nx.t - lead) : audioDur() };
 }
 let raf = 0;
@@ -706,14 +763,18 @@ function setKnob(f) { f = clamp(f, 0, 1); $('#pTrack .fill').style.width = (f * 
 function renderTicks() {
   const box = $('#pTicks'); box.innerHTML = '';
   const d = rec ? (performance.now() - rec.start) / 1000 : audioDur(); if (!d) return;
-  for (const g of groups) { const t = document.createElement('div'); t.className = 'tick' + (g.i === activeGroup ? ' on' : ''); t.style.left = clamp(g.t / d * 100, 0, 100) + '%'; box.appendChild(t); }
+  const list = rec ? groups.filter(g => g.take === rec.take) : curGroups();
+  for (const g of list) { const t = document.createElement('div'); t.className = 'tick' + (g.i === activeGroup ? ' on' : ''); t.dataset.i = g.i; t.style.left = clamp(g.t / d * 100, 0, 100) + '%'; box.appendChild(t); }
 }
 function updatePlayer() {
-  const has = !!(note && note.audio);
+  const has = hasAudio();
   const pb = $('#pPlay'); pb.disabled = !has || !!rec; pb.innerHTML = (!audioEl.paused && has) ? ICON_PAUSE : ICON_PLAY;
   $('#pSpeed').disabled = !has; $('#pLoop').disabled = !has;
-  const rb = $('#pRec'); rb.classList.toggle('live', !!rec); $('#pRecLbl').textContent = rec ? 'Stop' : (has ? 'Re-record' : 'Record');
+  const rb = $('#pRec'); rb.classList.toggle('live', !!rec); $('#pRecLbl').textContent = rec ? 'Stop' : (has ? 'Record more' : 'Record');
   $('#pAudio').disabled = !!rec;
+  const tk = $('#pTakes'), n = note && note.takes ? note.takes.length : 0;
+  tk.classList.toggle('hidden', !n || (n < 2 && viewer)); tk.disabled = !!rec;
+  if (n) $('#pTakesLbl').textContent = rec ? `${takeNo(n)} · new` : `${takeNo(Math.max(0, takeIdx(curTake)))} of ${takeNo(n - 1)}`;
   renderTicks(); updateTime();
 }
 // scrubbing
@@ -721,14 +782,14 @@ function updatePlayer() {
   const tr = $('#pTrack'); let drag = false;
   let moved = false, startX = 0;
   const seek = e => { const r = tr.getBoundingClientRect(); const f = clamp((e.clientX - r.left) / r.width, 0, 1); const d = audioDur(); if (!d) return; audioEl.currentTime = f * d; setKnob(f); updateTime(); setActive(groupAtTime(f * d), false); if (loop) setLoopFromTime(f * d); };
-  tr.addEventListener('pointerdown', e => { if (rec || !note || !note.audio) return; drag = true; moved = false; startX = e.clientX; tr.setPointerCapture(e.pointerId); seek(e); });
+  tr.addEventListener('pointerdown', e => { if (rec || !hasAudio()) return; drag = true; moved = false; startX = e.clientX; tr.setPointerCapture(e.pointerId); seek(e); });
   tr.addEventListener('pointermove', e => { if (drag) { if (Math.abs(e.clientX - startX) > 6) moved = true; seek(e); } });
   tr.addEventListener('pointerup', e => {
     if (!drag) return; drag = false;
     const d = audioDur(); if (!d) return;
     if (!moved) {   // a tap close to a bookmark tick jumps to that bookmark
       const r = tr.getBoundingClientRect(); let best = null, bd = 14;
-      for (const g of groups) { const dx = Math.abs(r.left + g.t / d * r.width - e.clientX); if (dx < bd) { bd = dx; best = g; } }
+      for (const g of curGroups()) { const dx = Math.abs(r.left + g.t / d * r.width - e.clientX); if (dx < bd) { bd = dx; best = g; } }
       if (best) { jumpToGroup(best); return; }
     }
     const g = groups[groupAtTime(audioEl.currentTime)]; if (g) scrollToGroup(g);
@@ -737,10 +798,6 @@ function updatePlayer() {
 })();
 
 async function startRecording() {
-  if (note.audio) {
-    const ok = await dialog({ title: 'Replace the recording?', html: '<p>This note already has a recording. Recording again replaces it, and existing marks lose their audio timings (the ink stays).</p>', actions: [{ label: 'Cancel', value: false }, { label: 'Replace', value: true, danger: true }] });
-    if (!ok) return;
-  }
   let stream;
   try {
     stream = await navigator.mediaDevices.getUserMedia({ audio: { echoCancellation: false, noiseSuppression: false, autoGainControl: false } });
@@ -754,15 +811,14 @@ async function startRecording() {
   try { mr = new MediaRecorder(stream, mime ? { mimeType: mime, audioBitsPerSecond: 96000 } : { audioBitsPerSecond: 96000 }); }
   catch (e) { stream.getTracks().forEach(t => t.stop()); dialog({ title: 'Recording not supported', html: '<p>This browser cannot record audio. Please update Safari/Chrome, or import an audio file instead.</p>' }); return; }
   audioEl.pause();
-  if (note.audio) { note.strokes.forEach(s => s.t = null); computeGroups(); }
   const chunks = [];
   mr.ondataavailable = e => { if (e.data && e.data.size) chunks.push(e.data); };
-  rec = { mr, stream, chunks, start: performance.now(), mime: mr.mimeType || mime || 'audio/webm', wake: null, hidden: false };
+  rec = { mr, stream, chunks, start: performance.now(), mime: mr.mimeType || mime || 'audio/webm', wake: null, hidden: false, take: 't' + uid() };
   try { if (navigator.wakeLock) rec.wake = await navigator.wakeLock.request('screen'); } catch (e) { }
   mr.start(1000);
   activeGroup = -1; renderAllFx();
   updatePlayer(); tickLoop();
-  toast('Recording. Any mark you draw now becomes an audio bookmark.', 3600);
+  toast(`Recording ${takeNo(note.takes.length)}. Any mark you draw now becomes an audio bookmark.`, 3600);
 }
 function stopRecording() {
   return new Promise(res => {
@@ -774,11 +830,12 @@ function stopRecording() {
       try { r.wake && r.wake.release(); } catch (e) { }
       const blob = new Blob(r.chunks, { type: r.mime.split(';')[0] });
       rec = null;
-      note.audio = blob; note.mime = blob.type; note.duration = elapsed;
-      setAudio(blob); computeGroups(); renderAllFx();
-      await saveAudio(); scheduleSave();
+      const t = { id: r.take, label: '', mime: blob.type, duration: elapsed, created: Date.now(), size: blob.size };
+      note.takes.push(t); takeBlobs.set(t.id, blob); await saveTake(t, blob);
+      curTake = null; await selectTake(t.id); computeGroups(); renderAllFx(); scheduleSave();
+      const n = groups.filter(g => g.take === t.id).length;
       if (r.hidden) dialog({ title: 'Recording may have a gap', html: '<p>The app went into the background or the screen locked while recording. On iPad, recording in a web app pauses when that happens, so marks made after it may be slightly early. You can nudge them in the bookmarks list.</p>' });
-      else toast(`Saved ${fmt(elapsed)} of audio with ${groups.length} bookmark${groups.length === 1 ? '' : 's'}.`);
+      else toast(`Saved recording ${takeNo(note.takes.length - 1)}: ${fmt(elapsed)} with ${n} bookmark${n === 1 ? '' : 's'}.`);
       res();
     };
     try { r.mr.requestData(); } catch (e) { }
@@ -791,11 +848,54 @@ document.addEventListener('visibilitychange', async () => {
 });
 window.addEventListener('pagehide', flushSave);
 
+/* ---- the Recordings list: order, labels, delete, import ---- */
+async function openTakes() {
+  if (!note) return;
+  const box = document.createElement('div'); box.className = 'takes';
+  const render = () => {
+    const n = note.takes.length;
+    box.innerHTML = (n ? '' : '<p style="margin-top:0;color:var(--muted)">No recordings yet. Press Record during your lesson, or bring in an audio file.</p>') + note.takes.map((t, i) => {
+      const marks = groups.filter(g => g.take === t.id).length;
+      return `<div class="take ${t.id === curTake ? 'on' : ''}" data-id="${t.id}">
+        <button class="tplay" data-a="play" title="Play this recording">${t.id === curTake && !audioEl.paused ? ICON_PAUSE : ICON_PLAY}</button>
+        <span class="tno">${takeNo(i)}</span>
+        <span class="tinfo"><b>${esc(t.label || 'Recording ' + takeNo(i))}</b><small>${fmt(t.duration)} · ${new Date(t.created).toLocaleDateString(undefined, { day: 'numeric', month: 'short' })}${marks ? ` · ${marks} bookmark${marks === 1 ? '' : 's'}` : ''}</small></span>
+        ${viewer ? '' : `<button class="mini" data-a="up" ${i ? '' : 'disabled'} title="Move up">↑</button><button class="mini" data-a="down" ${i < n - 1 ? '' : 'disabled'} title="Move down">↓</button><button class="mini" data-a="ren" title="Rename">✎</button><button class="mini" data-a="del" title="Delete">✕</button>`}
+      </div>`;
+    }).join('') + (viewer ? '' : `<div class="takeopts"><label><input type="checkbox" id="playOn" ${playOn ? 'checked' : ''}> Play recordings one after another</label><button class="btn" data-a="import">Add an audio file</button></div>`);
+    const po = box.querySelector('#playOn'); if (po) po.onchange = () => { playOn = po.checked; LS.set('playOn', playOn); };
+  };
+  box.onclick = async e => {
+    const b = e.target.closest('[data-a]'); if (!b) return;
+    const row = b.closest('.take'), id = row && row.dataset.id, i = id ? takeIdx(id) : -1, a = b.dataset.a;
+    if (a === 'import') { closeDialog(null); $('#fAudio').value = ''; $('#fAudio').click(); return; }
+    if (a === 'play') { if (id === curTake && !audioEl.paused) audioEl.pause(); else { await selectTake(id); audioEl.currentTime = 0; audioEl.play().catch(() => { }); } }
+    else if (a === 'up' || a === 'down') { const j = a === 'up' ? i - 1 : i + 1; const [t] = note.takes.splice(i, 1); note.takes.splice(j, 0, t); computeGroups(); scheduleSave(); }
+    else if (a === 'ren') { const t = note.takes[i]; closeDialog(null); const v = await promptText(`Name recording ${takeNo(i)}`, t.label, 'e.g. Class 2 · charaṇam'); if (v !== null) { t.label = v; scheduleSave(); } return openTakes(); }
+    else if (a === 'del') {
+      const marks = note.strokes.filter(s => s.take === id && s.t != null).length;
+      closeDialog(null);
+      const ok = await dialog({ title: `Delete recording ${takeNo(i)}?`, html: `<p>The audio is removed${marks ? `, and its ${marks} bookmarked mark${marks === 1 ? '' : 's'} stay on the page as ordinary ink` : ''}. This cannot be undone.</p>`, actions: [{ label: 'Cancel', value: false }, { label: 'Delete', value: true, danger: true }] });
+      if (ok) {
+        note.strokes.forEach(s => { if (s.take === id) { s.t = null; delete s.take; } });
+        note.takes.splice(i, 1); takeBlobs.delete(id); if (!viewer) await DB.del('audio', note.id + ':' + id);
+        if (curTake === id) { curTake = null; await selectTake(note.takes[0] ? note.takes[0].id : null); }
+        computeGroups(); renderAllFx(); scheduleSave();
+      }
+      return openTakes();
+    }
+    updatePlayer(); render();
+  };
+  render();
+  await dialog({ title: 'Recordings', node: box, actions: [{ label: 'Done', value: true, primary: true }], wide: true });
+  updatePlayer();
+}
+
 /* ---------------- pointer input ---------------- */
 let act = null, tap = null;
 function markTime() {
-  if (rec) return Math.round((performance.now() - rec.start) / 1000 * 100) / 100;
-  if (note.audio && !audioEl.paused) return Math.round(audioEl.currentTime * 100) / 100;
+  if (rec) return { t: Math.round((performance.now() - rec.start) / 1000 * 100) / 100, take: rec.take };
+  if (hasAudio() && !audioEl.paused) return { t: Math.round(audioEl.currentTime * 100) / 100, take: curTake };
   return null;
 }
 // Pen sizes are tuned for a 1920 px-wide page; larger pages (e.g. 2388 × 1668 iPad Pro) scale up.
@@ -870,7 +970,7 @@ function attachInput(v, pi) {
       } else if (act.lasso) {
         const pts = act.pts; act = null; finishLasso(pi, pts); return;
       } else if (live && !cancel) {
-        const s = live; live = null; s.t = markTime();
+        const s = live; live = null; const mt = markTime(); s.t = mt ? mt.t : null; if (mt) s.take = mt.take;
         note.strokes.push(s); pushUndo({ type: 'add', strokes: [s] });
         redrawInk(pi); if (s.t != null) { computeGroups(); toast(`Bookmark at ${fmt(s.t)}`, 1200); }
         renderFx(pi); scheduleSave();
@@ -900,9 +1000,9 @@ function handleTap(pi, x, y) {
       const d = Math.hypot(x - (b[0] + b[2]) / 2, y - (b[1] + b[3]) / 2); if (d < bd) { bd = d; best = g; }
     }
   }
-  if (best) { playFrom(best.t); setActive(best.i, false); return; }
+  if (best) { jumpToGroup(best, false); return; }
   if (tool !== 'play' || viewer) return;
-  if (!note.audio) { toast('Record or import audio first. Marks made while it records or plays become bookmarks.'); return; }
+  if (!hasAudio()) { toast('Record or import audio first. Marks made while it records or plays become bookmarks.'); return; }
   // Ink with no time yet (e.g. notation written before class): offer to link it to where the recording is now
   const r = 10 * pageScale(note.pages[pi]);
   const hit = note.strokes.filter(s => s.page === pi && s.t == null && strokeHit(s, x, y, r));
@@ -911,9 +1011,10 @@ function handleTap(pi, x, y) {
 }
 async function linkToPlayhead(strokes) {
   const t = Math.round((audioEl.currentTime || 0) * 100) / 100;
-  const v = await dialog({ title: 'Link this mark to the recording?', html: `<p>This ink isn't linked to the audio yet. Link it to <b>${fmt(t)}</b>, where the recording is now, and tapping it will play from there.</p><p style="color:var(--muted);font-size:14px">Tip: pause the recording just before the passage starts, then tap the ink you want to link.</p>`, actions: [{ label: 'Cancel', value: null }, { label: `Link to ${fmt(t)}`, value: 'link', primary: true }] });
+  const ti = takeIdx(curTake), tn = note.takes.length > 1 ? ` of recording ${takeNo(ti)}` : '';
+  const v = await dialog({ title: 'Link this mark to the recording?', html: `<p>This ink isn't linked to the audio yet. Link it to <b>${fmt(t)}</b>${tn}, where the recording is now, and tapping it will play from there.</p><p style="color:var(--muted);font-size:14px">Tip: pause the recording just before the passage starts, then tap the ink you want to link.</p>`, actions: [{ label: 'Cancel', value: null }, { label: `Link to ${fmt(t)}`, value: 'link', primary: true }] });
   if (v !== 'link') return;
-  strokes.forEach(s => s.t = t); computeGroups(); renderAllFx(); scheduleSave();
+  strokes.forEach(s => { s.t = t; s.take = curTake; }); computeGroups(); renderAllFx(); scheduleSave();
   toast(`Linked to ${fmt(t)}.`);
 }
 
@@ -1070,6 +1171,7 @@ $('#tZoom').onclick = () => { const z = [1, 1.35, 1.75]; zoom = z[(z.indexOf(zoo
 $('#tMarks').onclick = () => { const d = $('#drawer'); d.classList.toggle('open'); if (d.classList.contains('open')) renderDrawer(); };
 $('#dClose').onclick = () => $('#drawer').classList.remove('open');
 $('#pPlay').onclick = togglePlay;
+$('#pTakes').onclick = openTakes;
 $('#pRec').onclick = () => rec ? stopRecording() : startRecording();
 $('#pSpeed').onclick = e => {
   e.stopPropagation(); const cur = audioEl.playbackRate || 1;
@@ -1081,18 +1183,14 @@ $('#pSpeed').onclick = e => {
 };
 $('#pLoop').onclick = () => { loop = !loop; $('#pLoop').classList.toggle('on', loop); if (loop) { setLoopFromTime(audioEl.currentTime || 0); toast('Looping the current passage, up to the next bookmark.'); } else loopRange = null; };
 $('#pFollow').onclick = () => { follow = !follow; $('#pFollow').classList.toggle('on', follow); };
-$('#pAudio').onclick = async () => {
-  if (note.audio) {
-    const ok = await dialog({ title: 'Replace the audio?', html: '<p>Importing a file replaces the current recording. Existing marks keep their timings, so this works best for a cleaner copy of the same lesson.</p>', actions: [{ label: 'Cancel', value: false }, { label: 'Choose file', value: true, primary: true }] });
-    if (!ok) return;
-  }
-  $('#fAudio').value = ''; $('#fAudio').click();
-};
+$('#pAudio').onclick = () => { $('#fAudio').value = ''; $('#fAudio').click(); };
 $('#fAudio').onchange = async e => {
   const f = e.target.files[0]; if (!f) return;
-  note.audio = f.type ? f : new Blob([f], { type: 'audio/mp4' }); note.mime = note.audio.type; note.duration = 0;
-  setAudio(note.audio); await saveAudio(); scheduleSave();
-  toast('Audio added. Play it and draw marks to create bookmarks.', 3400);
+  const blob = f.type ? f : new Blob([f], { type: 'audio/mp4' });
+  const t = { id: 't' + uid(), label: f.name.replace(/\.[^.]+$/, ''), mime: blob.type, duration: 0, created: Date.now(), size: blob.size };
+  note.takes.push(t); takeBlobs.set(t.id, blob); await saveTake(t, blob);
+  curTake = null; await selectTake(t.id); computeGroups(); scheduleSave();
+  toast(`Added as recording ${takeNo(note.takes.length - 1)}. Play it and draw marks to create bookmarks.`, 3600);
 };
 $('#tTitle').addEventListener('input', () => { note.title = $('#tTitle').value; scheduleSave(); });
 $('#tBack').onclick = async () => {
@@ -1120,7 +1218,12 @@ async function renderDrawer() {
     list.innerHTML = `<div class="dempty">${viewer ? 'This note has no audio bookmarks.' : `<b>No bookmarks yet.</b><br><br>While you're recording, or while the audio is playing, draw a small mark (an arrow, a tick or a dot) in the margin column just before a line is sung. Each mark becomes a bookmark you can tap to hear that passage again.`}</div>`;
     return;
   }
+  let lastTake;
   for (const g of groups) {
+    if (note.takes.length > 1 && g.take !== lastTake) {
+      lastTake = g.take; const i = takeIdx(g.take), t = note.takes[i], h = document.createElement('div'); h.className = 'bmhead';
+      h.textContent = i < 0 ? 'Unlinked' : `${takeNo(i)} · ${t.label || 'Recording ' + takeNo(i)}`; list.appendChild(h);
+    }
     const item = document.createElement('div'); item.className = 'bm' + (g.i === activeGroup ? ' on' : ''); item.dataset.i = g.i;
     const cv = document.createElement('canvas'); item.appendChild(cv);
     const row = document.createElement('div'); row.className = 'row';
@@ -1287,16 +1390,12 @@ function scheduleSave() { if (viewer || !note) return; dirty = true; clearTimeou
 async function flushSave() {
   clearTimeout(saveTimer); if (viewer || !note || !dirty) return; dirty = false;
   note.updated = Date.now();
-  const meta = { id: note.id, folder: note.folder || null, title: note.title, created: note.created, updated: note.updated, strokes: note.strokes, duration: note.duration || 0, mime: note.mime || '', hasAudio: !!note.audio, pageCount: note.pages.length, bm: groups.length, thumb: await makeThumb() };
+  const meta = { id: note.id, folder: note.folder || null, title: note.title, created: note.created, updated: note.updated, strokes: note.strokes, takes: note.takes || [], duration: (note.takes || []).reduce((a, t) => a + (t.duration || 0), 0), mime: '', hasAudio: hasAudio(), pageCount: note.pages.length, bm: groups.length, thumb: await makeThumb() };
   await DB.put('notes', note.id, meta);
   Drive.schedule();
 }
 async function savePages() { if (!viewer) await DB.put('pages', note.id, { v: 2, pages: note.pages.map(({ key, w, h, cover }) => cover ? { key, w, h, cover } : { key, w, h }) }); }
-async function saveAudio() {
-  if (viewer) return;
-  if (!note.audio) return DB.put('audio', note.id, null);
-  const buf = await note.audio.arrayBuffer(); await DB.put('audio', note.id, { buf, mime: note.audio.type });
-}
+async function saveAllTakes() { for (const t of note.takes) await saveTake(t, takeBlobs.get(t.id)); }
 async function makeThumb() {
   try {
     const pg = note.pages[0]; const img = await loadImg(await imgURL(pg.key));
@@ -1449,7 +1548,7 @@ function renderLibrary(all) {
       if (v === 'move') { const f = await pickFolder(`Move “${m.title || 'Untitled'}”`, m.folder || null); if (f !== undefined) { const cur = await DB.get('notes', m.id); await DB.put('notes', m.id, { ...cur, folder: f, updated: Date.now() }); Drive.schedule(3000); toast(f ? `Moved to ${folderPath(f)}.` : 'Moved out of folders.'); showLibrary(); } return; }
       if (v === 'del') {
         const ok = await dialog({ title: 'Delete this note?', html: '<p>The notation, recording and bookmarks will be removed from this device. This cannot be undone.</p>', actions: [{ label: 'Cancel', value: false }, { label: 'Delete', value: true, danger: true }] });
-        if (ok) { await DB.del('notes', m.id); await DB.del('pages', m.id); await DB.del('audio', m.id); await DB.delPrefix('imgs', m.id + ':'); await DB.del('sync', 'n:' + m.id); Drive.tombstone('notes', m.id); Drive.schedule(3000); showLibrary(); }
+        if (ok) { await DB.del('notes', m.id); await DB.del('pages', m.id); await DB.del('audio', m.id); await DB.delPrefix('audio', m.id + ':'); await DB.delPrefix('imgs', m.id + ':'); await DB.del('sync', 'n:' + m.id); Drive.tombstone('notes', m.id); Drive.schedule(3000); showLibrary(); }
       } else if (v === 'dup') {
         const id = uid(); const pages = await DB.get('pages', m.id);
         if (pages && pages.pages) {   // copy each page image under the new note's id
@@ -1457,6 +1556,7 @@ function renderLibrary(all) {
           pages.pages = pages.pages.map(p => p.key ? { ...p, key: id + p.key.slice(m.id.length) } : p);
         }
         await DB.put('pages', id, pages); await DB.put('audio', id, await DB.get('audio', m.id));
+        for (const k of await DB.keysPrefix('audio', m.id + ':')) await DB.put('audio', id + k.slice(m.id.length), await DB.get('audio', k));
         await DB.put('notes', id, { ...m, folder: m.folder || null, id, title: (m.title || 'Untitled') + ' (copy)', created: Date.now(), updated: Date.now() }); showLibrary();
       }
     };
@@ -1561,12 +1661,13 @@ async function addOrChangeCover(change) {
   else insertPages(-1, [pg]);
 }
 async function createNote(title, pages, id = uid()) {
-  note = { id, title, created: Date.now(), updated: Date.now(), pages, strokes: [], audio: null, mime: '', duration: 0, folder: targetFolder() };
-  await savePages(); await saveAudio(); dirty = true; await flushSave();
+  note = { id, title, created: Date.now(), updated: Date.now(), pages, strokes: [], takes: [], folder: targetFolder() };
+  takeBlobs = new Map(); curTake = null;
+  await savePages(); dirty = true; await flushSave();
   showEditor();
 }
 async function openNote(id) {
-  const m = await DB.get('notes', id), p = await DB.get('pages', id), a = await DB.get('audio', id);
+  const m = await DB.get('notes', id), p = await DB.get('pages', id);
   if (!m || !p) { toast('That note could not be opened.'); return; }
   releaseImages();
   let pages = p.pages;
@@ -1576,7 +1677,9 @@ async function openNote(id) {
     pages = p.pages.map(pg => ({ key: keys[pg.s], w: pg.w, h: pg.h }));
     await DB.put('pages', id, { v: 2, pages });
   }
-  note = { ...m, pages, strokes: m.strokes || [], audio: a ? new Blob([a.buf], { type: a.mime }) : null };
+  const strokes = m.strokes || [], takes = await loadTakes(id, { ...m, strokes });
+  note = { ...m, pages, strokes, takes };
+  if (!m.takes) { dirty = true; await flushSave(); }   // finish moving a pre-0.12 note to multiple recordings
   showEditor();
 }
 function showEditor() {
@@ -1587,7 +1690,7 @@ function showEditor() {
   undoStack = []; redoStack = []; updUndo(); activeGroup = -1; loop = false; loopRange = null; $('#pLoop').classList.remove('on');
   audioEl.playbackRate = 1; $('#pSpeed').textContent = '1×'; $('#pSpeed').classList.remove('on');
   setTool(viewer ? 'play' : (tool === 'eraser' ? 'pen' : tool));
-  computeGroups(); buildPages(); setAudio(note.audio); $('#pages').scrollTop = 0;
+  computeGroups(); buildPages(); curTake = null; selectTake(note.takes[0] ? note.takes[0].id : null); $('#pages').scrollTop = 0;
 }
 
 /* ---------------- PDF / image templates ---------------- */
@@ -1695,8 +1798,8 @@ async function shareNote() {
   const data = {
     v: 1, title: note.title || 'Untitled', created: note.created, shared: Date.now(), lead,
     ...(await pagesForExport()),
-    strokes: note.strokes.map(({ id, page, tool, color, size, pts, t }) => ({ id, page, tool, color, size, pts, t })),
-    audio: note.audio ? await blobToDataURL(note.audio) : null, mime: note.mime || '', duration: note.duration || 0,
+    strokes: note.strokes.map(({ id, page, tool, color, size, pts, t, take }) => ({ id, page, tool, color, size, pts, t, take })),
+    takes: await Promise.all(note.takes.map(async t => ({ ...t, audio: await blobToDataURL(takeBlobs.get(t.id)) }))),
   };
   const json = JSON.stringify(data).replace(/</g, '\\u003c');
   let html = replaceScript(APP_SRC, 'builtin-templates', '[]');
@@ -1738,12 +1841,14 @@ async function pagesForExport() {
   return { srcs, pages };
 }
 async function dataToNote(d) {
-  let audio = null;
-  if (d.audio) audio = await dataURLtoBlob(d.audio);
+  takeBlobs = new Map(); curTake = null;
+  let takes = [];
+  if (d.takes) for (const t of d.takes) { const { audio, ...meta } = t; takeBlobs.set(t.id, await dataURLtoBlob(audio)); takes.push(meta); }
+  else if (d.audio) { takeBlobs.set('a1', await dataURLtoBlob(d.audio)); takes = [{ id: 'a1', label: '', mime: d.mime || '', duration: d.duration || 0, created: d.created || Date.now(), size: 0 }]; (d.strokes || []).forEach(s => { if (s.t != null && !s.take) s.take = 'a1'; }); }
   const id = uid(), keys = [];
   for (const src of d.srcs) { const k = `${id}:${uid()}`; await putImg(k, await dataURLtoBlob(src)); keys.push(k); }
   const pages = d.pages.map(p => ({ key: keys[p.s], w: p.w, h: p.h, ...(p.cover ? { cover: true } : {}) }));
-  return { id, title: d.title, created: d.created || Date.now(), updated: Date.now(), pages, strokes: d.strokes || [], audio, mime: d.mime || (audio && audio.type) || '', duration: d.duration || 0 };
+  return { id, title: d.title, created: d.created || Date.now(), updated: Date.now(), pages, strokes: d.strokes || [], takes };
 }
 $('#btnImport').onclick = () => { $('#fShared').value = ''; $('#fShared').click(); };
 $('#fShared').onchange = async e => {
@@ -1752,7 +1857,7 @@ $('#fShared').onchange = async e => {
     const txt = await f.text(); const tag = '<script id="shared-note" type="application/json">';
     const a = txt.indexOf(tag); if (a < 0) throw new Error('This file is not a shared Notation note.');
     const b = txt.indexOf('</' + 'script>', a); const d = JSON.parse(txt.slice(a + tag.length, b));
-    releaseImages(); note = await dataToNote(d); note.folder = targetFolder(); await savePages(); await saveAudio(); dirty = true; await flushSave(); showEditor();
+    releaseImages(); note = await dataToNote(d); note.folder = targetFolder(); await savePages(); await saveAllTakes(); dirty = true; await flushSave(); showEditor();
     toast('Added to your notebook.');
   } catch (err) { dialog({ title: 'Could not open that file', html: `<p>${esc(err.message || err)}</p>` }); }
 };
@@ -2059,6 +2164,7 @@ const Drive = (() => {
     return changed;
   }
   const safe = t => (t || 'Untitled').replace(/[\/\\]/g, '–').slice(0, 90);
+  const audioName = (noteName, n, ext) => `${noteName.slice(0, 60).trim()}_${String(n).padStart(2, '0')}.${ext}`;   // e.g. Sāmi ninne kōri_01.m4a, _02 …
   async function syncNotes(root, files, live) {
     const t = LS.get('drive.deleted', { notes: [], folders: [] });
     const metas = ((await DB.all('notes')) || []).filter(Boolean), L = new Map(metas.map(m => [m.id, m]));
@@ -2109,19 +2215,24 @@ const Drive = (() => {
       index = built.index; pdfAt = m.updated;
     } else if (rp.name !== name + '.pdf') await patch(rp.id, { name: name + '.pdf' });
     for (const k of kids) if (props(k).kind === 'page') await trash(k.id);   // tidy away page images from earlier versions
-    // ---- the recording
-    const a = await DB.get('audio', m.id), ra = kids.find(k => props(k).kind === 'audio');
-    if (a && a.buf) {
-      const asig = String(a.buf.byteLength);
-      if (!ra || props(ra).sig !== asig) {
-        const mime = a.mime || 'audio/mp4', ext = /webm/.test(mime) ? 'webm' : /ogg/.test(mime) ? 'ogg' : /mpeg|mp3/.test(mime) ? 'mp3' : /wav/.test(mime) ? 'wav' : 'm4a';
-        const blob = new Blob([a.buf], { type: mime });
-        if (ra) await upload(blob, { appProperties: { sig: asig } }, ra.id);
-        else await upload(blob, { name: 'recording.' + ext, parents: [folder.id], appProperties: { notation: '1', kind: 'audio', nid: m.id, sig: asig } });
+    // ---- the recordings: <note>_01.m4a, _02 … numbered by their order in the note
+    const meta = m.takes || [], remoteA = kids.filter(k => props(k).kind === 'audio'), keep = new Set();
+    for (let i = 0; i < meta.length; i++) {
+      const t = meta[i], ext = /webm/.test(t.mime) ? 'webm' : /ogg/.test(t.mime) ? 'ogg' : /mpeg|mp3/.test(t.mime) ? 'mp3' : /wav/.test(t.mime) ? 'wav' : 'm4a';
+      const want = audioName(name, i + 1, ext);
+      let ra = remoteA.find(k => props(k).take === t.id) || (t.id === 'a1' ? remoteA.find(k => !props(k).take) : null);   // files from before 0.12 belong to the first recording
+      if (!ra) {
+        const rec = await DB.get('audio', m.id + ':' + t.id); if (!rec || !rec.buf) continue;
+        const f = await upload(new Blob([rec.buf], { type: rec.mime || t.mime }), { name: want, parents: [folder.id], appProperties: { notation: '1', kind: 'audio', nid: m.id, take: t.id, sig: String(rec.buf.byteLength) } });
+        keep.add(f.id);
+      } else {
+        keep.add(ra.id);
+        if (ra.name !== want || props(ra).take !== t.id) await patch(ra.id, { name: want, appProperties: { take: t.id } });   // follows renames and re-ordering
       }
-    } else if (ra) await trash(ra.id);
+    }
+    for (const k of remoteA) if (!keep.has(k.id)) await trash(k.id);
     // ---- ink, bookmarks and details (small; always current)
-    const data = { v: 2, id: m.id, title: m.title, folder: m.folder || null, created: m.created, updated: m.updated, pages, strokes: m.strokes || [], duration: m.duration || 0, mime: m.mime || '', bm: m.bm || 0, thumb: m.thumb || '', pdf: index, pdfAt };
+    const data = { v: 3, id: m.id, title: m.title, folder: m.folder || null, created: m.created, updated: m.updated, pages, strokes: m.strokes || [], takes: m.takes || [], duration: m.duration || 0, bm: m.bm || 0, thumb: m.thumb || '', pdf: index, pdfAt };
     const jb = new Blob([JSON.stringify(data)], { type: 'application/json' }), jf = kids.find(k => props(k).kind === 'json');
     if (jf) await upload(jb, {}, jf.id); else await upload(jb, { name: 'note.json', parents: [folder.id], appProperties: { notation: '1', kind: 'json', nid: m.id } });
     await patch(folder.id, { appProperties: { updated: String(m.updated) } });   // written last: marks the note as complete
@@ -2148,15 +2259,28 @@ const Drive = (() => {
       }
     }
     const pages = data.pages.map(p => ({ ...p, key: rekey(p.key) }));
-    const af = kids.find(k => props(k).kind === 'audio');
-    if (af) { const la = await DB.get('audio', id); if (!la || !la.buf || String(la.buf.byteLength) !== props(af).sig) { const b = await download(af.id); await DB.put('audio', id, { buf: await b.arrayBuffer(), mime: data.mime || b.type }); } }
-    else await DB.put('audio', id, null);
+    const remoteA = kids.filter(k => props(k).kind === 'audio');
+    let takes = data.takes;
+    if (!takes) {   // a note synced before 0.12: one recording
+      takes = remoteA.length ? [{ id: 'a1', label: '', mime: data.mime || 'audio/mp4', duration: data.duration || 0, created: data.created || Date.now(), size: 0 }] : [];
+      (data.strokes || []).forEach(s => { if (s.t != null && !s.take) s.take = 'a1'; });
+    }
+    const have = new Set();
+    for (const t of takes) {
+      const f = remoteA.find(k => props(k).take === t.id) || (t.id === 'a1' ? remoteA.find(k => !props(k).take) : null); if (!f) continue;
+      const key = id + ':' + t.id, la = await DB.get('audio', key);
+      if (!la || !la.buf || (props(f).sig && String(la.buf.byteLength) !== props(f).sig)) { const b = await download(f.id); await DB.put('audio', key, { buf: await b.arrayBuffer(), mime: t.mime || b.type }); }
+      have.add(t.id);
+    }
+    takes = takes.filter(t => have.has(t.id));
+    for (const k of await DB.keysPrefix('audio', id + ':')) if (!have.has(k.slice(id.length + 1))) await DB.del('audio', k);
+    await DB.del('audio', id);
     await DB.put('pages', id, { v: 2, pages });
-    const meta = { id, folder: data.folder || null, title: data.title, created: data.created, updated: asCopy ? Date.now() : data.updated, strokes: data.strokes || [], duration: data.duration || 0, mime: data.mime || '', hasAudio: !!af, pageCount: pages.length, bm: data.bm || 0, thumb: data.thumb || '' };
+    const meta = { id, folder: data.folder || null, title: data.title, created: data.created, updated: asCopy ? Date.now() : data.updated, strokes: data.strokes || [], takes, duration: takes.reduce((a, t) => a + (t.duration || 0), 0), mime: '', hasAudio: takes.length > 0, pageCount: pages.length, bm: data.bm || 0, thumb: data.thumb || '' };
     await DB.put('notes', id, meta);
     if (!asCopy) await DB.put('sync', 'n:' + id, { synced: data.updated, pdfSig: data.pages.map(p => p.key).join(','), pdfAt: data.pdfAt, pdfIndex: data.pdf || null });
   }
-  async function removeLocal(id) { await DB.del('notes', id); await DB.del('pages', id); await DB.del('audio', id); await DB.delPrefix('imgs', id + ':'); await DB.del('sync', 'n:' + id); }
+  async function removeLocal(id) { await DB.del('notes', id); await DB.del('pages', id); await DB.del('audio', id); await DB.delPrefix('audio', id + ':'); await DB.delPrefix('imgs', id + ':'); await DB.del('sync', 'n:' + id); }
 
   /* ---- settings panel ---- */
   async function openPanel() {
@@ -2211,7 +2335,7 @@ function openSettings() {
       <li><b>To practise</b>, tap any mark with your finger (or choose the Point tool) to hear that passage. Loop repeats it up to the next bookmark, and you can slow it to 0.75× or 0.5×.</li>
       <li><b>As a teacher</b>, import or record the audio, play it back, and draw marks as you listen. Then use Share to send a single file that plays everything.</li>
     </ol></div>
-    <p style="color:var(--muted);font-size:13px;margin-top:14px">Notation 0.10 · © 2026 Lakshmi Ganesan. All rights reserved. Notes are stored on this device.</p>`;
+    <p style="color:var(--muted);font-size:13px;margin-top:14px">Notation 0.12 · © 2026 Lakshmi Ganesan. All rights reserved. Notes are stored on this device.</p>`;
   box.querySelector('#sLead').onclick = e => { const b = e.target.closest('button'); if (!b) return; lead = +b.dataset.v; $$('#sLead button').forEach(x => x.classList.toggle('on', x === b)); if (loop) setLoopFromTime(audioEl.currentTime); };
   const sf = box.querySelector('#sFing'); if (sf) sf.onclick = e => { const b = e.target.closest('button'); if (!b) return; if (!!+b.dataset.v !== fingers) $('#tFingers').click(); $$('#sFing button').forEach(x => x.classList.toggle('on', x === b)); };
   dialog({ title: 'Settings', node: box, actions: [{ label: 'Done', value: true, primary: true }] });

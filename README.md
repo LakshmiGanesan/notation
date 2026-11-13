@@ -20,7 +20,8 @@ The same approach works for chants and ślokas: bring in the script as a PDF, re
 - **Colour:** five built-in colours plus your own palette, with a colour picker and an eyedropper that picks any colour from the page.
 - **Highlighter, eraser, undo and redo.** Apple Pencil writes, and fingers scroll and tap.
 - **Lasso:** select ink freehand or with a rectangle, then move, copy, cut, duplicate, recolour or delete it. Paste works across pages and notes. On a Mac, ⌘C, ⌘X, ⌘V, ⌘D and Delete work too.
-- **Audio bookmarks:** anything you draw while recording, or while a recording plays, is linked to that moment.
+- **Several recordings per note:** record each class, or add audio files edited elsewhere. Name them, put them in order, and they can play one after another. In Drive they're saved as *Title_01*, *Title_02*… in that order.
+- **Audio bookmarks:** anything you draw while recording, or while a recording plays, is linked to that moment in that recording.
 - **Point tool:** tap any linked mark (pen, calligraphy or highlighter) to play from that moment. Tap ink written before class to link it to wherever the recording is now.
 - **Practice:** tap-to-play with a short lead-in, loop a passage, slow down to 0.75× or 0.5×, or speed up to 2× or 3×, and follow along as the page scrolls. Jumping to a bookmark from the list or the timeline turns straight to its page.
 - **Templates:** Ādi, Rūpaka, Miśra Chāpu, Khaṇḍa Chāpu, Viloma Chāpu, Tisra Triputa, Khaṇḍa Triputa, Miśra Jhampa, and a plain grid.
@@ -56,7 +57,8 @@ Notation/
 │       └── Sami ninne kori/
 │           ├── Sami ninne kori.pdf  (every page with your ink: readable anywhere)
 │           ├── note.json            (ink, bookmarks and details, kept editable)
-│           └── recording.m4a
+│           ├── Sami ninne kori_01.m4a  (recordings, numbered in the order you set)
+│           └── Sami ninne kori_02.m4a
 ├── Chants/
 └── library.json                 (your folders)
 ```
