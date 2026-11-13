@@ -29,6 +29,7 @@ The same approach works for chants and ślokas: bring in the script as a PDF, re
   - *Covers & dividers:* 22 hand-printed textile designs, each with a label holder for the title.
   - *Index & trackers:* Song details, an Index of the compositions in a notebook, and a three-month Practice tracker for class and practice days.
 - **Your own designs:** add any PDF or image to any library. A new note guides you through a notation template and a cover; after that, add pages from any library, or from your own files, wherever you like.
+- **Page sidebar:** open the panel beside the back button to see every page of a notebook as a thumbnail with your ink. Tap one to go there, star pages (☆) and show only starred ones, and name pages (✎) such as *Pallavi* or *Index*, so the sidebar reads like a table of contents. Stars and names sync through Drive, and shared players show the names too.
 - **Notation books:** import a PDF of any length, or a set of photos and scans, then add, move or remove pages.
 - **Folders:** Music and Chants come built in, with one level of subfolders.
 - **Share links:** publish a note as a view-only player at its own web address, with one tap. Listeners see your pages and ink, hear every recording and tap a mark to hear that passage, in any browser and without the app. You can also share a PDF of the pages, or download the player as a single file.
@@ -113,7 +114,7 @@ On the first visit of each quarter (1 January, 1 April, 1 July and 1 October, fr
 
 ## Updates
 
-The version shows at the top of the library (for example **v0.18**). Notation checks for a newer version when it opens, when you return to it, and every half hour; when there is one, the label turns saffron and reads **Update to …**. Tap it to load the newest version straight away. Your notes, recordings, folders and Drive connection are kept. **Settings → Check for updates** does the same.
+The version shows at the top of the library (for example **v0.19**). Notation checks for a newer version when it opens, when you return to it, and every half hour; when there is one, the label turns saffron and reads **Update to …**. Tap it to load the newest version straight away. Your notes, recordings, folders and Drive connection are kept. **Settings → Check for updates** does the same.
 
 ## Status
 
