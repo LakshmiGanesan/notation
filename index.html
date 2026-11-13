@@ -94,6 +94,8 @@ input[type=text]{font:inherit;color:inherit;-webkit-user-select:text;user-select
 .grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(250px,1fr));gap:18px}
 .card{background:var(--card);border:1px solid var(--line);border-radius:16px;overflow:hidden;position:relative;transition:transform .15s,box-shadow .15s;cursor:pointer}
 .card:hover{transform:translateY(-2px);box-shadow:0 10px 24px -14px rgba(20,24,46,.35)}
+.card .sharedbadge{position:absolute;top:8px;left:8px;display:inline-flex;align-items:center;gap:5px;padding:4px 10px 4px 7px;border:0;border-radius:999px;background:#c8641e;color:#fff;font:600 12px/1.2 inherit;font-family:inherit;box-shadow:0 1px 4px rgba(0,0,0,.18);cursor:pointer}
+.card .sharedbadge svg{width:14px;height:14px}
 .card .thumb{aspect-ratio:2388/1668;background:#fff center/cover no-repeat;border-bottom:1px solid var(--line)}
 .card .meta{padding:12px 14px 14px}
 .card .title{font-family:var(--serif);font-weight:500;font-size:18px;margin:0 0 6px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
@@ -259,6 +261,9 @@ body.fingers .page canvas.fx{touch-action:none}
 
 /* viewer mode (shared file) */
 body.viewer .edit-only{display:none!important}
+.sharelink{word-break:break-all;background:var(--paper,#f6f3ec);border-radius:10px;padding:10px 12px;font-size:15px;margin:6px 0 10px}
+.sharelink a{color:inherit}
+.sharerow{display:flex;gap:10px;align-items:center}.sharerow .sharelink{flex:1;margin:6px 0}
 .viewer-only{display:none}
 body.viewer .viewer-only{display:inline-flex}
 .vtitle{font-family:var(--serif);font-weight:500;font-size:19px;padding:0 8px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
@@ -281,7 +286,7 @@ body.viewer .viewer-only{display:inline-flex}
       <p class="tagline">Write your notation, record the lesson, and let every mark sing back.</p>
     </div>
     <div class="lib-actions">
-      <button class="btn verchip" id="verChip" title="Notation version · tap to check for updates">v0.15</button>
+      <button class="btn verchip" id="verChip" title="Notation version · tap to check for updates">v0.16</button>
       <button class="btn drivechip" id="driveChip" title="Google Drive sync"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M7 18h10.5a4.5 4.5 0 0 0 .6-8.96A6 6 0 0 0 6.6 9.2 4.4 4.4 0 0 0 7 18z"/></svg><span>Google Drive</span></button>
       <button class="btn" id="btnLib" title="Notation templates and covers"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="7" height="16" rx="1.5"/><rect x="12" y="4" width="4" height="16" rx="1"/><path d="M18 5.5l3 .8-3.6 13.4-3-.8"/></svg>Templates</button>
       <button class="btn" id="btnImport" title="Open a shared .html note"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v12m0 0-4-4m4 4 4-4"/><path d="M4 17v2a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-2"/></svg>Open shared note</button>
@@ -709,7 +714,8 @@ function audioDur() { const d = audioEl.duration; if (isFinite(d) && d > 0) retu
 function setAudio(blob) {
   if (audioURL) URL.revokeObjectURL(audioURL);
   audioURL = null; audioEl.pause();
-  if (blob) { audioURL = URL.createObjectURL(blob); audioEl.src = audioURL; audioEl.load(); }
+  if (typeof blob === 'string') { audioEl.src = blob; audioEl.load(); }   // published player: streams from the site
+  else if (blob) { audioURL = URL.createObjectURL(blob); audioEl.src = audioURL; audioEl.load(); }
   else { audioEl.removeAttribute('src'); audioEl.load(); }
   updatePlayer();
 }
@@ -1396,7 +1402,7 @@ function scheduleSave() { if (viewer || !note) return; dirty = true; clearTimeou
 async function flushSave() {
   clearTimeout(saveTimer); if (viewer || !note || !dirty) return; dirty = false;
   note.updated = Date.now();
-  const meta = { id: note.id, folder: note.folder || null, title: note.title, created: note.created, updated: note.updated, strokes: note.strokes, takes: note.takes || [], duration: (note.takes || []).reduce((a, t) => a + (t.duration || 0), 0), mime: '', hasAudio: hasAudio(), pageCount: note.pages.length, bm: groups.length, thumb: await makeThumb() };
+  const meta = { id: note.id, folder: note.folder || null, title: note.title, created: note.created, updated: note.updated, strokes: note.strokes, takes: note.takes || [], duration: (note.takes || []).reduce((a, t) => a + (t.duration || 0), 0), mime: '', hasAudio: hasAudio(), pageCount: note.pages.length, bm: groups.length, thumb: await makeThumb(), ...(note.share ? { share: note.share } : {}) };
   await DB.put('notes', note.id, meta);
   Drive.schedule();
 }
@@ -1541,13 +1547,15 @@ function renderLibrary(all) {
   for (const m of metas) {
     const c = document.createElement('div'); c.className = 'card';
     c.innerHTML = `<div class="thumb" style="background-image:url(${m.thumb || ''})"></div>
+      ${m.share ? `<button class="sharedbadge" title="Shared publicly · tap to copy the link"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M3 12h18M12 3c2.5 2.6 3.8 5.6 3.8 9s-1.3 6.4-3.8 9c-2.5-2.6-3.8-5.6-3.8-9S9.5 5.6 12 3z"/></svg>Shared</button>` : ''}
       <div class="meta"><p class="title">${esc(m.title || 'Untitled')}</p>
       <div class="sub"><span>${new Date(m.updated).toLocaleDateString(undefined, { day: 'numeric', month: 'short', year: 'numeric' })}</span>
       ${m.hasAudio ? `<span class="chip"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M9 18V6l10-2v12"/><circle cx="6.5" cy="18" r="2.5"/><circle cx="16.5" cy="16" r="2.5"/></svg>${fmt(m.duration)}</span>` : ''}
       ${m.bm ? `<span class="chip"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M6 3h12v18l-6-4-6 4z"/></svg>${m.bm}</span>` : ''}
       <span>${m.pageCount} page${m.pageCount === 1 ? '' : 's'}</span></div></div>
       <button class="more" title="Options"><svg viewBox="0 0 24 24" fill="currentColor"><circle cx="5" cy="12" r="1.8"/><circle cx="12" cy="12" r="1.8"/><circle cx="19" cy="12" r="1.8"/></svg></button>`;
-    c.onclick = e => { if (e.target.closest('.more')) return; openNote(m.id); };
+    c.onclick = e => { if (e.target.closest('.more') || e.target.closest('.sharedbadge')) return; openNote(m.id); };
+    if (m.share) c.querySelector('.sharedbadge').onclick = e => { e.stopPropagation(); copyLink(m.share.url); };
     c.querySelector('.more').onclick = async e => {
       e.stopPropagation();
       const v = await dialog({ title: m.title || 'Untitled', html: '<p>What would you like to do with this note?</p>', actions: [{ label: 'Cancel', value: null }, { label: 'Move to folder…', value: 'move' }, { label: 'Duplicate', value: 'dup' }, { label: 'Delete', value: 'del', danger: true }] });
@@ -1563,7 +1571,7 @@ function renderLibrary(all) {
         }
         await DB.put('pages', id, pages); await DB.put('audio', id, await DB.get('audio', m.id));
         for (const k of await DB.keysPrefix('audio', m.id + ':')) await DB.put('audio', id + k.slice(m.id.length), await DB.get('audio', k));
-        await DB.put('notes', id, { ...m, folder: m.folder || null, id, title: (m.title || 'Untitled') + ' (copy)', created: Date.now(), updated: Date.now() }); showLibrary();
+        await DB.put('notes', id, { ...m, folder: m.folder || null, id, title: (m.title || 'Untitled') + ' (copy)', created: Date.now(), updated: Date.now(), share: undefined }); showLibrary();
       }
     };
     if (curFolder === 'all' && m.folder && folderById(m.folder)) { const tag = document.createElement('span'); tag.className = 'chip'; tag.textContent = folderPath(m.folder); c.querySelector('.sub').appendChild(tag); }
@@ -1794,35 +1802,196 @@ function replaceScript(src, id, content) {
   const tag = `<script id="${id}" type="application/json">`; const a = src.indexOf(tag); if (a < 0) return src;
   const b = src.indexOf('</' + 'script>', a + tag.length); return src.slice(0, a + tag.length) + content + src.slice(b);
 }
+/* ================= Sharing: a view-only player at a public link =================
+   Notation commits the player into the public "notation" repository on GitHub, under shared/<name>/.
+   GitHub Pages then serves it at https://lakshmiganesan.github.io/notation/shared/<name>/ :
+   the pages and ink, every recording and bookmark, and nothing that can write or record. */
+const Publish = (() => {
+  const GH = 'https://api.github.com', REPO = 'LakshmiGanesan/notation', BRANCH = 'main';
+  const cfg = () => LS.get('github', {}), token = () => cfg().token || '';
+  const siteBase = () => `https://${REPO.split('/')[0].toLowerCase()}.github.io/${REPO.split('/')[1]}/`;
+  const urlFor = slug => siteBase() + 'shared/' + slug + '/';
+  async function api(path, opts = {}) {
+    const r = await fetch(GH + path, { ...opts, headers: { Authorization: 'Bearer ' + token(), Accept: 'application/vnd.github+json', 'X-GitHub-Api-Version': '2022-11-28', ...(opts.body ? { 'Content-Type': 'application/json' } : {}), ...(opts.headers || {}) } });
+    if (r.status === 404 && opts.allow404) return null;
+    if (!r.ok) {
+      let msg = ''; try { msg = (await r.json()).message || ''; } catch (e) { }
+      const why = r.status === 401 ? 'GitHub did not accept the access token. It may have expired: make a new one and paste it in Settings → Share links.'
+        : r.status === 403 || r.status === 404 ? `The token can't write to ${REPO}. Check that it lists this repository with Contents set to Read and write.`
+        : `GitHub replied ${r.status}${msg ? ': ' + msg : ''}.`;
+      throw Object.assign(new Error(why), { status: r.status });
+    }
+    return r.status === 204 ? null : r.json();
+  }
+  const b64 = async blob => (await blobToDataURL(blob)).split(',')[1];
+  // Readable web addresses: "Sāmi ninne kōri" → sami-ninne-kori. Titles in other scripts keep a short code.
+  function slugFor(m) {
+    const s = (m.title || '').normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '').slice(0, 60).replace(/-+$/, '');
+    return s.length >= 3 ? s : 'note-' + m.id.slice(-6).toLowerCase().replace(/[^a-z0-9]/g, 'x');
+  }
+  const extFor = type => /png/.test(type) ? 'png' : /webp/.test(type) ? 'webp' : /jpe?g/.test(type) ? 'jpg' : /gif/.test(type) ? 'gif' : /webm/.test(type) ? 'webm' : /ogg/.test(type) ? 'ogg' : /mpeg|mp3/.test(type) ? 'mp3' : /wav/.test(type) ? 'wav' : /mp4|m4a|aac/.test(type) ? 'm4a' : 'bin';
+  async function listFolder(path) { const r = await api(`/repos/${REPO}/contents/${path}?ref=${BRANCH}`, { allow404: true }); return Array.isArray(r) ? r : []; }
+  // One commit that writes `files` ({path, blob}) and removes `remove` (paths). Retries if the branch moved meanwhile.
+  async function commit(message, files, remove) {
+    const blobs = [];
+    for (const f of files) { const r = await api(`/repos/${REPO}/git/blobs`, { method: 'POST', body: JSON.stringify({ content: await b64(f.blob), encoding: 'base64' }) }); blobs.push({ path: f.path, mode: '100644', type: 'blob', sha: r.sha }); }
+    const keep = new Set(files.map(f => f.path));
+    const tree = blobs.concat(remove.filter(p => !keep.has(p)).map(p => ({ path: p, mode: '100644', type: 'blob', sha: null })));
+    for (let attempt = 0; ; attempt++) {
+      const ref = await api(`/repos/${REPO}/git/ref/heads/${BRANCH}`), head = ref.object.sha;
+      const base = await api(`/repos/${REPO}/git/commits/${head}`);
+      const t = await api(`/repos/${REPO}/git/trees`, { method: 'POST', body: JSON.stringify({ base_tree: base.tree.sha, tree }) });
+      const c = await api(`/repos/${REPO}/git/commits`, { method: 'POST', body: JSON.stringify({ message, tree: t.sha, parents: [head] }) });
+      try { await api(`/repos/${REPO}/git/refs/heads/${BRANCH}`, { method: 'PATCH', body: JSON.stringify({ sha: c.sha }) }); return; }
+      catch (e) { if (e.status !== 422 || attempt >= 2) throw e; }
+    }
+  }
+  async function publish(m, progress) {
+    let slug = (m.share && m.share.slug) || slugFor(m);
+    if (!m.share) {   // a new link: don't take over another note's address
+      for (let n = 2; ; n++) {
+        const there = await listFolder('shared/' + slug); if (!there.length) break;
+        slug = slugFor(m) + '-' + n;
+      }
+    }
+    const dir = 'shared/' + slug + '/', files = [];
+    progress('Preparing pages…');
+    const idx = new Map(), pages = [];
+    for (const p of m.pages) {
+      if (!idx.has(p.key)) { const b = await getBlob(p.key); const f = `page-${String(idx.size + 1).padStart(2, '0')}.${extFor(b.type)}`; idx.set(p.key, f); files.push({ path: dir + f, blob: b }); }
+      pages.push({ s: [...idx.keys()].indexOf(p.key), w: p.w, h: p.h, ...(p.cover ? { cover: true } : {}) });
+    }
+    const takes = [];
+    m.takes.forEach((t, i) => {
+      const b = takeBlobs.get(t.id); if (!b) return;
+      const f = `recording-${takeNo(i)}.${extFor(b.type || t.mime)}`;
+      files.push({ path: dir + f, blob: b }); takes.push({ ...t, label: takeName(m, i), audio: f });
+    });
+    const big = files.find(f => f.blob.size > 95 * 1048576);
+    if (big) throw new Error(`${big.path.split('/').pop()} is ${(big.blob.size / 1048576).toFixed(0)} MB. GitHub accepts files up to 100 MB, so split or compress this recording first.`);
+    const data = { v: 1, title: m.title || 'Untitled', created: m.created, shared: Date.now(), lead, srcs: [...idx.values()], pages, strokes: m.strokes.map(({ id, page, tool, color, size, pts, t, take }) => ({ id, page, tool, color, size, pts, t, take })), takes };
+    let html = replaceScript(APP_SRC, 'builtin-templates', '[]');
+    html = replaceScript(html, 'shared-note', JSON.stringify(data).replace(/</g, '\\u003c'));
+    html = html.replace('<link rel="manifest" href="manifest.webmanifest">', '<meta name="robots" content="noindex, nofollow">')
+      .replace(/<title>[^<]*<\/title>/, `<title>${esc(data.title)} · Notation</title>`);
+    files.unshift({ path: dir + 'index.html', blob: new Blob([html], { type: 'text/html' }) });
+    const old = (await listFolder('shared/' + slug)).filter(f => f.type === 'file').map(f => f.path);
+    const mb = files.reduce((a, f) => a + f.blob.size, 0) / 1048576;
+    progress(`Uploading ${mb.toFixed(1)} MB to GitHub…`);
+    await commit(`${m.share ? 'Update' : 'Share'}: ${data.title}`, files, old);
+    return { slug, url: urlFor(slug), at: Date.now() };
+  }
+  async function unpublish(share) {
+    const old = (await listFolder('shared/' + share.slug)).filter(f => f.type === 'file').map(f => f.path);
+    if (old.length) await commit(`Stop sharing: ${share.slug}`, [], old);
+  }
+  // GitHub Pages takes a minute or so to put a new commit online.
+  async function waitLive(url, onTick, ms = 180000) {
+    const t0 = Date.now();
+    while (Date.now() - t0 < ms) {
+      try { const r = await fetch(url + '?check=' + Date.now(), { cache: 'no-store' }); if (r.ok) return true; } catch (e) { }
+      onTick && onTick(Math.round((Date.now() - t0) / 1000)); await new Promise(r => setTimeout(r, 5000));
+    }
+    return false;
+  }
+  async function setup(then) {
+    const box = document.createElement('div');
+    box.innerHTML = `<p style="margin-top:0">Notation puts each shared player in your <b>notation</b> repository on GitHub, in a folder called <b>shared</b>, and gives you its link. To do that it needs a GitHub access token that can write to that one repository.</p>
+      <ol style="padding-left:20px;font-size:14px;line-height:1.5">
+        <li>On GitHub, open <b>Settings → Developer settings → Personal access tokens → Fine-grained tokens</b> and choose <b>Generate new token</b>.</li>
+        <li>Name it <i>Notation sharing</i> and pick an expiry (a year is fine).</li>
+        <li>Under <b>Repository access</b>, choose <b>Only select repositories</b> → <b>${REPO}</b>.</li>
+        <li>Under <b>Permissions → Repository permissions</b>, set <b>Contents</b> to <b>Read and write</b>.</li>
+        <li>Generate the token, copy it, and paste it here.</li>
+      </ol>
+      <input class="tinput" id="ghTok" type="password" spellcheck="false" autocapitalize="off" autocomplete="off" placeholder="github_pat_…" value="${esc(token())}" style="font-size:14px;margin:6px 0 8px">
+      <p style="color:var(--muted);font-size:13px;margin:0">The token stays on this device only; it is never put into your Drive or into anything you share. Each device that shares needs it once.</p>`;
+    const acts = [{ label: 'Cancel', value: null }].concat(token() ? [{ label: 'Remove token', value: 'off', danger: true }] : []).concat([{ label: 'Save', value: 'go', primary: true }]);
+    const v = await dialog({ title: 'Share links', node: box, actions: acts });
+    if (v === 'off') { LS.set('github', {}); toast('Token removed from this device.'); return false; }
+    if (v !== 'go') return false;
+    const tk = box.querySelector('#ghTok').value.trim(); if (!tk) return false;
+    const prev = cfg(); LS.set('github', { token: tk });
+    try {
+      const r = await api(`/repos/${REPO}`);
+      if (r.permissions && !r.permissions.push) throw new Error(`This token can read ${REPO} but not write to it. Set Contents to Read and write.`);
+      toast('Share links are ready.'); if (then) then(); return true;
+    } catch (e) { LS.set('github', prev); await dialog({ title: 'That token didn’t work', html: `<p>${esc(e.message)}</p>` }); return false; }
+  }
+  return { publish, unpublish, waitLive, setup, ready: () => !!token(), urlFor, slugFor };
+})();
+
+async function copyLink(url) {
+  try { await navigator.clipboard.writeText(url); toast('Link copied.'); }
+  catch (e) { await promptText('Copy this link', url, '', 'Done'); }
+}
 async function shareNote() {
   if (rec) { toast('Stop recording before sharing.'); return; }
   await flushSave();
   const how = await dialog({ title: 'Share this note', html: '<p style="margin-top:0">Choose what to share.</p>', actions: [{ label: 'Cancel', value: null }, { label: 'PDF of the pages', value: 'pdf' }, { label: 'Interactive player', value: 'player', primary: true }] });
   if (how === 'pdf') return savePdf();
-  if (how !== 'player') return;
-  toast('Preparing your shared note…', 6000);
+  if (how === 'player') return sharePlayer();
+}
+async function sharePlayer() {
+  const sh = note.share, stale = sh && note.updated - sh.at > 3000;   // edited since it was published
+  const box = document.createElement('div');
+  box.innerHTML = sh
+    ? `<p style="margin-top:0">This note is shared at:</p>
+       <div class="sharerow"><p class="sharelink"><a href="${esc(sh.url)}" target="_blank" rel="noopener">${esc(sh.url)}</a></p><button class="btn" data-copy>Copy link</button></div>
+       <p style="color:var(--muted);font-size:14px">${stale ? 'You have changed the note since it was shared. <b>Update</b> to put the latest version at the same link.' : 'The link shows the latest version of this note.'} Anyone with the link can open it, see the pages with your ink, and tap a mark to hear that passage. It's view-only.</p>`
+    : `<p style="margin-top:0">Notation will publish a view-only player of this note (the pages with your ink, every recording and bookmark) and give you a link.</p>
+       <p style="color:var(--muted);font-size:14px">Anyone with the link can open it. Listeners can play, loop and change the speed, but can't write, change or record anything.</p>`;
+  const acts = sh
+    ? [{ label: 'Stop sharing', value: 'stop', danger: true }, { label: 'Download file', value: 'file' }].concat(stale ? [{ label: 'Close', value: null }, { label: 'Update', value: 'pub', primary: true }] : [{ label: 'Done', value: null, primary: true }])
+    : [{ label: 'Cancel', value: null }, { label: 'Download file', value: 'file' }, { label: 'Publish link', value: 'pub', primary: true }];
+  const cp = box.querySelector('[data-copy]'); if (cp) cp.onclick = () => copyLink(sh.url);
+  const v = await dialog({ title: 'Share the player', node: box, actions: acts });
+  if (v === 'file') return downloadPlayer();
+  if (v === 'stop') return stopSharing();
+  if (v !== 'pub') return;
+  if (!Publish.ready() && !(await Publish.setup())) return;
+  const id = note.id;
+  let share;
+  try { share = await Publish.publish(note, msg => toast(msg, 60000)); }
+  catch (e) { $('#toast').classList.remove('show'); dialog({ title: 'Could not publish', html: `<p>${esc(e.message || e)}</p>` }); return; }
+  if (!note || note.id !== id) return;
+  note.share = share; dirty = true; await flushSave();
+  toast('Published. GitHub is putting it online…', 4000);
+  const done = document.createElement('div');
+  done.innerHTML = `<p style="margin-top:0">Your player is published at:</p><p class="sharelink"><a href="${esc(share.url)}" target="_blank" rel="noopener">${esc(share.url)}</a></p><p id="liveMsg" style="color:var(--muted);font-size:14px">GitHub usually takes about a minute to put it online. You can copy the link now.</p>`;
+  const live = Publish.waitLive(share.url, s => { const el = done.querySelector('#liveMsg'); if (el) el.textContent = `Putting it online… ${s} s`; })
+    .then(ok => { const el = done.querySelector('#liveMsg'); if (el) el.innerHTML = ok ? '<b>The link is live.</b> Anyone with it can open the player.' : 'GitHub is taking longer than usual. The link will work shortly.'; });
+  const canShare = !!navigator.share;
+  const w = await dialog({ title: 'Shared', node: done, actions: [{ label: 'Done', value: null }].concat(canShare ? [{ label: 'Share…', value: 'share' }] : []).concat([{ label: 'Copy link', value: 'copy', primary: true }]) });
+  if (w === 'copy') copyLink(share.url);
+  else if (w === 'share') navigator.share({ title: note ? note.title : 'Notation', url: share.url }).catch(() => { });
+  void live;
+}
+async function stopSharing() {
+  const sh = note.share;
+  const ok = await dialog({ title: 'Stop sharing?', html: `<p>The link <b>${esc(sh.url)}</b> stops working within a minute or two, and the player is removed from the <b>shared</b> folder on GitHub.</p><p style="color:var(--muted);font-size:14px">Your note isn't changed. GitHub keeps a record of past versions in the repository's history, as it does for every change.</p>`, actions: [{ label: 'Cancel', value: false }, { label: 'Stop sharing', value: true, danger: true }] });
+  if (!ok) return;
+  if (!Publish.ready() && !(await Publish.setup())) return;
+  try { toast('Removing…', 30000); await Publish.unpublish(sh); }
+  catch (e) { $('#toast').classList.remove('show'); dialog({ title: 'Could not stop sharing', html: `<p>${esc(e.message || e)}</p>` }); return; }
+  delete note.share; dirty = true; await flushSave(); toast('Sharing stopped.');
+}
+async function downloadPlayer() {
+  toast('Preparing the file…', 6000);
   const data = {
     v: 1, title: note.title || 'Untitled', created: note.created, shared: Date.now(), lead,
     ...(await pagesForExport()),
     strokes: note.strokes.map(({ id, page, tool, color, size, pts, t, take }) => ({ id, page, tool, color, size, pts, t, take })),
-    takes: await Promise.all(note.takes.map(async t => ({ ...t, audio: await blobToDataURL(takeBlobs.get(t.id)) }))),
+    takes: await Promise.all(note.takes.map(async (t, i) => ({ ...t, label: takeName(note, i), audio: await blobToDataURL(takeBlobs.get(t.id)) }))),
   };
-  const json = JSON.stringify(data).replace(/</g, '\\u003c');
   let html = replaceScript(APP_SRC, 'builtin-templates', '[]');
-  html = replaceScript(html, 'shared-note', json);
+  html = replaceScript(html, 'shared-note', JSON.stringify(data).replace(/</g, '\\u003c'));
   const name = (note.title || 'notation').replace(/[^\p{L}\p{N}]+/gu, '-').replace(/^-|-$/g, '').toLowerCase() || 'notation';
   const file = new File([html], name + '.html', { type: 'text/html' });
   $('#toast').classList.remove('show');
-  const mb = (file.size / 1048576).toFixed(1);
   const canShare = navigator.canShare && navigator.canShare({ files: [file] });
-  const v = await dialog({
-    title: 'Share this note',
-    html: `<p>Notation made <b>${esc(file.name)}</b> (${mb} MB). It's a single file that holds the notation, the recording and every bookmark. Anyone can open it in a browser, see your page, and tap a mark to hear that passage. They don't need the app.</p>
-      <p style="color:var(--muted);font-size:14px">To share a <b>link</b>, upload the file to your GitHub Pages site (the same place as Samam). Anyone with the link can then open it. Private sharing with chosen people comes in the next stage, with accounts.</p>`,
-    actions: [{ label: 'Close', value: null }, { label: 'Download', value: 'dl' }].concat(canShare ? [{ label: 'Share…', value: 'share', primary: true }] : []),
-  });
-  if (v === 'share') { try { await navigator.share({ files: [file], title: data.title }); } catch (e) { if (e.name !== 'AbortError') download(file); } }
-  else if (v === 'dl') download(file);
+  if (canShare) { try { await navigator.share({ files: [file], title: data.title }); return; } catch (e) { if (e.name === 'AbortError') return; } }
+  download(file);
 }
 async function savePdf() {
   toast('Making the PDF…', 8000);
@@ -1849,7 +2018,7 @@ async function pagesForExport() {
 async function dataToNote(d) {
   takeBlobs = new Map(); curTake = null;
   let takes = [];
-  if (d.takes) for (const t of d.takes) { const { audio, ...meta } = t; takeBlobs.set(t.id, await dataURLtoBlob(audio)); takes.push(meta); }
+  if (d.takes) for (const t of d.takes) { const { audio, ...meta } = t; takeBlobs.set(t.id, /^data:/.test(audio) ? await dataURLtoBlob(audio) : new URL(audio, location.href).href); takes.push(meta); }
   else if (d.audio) { takeBlobs.set('a1', await dataURLtoBlob(d.audio)); takes = [{ id: 'a1', label: '', mime: d.mime || '', duration: d.duration || 0, created: d.created || Date.now(), size: 0 }]; (d.strokes || []).forEach(s => { if (s.t != null && !s.take) s.take = 'a1'; }); }
   const id = uid(), keys = [];
   for (const src of d.srcs) { const k = `${id}:${uid()}`; await putImg(k, await dataURLtoBlob(src)); keys.push(k); }
@@ -2286,7 +2455,7 @@ const Drive = (() => {
     }
     for (const k of remoteA) if (!keep.has(k.id)) await trash(k.id);
     // ---- ink, bookmarks and details (small; always current)
-    const data = { v: 3, id: m.id, title: m.title, folder: m.folder || null, created: m.created, updated: m.updated, pages, strokes: m.strokes || [], takes: m.takes || [], duration: m.duration || 0, bm: m.bm || 0, thumb: m.thumb || '', pdf: index, pdfAt };
+    const data = { v: 3, id: m.id, title: m.title, folder: m.folder || null, created: m.created, updated: m.updated, pages, strokes: m.strokes || [], takes: m.takes || [], duration: m.duration || 0, bm: m.bm || 0, thumb: m.thumb || '', pdf: index, pdfAt, share: m.share || null };
     const jb = new Blob([JSON.stringify(data)], { type: 'application/json' }), jf = kids.find(k => props(k).kind === 'json');
     if (jf) await upload(jb, {}, jf.id); else remember({ ...(await upload(jb, { name: 'note.json', parents: [folder.id], appProperties: { notation: '1', kind: 'json', nid: m.id } })), appProperties: { kind: 'json', nid: m.id } });
     await patch(folder.id, { appProperties: { updated: String(m.updated) } });   // written last: marks the note as complete
@@ -2330,7 +2499,7 @@ const Drive = (() => {
     for (const k of await DB.keysPrefix('audio', id + ':')) if (!have.has(k.slice(id.length + 1))) await DB.del('audio', k);
     await DB.del('audio', id);
     await DB.put('pages', id, { v: 2, pages });
-    const meta = { id, folder: data.folder || null, title: data.title, created: data.created, updated: asCopy ? Date.now() : data.updated, strokes: data.strokes || [], takes, duration: takes.reduce((a, t) => a + (t.duration || 0), 0), mime: '', hasAudio: takes.length > 0, pageCount: pages.length, bm: data.bm || 0, thumb: data.thumb || '' };
+    const meta = { id, folder: data.folder || null, title: data.title, created: data.created, updated: asCopy ? Date.now() : data.updated, strokes: data.strokes || [], takes, duration: takes.reduce((a, t) => a + (t.duration || 0), 0), mime: '', hasAudio: takes.length > 0, pageCount: pages.length, bm: data.bm || 0, thumb: data.thumb || '', ...(data.share && !asCopy ? { share: data.share } : {}) };
     await DB.put('notes', id, meta);
     if (!asCopy) await DB.put('sync', 'n:' + id, { synced: data.updated, pdfSig: data.pages.map(p => p.key).join(','), pdfAt: data.pdfAt, pdfIndex: data.pdf || null });
   }
@@ -2381,7 +2550,7 @@ const Drive = (() => {
    version.json on GitHub names the newest build. When it differs from this one, the
    version chip offers "Update to …". Updating clears only Notation's stored app files
    and reloads; notes, recordings, folders and the Drive connection are untouched. */
-const APP_VERSION = '0.15', APP_BUILD = '41c44bfa0f';
+const APP_VERSION = '0.16', APP_BUILD = 'b00d518e8b';
 const Updates = (() => {
   let latest = null, last = 0;
   const chip = () => $('#verChip');
@@ -2430,12 +2599,14 @@ function openSettings() {
     <ol style="padding-left:20px;margin:0">
       <li><b>Before class</b>, write the notation on your template with the pen.</li>
       <li><b>In class</b>, press Record. Each time a line or saṅgati begins, draw a quick mark in the margin column. Anything drawn while recording (or while audio plays) becomes an audio bookmark.</li>
-      <li><b>To practise</b>, tap any mark with your finger (or choose the Point tool) to hear that passage. Loop repeats it up to the next bookmark, and you can slow it to 0.75× or 0.5×.</li>
-      <li><b>As a teacher</b>, import or record the audio, play it back, and draw marks as you listen. Then use Share to send a single file that plays everything.</li>
+      <li><b>To practise</b>, tap any mark with your finger (or choose the Point tool) to hear that passage. Loop repeats it up to the next bookmark, and you can play it at 0.5× to 2×.</li>
+      <li><b>As a teacher</b>, import or record the audio, play it back, and draw marks as you listen. Then use Share to publish a link that plays everything, for anyone you send it to.</li>
     </ol></div>
+    ${viewer ? '' : `<div class="field"><span>Share links<br><small style="color:var(--muted)">${Publish.ready() ? 'Ready on this device' : 'Publish players to your notation repository on GitHub'}</small></span><button class="btn" id="sGh">${Publish.ready() ? 'Change' : 'Set up'}</button></div>`}
     <p style="color:var(--muted);font-size:13px;margin-top:14px">Notation ${APP_VERSION} · © 2026 Lakshmi Ganesan. All rights reserved. Notes are stored on this device.</p>
     <div style="margin-top:10px"><button class="btn" id="sUpdate">Check for updates</button></div>`;
   box.querySelector('#sLead').onclick = e => { const b = e.target.closest('button'); if (!b) return; lead = +b.dataset.v; $$('#sLead button').forEach(x => x.classList.toggle('on', x === b)); if (loop) setLoopFromTime(audioEl.currentTime); };
+  const gh = box.querySelector('#sGh'); if (gh) gh.onclick = () => { closeDialog(null); Publish.setup(); };
   box.querySelector('#sUpdate').onclick = () => { closeDialog(null); Updates.check(true); };
   const sf = box.querySelector('#sFing'); if (sf) sf.onclick = e => { const b = e.target.closest('button'); if (!b) return; if (!!+b.dataset.v !== fingers) $('#tFingers').click(); $$('#sFing button').forEach(x => x.classList.toggle('on', x === b)); };
   dialog({ title: 'Settings', node: box, actions: [{ label: 'Done', value: true, primary: true }] });

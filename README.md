@@ -20,7 +20,7 @@ The same approach works for chants and ślokas: bring in the script as a PDF, re
 - **Colour:** five built-in colours plus your own palette, with a colour picker and an eyedropper that picks any colour from the page.
 - **Highlighter, eraser, undo and redo.** Apple Pencil writes, and fingers scroll and tap.
 - **Lasso:** select ink freehand or with a rectangle, then move, copy, cut, duplicate, recolour or delete it. Paste works across pages and notes. On a Mac, ⌘C, ⌘X, ⌘V, ⌘D and Delete work too.
-- **Several recordings per note:** record each class, or add audio files edited elsewhere. Name them, put them in order, and they can play one after another. In Drive they're saved as *Title_01*, *Title_02*… in that order.
+- **Several recordings per note:** record each class, or add audio files edited elsewhere. Name them, put them in order, and they can play one after another. They're named *Title_01*, *Title_02*… in order until you rename them, and Drive uses the same names.
 - **Audio bookmarks:** anything you draw while recording, or while a recording plays, is linked to that moment in that recording.
 - **Point tool:** tap any linked mark (pen, calligraphy or highlighter) to play from that moment. Tap ink written before class to link it to wherever the recording is now.
 - **Practice:** tap-to-play with a short lead-in, loop a passage, play at 0.5×, 0.75×, 1×, 1.25× or 2×, and follow along as the page scrolls. Jumping to a bookmark from the list or the timeline turns straight to its page.
@@ -29,7 +29,7 @@ The same approach works for chants and ślokas: bring in the script as a PDF, re
 - **Your own designs:** add any PDF or image to either library.
 - **Notation books:** import a PDF of any length, or a set of photos and scans, then add, move or remove pages.
 - **Folders:** Music and Chants come built in, with one level of subfolders.
-- **Sharing:** share a note as an interactive player (notation and audio, in any browser) or as a PDF of its pages with your ink.
+- **Share links:** publish a note as a view-only player at its own web address, with one tap. Listeners see your pages and ink, hear every recording and tap a mark to hear that passage, in any browser and without the app. You can also share a PDF of the pages, or download the player as a single file.
 - **Offline:** once opened online, Notation works without Wi-Fi.
 
 Pages are sized for the iPad Pro 11" screen (2388 × 1668).
@@ -88,9 +88,26 @@ Your own template and cover designs stay on each device for now.
 
 Google signs you in for an hour at a time. Notation renews this quietly when it opens; if it can't, the library shows **Reconnect Drive**.
 
+## Share links
+
+**Share → Interactive player → Publish link** puts a view-only player of the note in this repository, in the `shared/` folder, and gives you its link:
+
+```
+https://lakshmiganesan.github.io/notation/shared/sami-ninne-kori/
+```
+
+- **Anyone with the link can open it.** It plays the recordings and shows the pages with your ink and bookmarks. Nothing can be written, changed or recorded.
+- **The address comes from the title** (accents dropped; a short code for titles in other scripts), and stays the same when you **Update** the player after editing the note. Notes with the same title get `-2`, `-3`…
+- **Shared notes wear a saffron *Shared* badge** in your library. Tap the badge to copy the link.
+- **Stop sharing** removes the player, and the link stops working within a minute or two. Git keeps past versions in the repository history.
+- Players ask search engines not to list them, but the repository is public, so treat anything you share as public.
+- GitHub takes about a minute to put a new or updated player online. Each recording can be up to 100 MB.
+
+**Setting up (once on each device):** on GitHub, open Settings → Developer settings → Personal access tokens → **Fine-grained tokens** → Generate new token. Give it access to **Only select repositories → LakshmiGanesan/notation**, with **Repository permissions → Contents: Read and write**. Copy the token and paste it in Notation's **Settings → Share links**. The token stays on that device; it is never synced to Drive or put into anything you share.
+
 ## Updates
 
-The version shows at the top of the library (for example **v0.13**). Notation checks for a newer version when it opens, when you return to it, and every half hour; when there is one, the label turns saffron and reads **Update to …**. Tap it to load the newest version straight away. Your notes, recordings, folders and Drive connection are kept. **Settings → Check for updates** does the same.
+The version shows at the top of the library (for example **v0.16**). Notation checks for a newer version when it opens, when you return to it, and every half hour; when there is one, the label turns saffron and reads **Update to …**. Tap it to load the newest version straight away. Your notes, recordings, folders and Drive connection are kept. **Settings → Check for updates** does the same.
 
 ## Status
 
@@ -105,6 +122,7 @@ Notation is in active, personal development. Features and storage formats may st
 | `lib/pdfjs/` | The PDF reader used for importing PDFs ([PDF.js](https://mozilla.github.io/pdf.js/), Apache 2.0) |
 | `icons/`, `manifest.webmanifest` | App icon and install details |
 | `sw.js` | Offline support |
+| `shared/` | Players published from Notation with Share → Publish link, one folder per note |
 
 ## Copyright
 
