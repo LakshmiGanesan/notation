@@ -97,6 +97,10 @@ input[type=text]{font:inherit;color:inherit;-webkit-user-select:text;user-select
 .nudge{display:flex;flex-wrap:wrap;gap:14px 24px;align-items:flex-end;justify-content:space-between;background:#fbf3e6;border:1px solid #ecd9b8;border-left:4px solid #c8641e;border-radius:16px;padding:18px 22px;margin:0 0 22px}
 .nudge-txt{flex:1 1 420px;font-size:15px;line-height:1.55}.nudge-txt p{margin:0 0 6px}.nudge-hi{font-family:var(--serif,Georgia,serif);font-size:20px}
 .nudge-txt ol{margin:6px 0 0;padding-left:20px}.nudge-acts{display:flex;flex-wrap:wrap;gap:8px}.nudge-acts a.btn{text-decoration:none;color:inherit}
+#backPill{position:absolute;left:20px;bottom:calc(var(--plh,72px) + 14px);z-index:15;display:inline-flex;align-items:center;gap:8px;border:0;border-radius:999px;padding:10px 18px 10px 14px;background:#14182e;color:#fff;font:600 14px/1 inherit;font-family:inherit;box-shadow:0 6px 20px rgba(20,24,46,.25);cursor:pointer}
+#backPill svg{width:18px;height:18px}
+.linkflash{position:absolute;background:rgba(200,100,30,.28);border-radius:4px;pointer-events:none;animation:lf .7s ease-out forwards}
+@keyframes lf{from{opacity:1}to{opacity:0}}
 .card .sharedbadge{position:absolute;top:8px;left:8px;display:inline-flex;align-items:center;gap:5px;padding:4px 10px 4px 7px;border:0;border-radius:999px;background:#c8641e;color:#fff;font:600 12px/1.2 inherit;font-family:inherit;box-shadow:0 1px 4px rgba(0,0,0,.18);cursor:pointer}
 .card .sharedbadge svg{width:14px;height:14px}
 .card .thumb{aspect-ratio:2388/1668;background:#fff center/cover no-repeat;border-bottom:1px solid var(--line)}
@@ -309,7 +313,7 @@ body.viewer .viewer-only{display:inline-flex}
       <p class="tagline">Write your notation, record the lesson, and let every mark sing back.</p>
     </div>
     <div class="lib-actions">
-      <button class="btn verchip" id="verChip" title="Notation version · tap to check for updates">v0.20</button>
+      <button class="btn verchip" id="verChip" title="Notation version · tap to check for updates">v0.21</button>
       <button class="btn drivechip" id="driveChip" title="Google Drive sync"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M7 18h10.5a4.5 4.5 0 0 0 .6-8.96A6 6 0 0 0 6.6 9.2 4.4 4.4 0 0 0 7 18z"/></svg><span>Google Drive</span></button>
       <button class="btn" id="btnLib" title="Notation templates and covers"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="7" height="16" rx="1.5"/><rect x="12" y="4" width="4" height="16" rx="1"/><path d="M18 5.5l3 .8-3.6 13.4-3-.8"/></svg>Templates</button>
       <button class="btn" id="btnImport" title="Open a shared .html note"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v12m0 0-4-4m4 4 4-4"/><path d="M4 17v2a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-2"/></svg>Open shared note</button>
@@ -1041,6 +1045,9 @@ function handleTap(pi, x, y) {
     }
   }
   if (best) { jumpToGroup(best, false); return; }
+  const pg = note.pages[pi], pad = 6 * pageScale(pg);
+  const ln = (pg.links || []).find(l => x >= l.r[0] - pad && x <= l.r[0] + l.r[2] + pad && y >= l.r[1] - pad && y <= l.r[1] + l.r[3] + pad);
+  if (ln) { followLink(pi, ln); return; }
   if (tool !== 'play' || viewer) return;
   if (!hasAudio()) { toast('Record or import audio first. Marks made while it records or plays become bookmarks.'); return; }
   // Ink with no time yet (e.g. notation written before class): offer to link it to where the recording is now
@@ -1388,6 +1395,33 @@ function updatePagePill() {
 }
 let pillTimer = 0;
 $('#pages').addEventListener('scroll', () => { if (pillTimer) return; pillTimer = setTimeout(() => { pillTimer = 0; updatePagePill(); }, 120); }, { passive: true });
+function followLink(pi, l) {
+  flashRect(pi, l.r);
+  if (l.url) { window.open(l.url, '_blank', 'noopener'); return; }
+  const to = note.pages.findIndex(p => p.pid === l.to);
+  if (to < 0) { toast('That page is no longer in this notebook.'); return; }
+  if (to === pi) return;
+  BackPill.show(pi); goToPage(to);
+}
+function flashRect(pi, r) {
+  const v = views[pi]; if (!v) return; const pg = note.pages[pi];
+  const d = document.createElement('div'); d.className = 'linkflash';
+  Object.assign(d.style, { left: r[0] / pg.w * 100 + '%', top: r[1] / pg.h * 100 + '%', width: r[2] / pg.w * 100 + '%', height: r[3] / pg.h * 100 + '%' });
+  v.wrap.appendChild(d); setTimeout(() => d.remove(), 700);
+}
+// After following a link: a small way back to where you came from (the index, usually)
+const BackPill = (() => {
+  const el = document.createElement('button'); el.id = 'backPill'; el.className = 'hidden'; $('#editor').appendChild(el);
+  let from = null, t = 0;
+  el.onclick = () => { const f = from; hide(); if (f != null && note) goToPage(f); };
+  function hide() { el.classList.add('hidden'); from = null; clearTimeout(t); }
+  function show(pi) {
+    from = pi; const pg = note.pages[pi];
+    el.innerHTML = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 14L4 9l5-5"/><path d="M4 9h10.5a5.5 5.5 0 010 11H11"/></svg>Back to ${pg.name ? esc(pg.name) : 'page ' + (pi + 1)}`;
+    el.classList.remove('hidden'); clearTimeout(t); t = setTimeout(hide, 20000);
+  }
+  return { show, hide };
+})();
 function goToPage(i, smooth = true) {
   const v = views[clamp(i, 0, views.length - 1)]; if (!v) return;
   $('#pages').scrollTo({ top: v.wrap.offsetTop - 12, behavior: smooth ? 'smooth' : 'auto' });
@@ -1542,7 +1576,7 @@ async function flushSave() {
   await DB.put('notes', note.id, meta);
   Drive.schedule();
 }
-const pageRec = ({ key, w, h, cover, name, star }) => ({ key, w, h, ...(cover ? { cover } : {}), ...(name ? { name } : {}), ...(star ? { star } : {}) });
+const pageRec = ({ key, w, h, cover, name, star, pid, links }) => ({ key, w, h, ...(cover ? { cover } : {}), ...(name ? { name } : {}), ...(star ? { star } : {}), ...(pid ? { pid } : {}), ...(links && links.length ? { links } : {}) });
 async function savePages() { if (!viewer) await DB.put('pages', note.id, { v: 2, pages: note.pages.map(pageRec) }); }
 async function saveAllTakes() { for (const t of note.takes) await saveTake(t, takeBlobs.get(t.id)); }
 async function makeThumb() {
@@ -1889,6 +1923,25 @@ function loadPdfJs() {
 let pickTarget = null;   // null = new note; number = insert after that page index
 function pickFiles(after) { pickTarget = after; $('#fPdf').value = ''; $('#fPdf').click(); }
 // Turns PDFs (every page) and images into page-sized image blobs, in file order.
+// A PDF's own links: index entries that jump to a page, and web links. Kept as rectangles in page pixels.
+async function pdfLinks(pdf, pg, vp, pids) {
+  const out = [];
+  try {
+    for (const a of await pg.getAnnotations({ intent: 'display' })) {
+      if (a.subtype !== 'Link' || !a.rect) continue;
+      const [x1, y1, x2, y2] = vp.convertToViewportRectangle(a.rect);
+      const r = [Math.min(x1, x2), Math.min(y1, y2), Math.abs(x2 - x1), Math.abs(y2 - y1)].map(n => Math.round(n));
+      if (r[2] < 2 || r[3] < 2) continue;
+      const url = a.url || a.unsafeUrl;
+      if (url) { if (/^(https?:|mailto:)/i.test(url)) out.push({ r, url }); continue; }
+      let d = a.dest; if (typeof d === 'string') d = await pdf.getDestination(d).catch(() => null);
+      if (!Array.isArray(d) || d[0] == null) continue;
+      const idx = typeof d[0] === 'object' ? await pdf.getPageIndex(d[0]).catch(() => -1) : +d[0];
+      if (idx >= 0 && idx < pids.length) out.push({ r, to: pids[idx] });
+    }
+  } catch (e) { }
+  return out;
+}
 async function filesToImages(files, prog, stop) {
   const out = [];
   for (let fi = 0; fi < files.length && !stop(); fi++) {
@@ -1897,6 +1950,8 @@ async function filesToImages(files, prog, stop) {
     if (f.type === 'application/pdf' || /\.pdf$/i.test(f.name)) {
       prog.set(`${label}opening ${f.name}…`, 0);
       const lib = await loadPdfJs(); const pdf = await lib.getDocument({ data: await f.arrayBuffer() }).promise;
+      const pids = Array.from({ length: pdf.numPages }, () => uid());   // stable page ids, so links survive reordering
+      let nLinks = 0;
       for (let i = 1; i <= pdf.numPages && !stop(); i++) {
         prog.set(`${label}page ${i} of ${pdf.numPages}`, i / pdf.numPages);
         const pg = await pdf.getPage(i); const v1 = pg.getViewport({ scale: 1 });
@@ -1905,9 +1960,12 @@ async function filesToImages(files, prog, stop) {
         const c = document.createElement('canvas'); c.width = Math.round(vp.width); c.height = Math.round(vp.height);
         const cx = c.getContext('2d'); cx.fillStyle = '#fff'; cx.fillRect(0, 0, c.width, c.height);
         await pg.render({ canvasContext: cx, viewport: vp }).promise;
+        const links = await pdfLinks(pdf, pg, vp, pids);
+        nLinks += links.length;
         const blob = await canvasBlob(c), w = c.width, h = c.height; c.width = c.height = 0; pg.cleanup();
-        out.push({ blob, w, h, name: pdf.numPages > 1 ? `${base} · ${i}` : base });
+        out.push({ blob, w, h, name: pdf.numPages > 1 ? `${base} · ${i}` : base, pid: pids[i - 1], ...(links.length ? { links } : {}) });
       }
+      out.links = (out.links || 0) + nLinks;
       pdf.destroy();
     } else if (f.type.startsWith('image/') || /\.(jpe?g|png|heic|webp|gif)$/i.test(f.name)) {
       prog.set(`${label}${f.name}`, (fi + 1) / files.length);
@@ -1935,11 +1993,11 @@ $('#fPdf').onchange = async e => {
     if (cancelled) { toast('Import cancelled.'); return; }
     if (!imgs.length) { dialog({ title: 'Nothing to add', html: '<p>Those files did not contain PDF pages or images.</p>' }); return; }
     const pages = [];
-    for (const im of imgs) { const key = `${id}:${uid()}`; await putImg(key, im.blob); pages.push({ key, w: im.w, h: im.h }); }
+    for (const im of imgs) { const key = `${id}:${uid()}`; await putImg(key, im.blob); pages.push({ key, w: im.w, h: im.h, ...(im.links ? { pid: im.pid, links: im.links } : im.pid && imgs.links ? { pid: im.pid } : {}) }); }
     if (creating) {
       createNote(files[0].name.replace(/\.[^.]+$/, '').replace(/[-_]+/g, ' '), pages, id);
-      setTimeout(() => toast(`${pages.length} page${pages.length === 1 ? '' : 's'} ready to write on. Add a cover from page 1’s ⋯ menu.`, 3600), 400);
-    } else insertPages(after, pages);
+      setTimeout(() => toast(`${pages.length} page${pages.length === 1 ? '' : 's'} ready to write on${imgs.links ? `, with ${imgs.links} link${imgs.links === 1 ? '' : 's'} kept: tap one with your finger to follow it` : ''}.`, 4200), 400);
+    } else { insertPages(after, pages); if (imgs.links) setTimeout(() => toast(`${imgs.links} link${imgs.links === 1 ? '' : 's'} kept. Tap one with your finger to follow it.`, 3600), 400); }
   } catch (err) { prog.close(); dialog({ title: 'Could not open that file', html: `<p>${esc(err.message || err)}</p>` }); }
 };
 function loadImgOnce(src) { return new Promise((res, rej) => { const i = new Image(); i.onload = () => res(i); i.onerror = () => rej(new Error('That image format could not be read here. Try a JPEG or PNG.')); i.src = src; }); }
@@ -2340,7 +2398,12 @@ const Pdf = (() => {
     for (let i = 0; i < pages.length; i++) {
       const pg = pages[i], W = pg.w * S, H = pg.h * S, cno = pageNo[i] + 1;
       offsets[pageNo[i]] = pos;
-      add(`${pageNo[i]} 0 obj\n<< /Type /Page /Parent 2 0 R /MediaBox [0 0 ${num(W)} ${num(H)}] /Resources << /XObject << /Im${imgNo[pg.key]} ${imgNo[pg.key]} 0 R >> /ExtGState << /GH 3 0 R >> >> /Contents ${cno} 0 R >>\nendobj\n`);
+      const annots = (pg.links || []).map(l => {
+        const R = `[${num(l.r[0] * S)} ${num(H - (l.r[1] + l.r[3]) * S)} ${num((l.r[0] + l.r[2]) * S)} ${num(H - l.r[1] * S)}]`;
+        if (l.url) return `<< /Type /Annot /Subtype /Link /Rect ${R} /Border [0 0 0] /A << /S /URI /URI (${l.url.replace(/[\\()]/g, c => '\\' + c)}) >> >>`;
+        const t = pages.findIndex(p => p.pid === l.to); return t < 0 ? '' : `<< /Type /Annot /Subtype /Link /Rect ${R} /Border [0 0 0] /Dest [${pageNo[t]} 0 R /Fit] >>`;
+      }).filter(Boolean);
+      add(`${pageNo[i]} 0 obj\n<< /Type /Page /Parent 2 0 R /MediaBox [0 0 ${num(W)} ${num(H)}] /Resources << /XObject << /Im${imgNo[pg.key]} ${imgNo[pg.key]} 0 R >> /ExtGState << /GH 3 0 R >> >> /Contents ${cno} 0 R${annots.length ? ` /Annots [${annots.join(' ')}]` : ''} >>\nendobj\n`);
       const ops = `q ${num(W)} 0 0 ${num(H)} 0 0 cm /Im${imgNo[pg.key]} Do Q\nq ${S} 0 0 ${-S} 0 ${num(H)} cm\n${inkOps(m.strokes.filter(s => s.page === i))}Q\n`;
       const z = await deflate(ops);
       offsets[cno] = pos;
@@ -2724,7 +2787,7 @@ const Drive = (() => {
    version.json on GitHub names the newest build. When it differs from this one, the
    version chip offers "Update to …". Updating clears only Notation's stored app files
    and reloads; notes, recordings, folders and the Drive connection are untouched. */
-const APP_VERSION = '0.20', APP_BUILD = 'c60fae895a';
+const APP_VERSION = '0.21', APP_BUILD = 'af3f8402bf';
 const Updates = (() => {
   let latest = null, last = 0;
   const chip = () => $('#verChip');
