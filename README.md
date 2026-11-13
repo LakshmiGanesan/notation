@@ -45,7 +45,39 @@ The microphone works only when Notation is opened from its `https://` address.
 
 ## Where your notes live
 
-Notes, recordings and your own designs are stored on each device, inside the app. Nothing is uploaded anywhere. Google Drive sync, to back up the library and share it between iPad and Mac, is planned.
+Notes and recordings are stored on each device, inside the app.
+
+**Google Drive sync** (optional) keeps a mirror of the whole library in your own Google Drive, in a folder called **Notation**:
+
+```
+Notation/
+├── Music/
+│   └── Varṇams/
+│       └── Sami ninne kori/
+│           ├── note.json        (ink, bookmarks, page order, details)
+│           ├── page-001.webp …  (the pages)
+│           └── recording.m4a
+├── Chants/
+└── library.json                 (your folders)
+```
+
+Changes sync a few seconds after you make them, in both directions, so the iPad and the web app share one library. Renames, moves and deletions follow, and anything deleted goes to Drive's trash. If the same note is edited on two devices before they sync, both versions are kept. Notation can only see the files it creates in your Drive.
+
+To connect, tap **Google Drive** in the library and paste your Google client ID (see *Setting up Google Drive* below).
+
+Your own template and cover designs stay on each device for now.
+
+## Setting up Google Drive (once)
+
+1. In [Google Cloud Console](https://console.cloud.google.com/), create a project called **Notation**.
+2. Under **APIs & Services → Library**, enable the **Google Drive API**.
+3. Set up the **OAuth consent screen** (Google Auth Platform): app name *Notation*, audience **External**, and add your own Google account as a **test user**.
+4. Under **Credentials** (or **Clients**), create an **OAuth client ID** of type **Web application** with:
+   - Authorised JavaScript origin: `https://lakshmiganesan.github.io`
+   - Authorised redirect URI: `https://lakshmiganesan.github.io/notation/`
+5. Copy the client ID (it ends in `.apps.googleusercontent.com`), open Notation from your Home Screen, tap **Google Drive**, paste it and tap **Connect**.
+
+Google signs you in for an hour at a time. Notation renews this quietly when it opens; if it can't, the library shows **Reconnect Drive**.
 
 ## Status
 
