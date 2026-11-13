@@ -58,14 +58,19 @@ Notation/
 │           ├── Sami ninne kori.pdf  (every page with your ink: readable anywhere)
 │           ├── note.json            (ink, bookmarks and details, kept editable)
 │           ├── Sami ninne kori_01.m4a  (recordings, numbered in the order you set)
-│           └── Sami ninne kori_02.m4a
+│           └── Class 2 · charaṇam.m4a  (…or the name you gave it in Notation)
 ├── Chants/
 └── library.json                 (your folders)
 ```
 
 Changes sync a few seconds after you make them, in both directions, so the iPad and the web app share one library. Renames, moves and deletions follow, and anything deleted goes to Drive's trash. If the same note is edited on two devices before they sync, both versions are kept. Notation can only see the files it creates in your Drive.
 
-**Rename inside Notation, not in Drive.** The note's title names its folder, its PDF and its recordings; the order of recordings sets _01, _02 …; recording labels stay in the app. Notation keeps the names in Drive in step with the app, so a name changed directly in Drive is changed back at the next sync. It also remembers every file it makes and tidies away any duplicate copies it finds.
+**Notation leads; Drive is a mirror.** Everything flows from Notation to Drive, never the other way. Name and organise things in Notation and Drive follows at the next sync:
+
+- The note's title names its Drive folder and its PDF.
+- Each recording is named after the note, numbered in order: *Title_01*, *Title_02* … Rename a recording in Notation (Recordings → rename) and Drive takes that name instead; clear the name to go back to the numbered one.
+- A name changed directly in Drive is changed back at the next sync, and files you add to the Notation folder yourself are ignored: Notation can only see the files it made.
+- Notation remembers every file it makes and tidies away any duplicate copies it finds.
 
 To connect, tap **Google Drive** in the library and paste your Google client ID (see *Setting up Google Drive* below).
 

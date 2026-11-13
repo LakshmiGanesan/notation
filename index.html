@@ -281,7 +281,7 @@ body.viewer .viewer-only{display:inline-flex}
       <p class="tagline">Write your notation, record the lesson, and let every mark sing back.</p>
     </div>
     <div class="lib-actions">
-      <button class="btn verchip" id="verChip" title="Notation version · tap to check for updates">v0.14</button>
+      <button class="btn verchip" id="verChip" title="Notation version · tap to check for updates">v0.15</button>
       <button class="btn drivechip" id="driveChip" title="Google Drive sync"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M7 18h10.5a4.5 4.5 0 0 0 .6-8.96A6 6 0 0 0 6.6 9.2 4.4 4.4 0 0 0 7 18z"/></svg><span>Google Drive</span></button>
       <button class="btn" id="btnLib" title="Notation templates and covers"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="7" height="16" rx="1.5"/><rect x="12" y="4" width="4" height="16" rx="1"/><path d="M18 5.5l3 .8-3.6 13.4-3-.8"/></svg>Templates</button>
       <button class="btn" id="btnImport" title="Open a shared .html note"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v12m0 0-4-4m4 4 4-4"/><path d="M4 17v2a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-2"/></svg>Open shared note</button>
@@ -635,6 +635,9 @@ const takeIdx = id => note.takes.findIndex(t => t.id === id);
 const takeOf = id => note.takes.find(t => t.id === id);
 const curGroups = () => groups.filter(g => g.take === curTake);
 const takeNo = i => String(i + 1).padStart(2, '0');
+// A recording is named after its note, with _01, _02 … in order, until you give it a name of your own.
+const autoTakeName = (title, i) => `${(title || 'Untitled').slice(0, 60).trim()}_${takeNo(i)}`;
+const takeName = (m, i) => (((m.takes || [])[i] || {}).label || '').trim() || autoTakeName(m.title, i);
 async function loadTakes(id, meta) {   // also migrates notes from before multiple recordings
   takeBlobs = new Map();
   let takes = meta.takes;
@@ -862,7 +865,7 @@ async function openTakes() {
       return `<div class="take ${t.id === curTake ? 'on' : ''}" data-id="${t.id}">
         <button class="tplay" data-a="play" title="Play this recording">${t.id === curTake && !audioEl.paused ? ICON_PAUSE : ICON_PLAY}</button>
         <span class="tno">${takeNo(i)}</span>
-        <span class="tinfo"><b>${esc(t.label || 'Recording ' + takeNo(i))}</b><small>${fmt(t.duration)} · ${new Date(t.created).toLocaleDateString(undefined, { day: 'numeric', month: 'short' })}${marks ? ` · ${marks} bookmark${marks === 1 ? '' : 's'}` : ''}</small></span>
+        <span class="tinfo"><b>${esc(takeName(note, i))}</b><small>${fmt(t.duration)} · ${new Date(t.created).toLocaleDateString(undefined, { day: 'numeric', month: 'short' })}${marks ? ` · ${marks} bookmark${marks === 1 ? '' : 's'}` : ''}</small></span>
         ${viewer ? '' : `<button class="mini" data-a="up" ${i ? '' : 'disabled'} title="Move up">↑</button><button class="mini" data-a="down" ${i < n - 1 ? '' : 'disabled'} title="Move down">↓</button><button class="mini" data-a="ren" title="Rename">✎</button><button class="mini" data-a="del" title="Delete">✕</button>`}
       </div>`;
     }).join('') + (viewer ? '' : `<div class="takeopts"><label><input type="checkbox" id="playOn" ${playOn ? 'checked' : ''}> Play recordings one after another</label><button class="btn" data-a="import">Add an audio file</button></div>`);
@@ -874,7 +877,7 @@ async function openTakes() {
     if (a === 'import') { closeDialog(null); $('#fAudio').value = ''; $('#fAudio').click(); return; }
     if (a === 'play') { if (id === curTake && !audioEl.paused) audioEl.pause(); else { await selectTake(id); audioEl.currentTime = 0; audioEl.play().catch(() => { }); } }
     else if (a === 'up' || a === 'down') { const j = a === 'up' ? i - 1 : i + 1; const [t] = note.takes.splice(i, 1); note.takes.splice(j, 0, t); computeGroups(); scheduleSave(); }
-    else if (a === 'ren') { const t = note.takes[i]; closeDialog(null); const v = await promptText(`Name recording ${takeNo(i)}`, t.label, 'e.g. Class 2 · charaṇam'); if (v !== null) { t.label = v; scheduleSave(); } return openTakes(); }
+    else if (a === 'ren') { const t = note.takes[i]; closeDialog(null); const v = await promptText(`Rename recording ${takeNo(i)}`, takeName(note, i), 'e.g. Class 2 · charaṇam'); if (v !== null) { const nv = v.trim(); t.label = nv === autoTakeName(note.title, i) ? '' : nv; scheduleSave(); } return openTakes(); }
     else if (a === 'del') {
       const marks = note.strokes.filter(s => s.take === id && s.t != null).length;
       closeDialog(null);
@@ -1190,7 +1193,7 @@ $('#pAudio').onclick = () => { $('#fAudio').value = ''; $('#fAudio').click(); };
 $('#fAudio').onchange = async e => {
   const f = e.target.files[0]; if (!f) return;
   const blob = f.type ? f : new Blob([f], { type: 'audio/mp4' });
-  const t = { id: 't' + uid(), label: f.name.replace(/\.[^.]+$/, ''), mime: blob.type, duration: 0, created: Date.now(), size: blob.size };
+  const t = { id: 't' + uid(), label: '', mime: blob.type, duration: 0, created: Date.now(), size: blob.size };
   note.takes.push(t); takeBlobs.set(t.id, blob); await saveTake(t, blob);
   curTake = null; await selectTake(t.id); computeGroups(); scheduleSave();
   toast(`Added as recording ${takeNo(note.takes.length - 1)}. Play it and draw marks to create bookmarks.`, 3600);
@@ -1225,7 +1228,7 @@ async function renderDrawer() {
   for (const g of groups) {
     if (note.takes.length > 1 && g.take !== lastTake) {
       lastTake = g.take; const i = takeIdx(g.take), t = note.takes[i], h = document.createElement('div'); h.className = 'bmhead';
-      h.textContent = i < 0 ? 'Unlinked' : `${takeNo(i)} · ${t.label || 'Recording ' + takeNo(i)}`; list.appendChild(h);
+      h.textContent = i < 0 ? 'Unlinked' : takeName(note, i); list.appendChild(h);
     }
     const item = document.createElement('div'); item.className = 'bm' + (g.i === activeGroup ? ' on' : ''); item.dataset.i = g.i;
     const cv = document.createElement('canvas'); item.appendChild(cv);
@@ -2206,7 +2209,7 @@ const Drive = (() => {
     return changed;
   }
   const safe = t => (t || 'Untitled').replace(/[\/\\]/g, '–').slice(0, 90);
-  const audioName = (noteName, n, ext) => `${noteName.slice(0, 60).trim()}_${String(n).padStart(2, '0')}.${ext}`;   // e.g. Sāmi ninne kōri_01.m4a, _02 …
+  const audioName = (m, i, ext) => `${safe(takeName(m, i))}.${ext}`;   // Sāmi ninne kōri_01.m4a, _02 … or the name you gave it in Notation
   async function syncNotes(root, files, live) {
     const t = LS.get('drive.deleted', { notes: [], folders: [] });
     const metas = ((await DB.all('notes')) || []).filter(Boolean), L = new Map(metas.map(m => [m.id, m]));
@@ -2246,7 +2249,7 @@ const Drive = (() => {
     if (r.name !== name || pdf.length !== 1 || pdf[0].name !== name + '.pdf') return true;
     if (kids.some(k => props(k).kind === 'page') || kids.filter(k => props(k).kind === 'json').length !== 1) return true;
     if (audio.length !== takes.length) return true;
-    return takes.some((t, i) => { const a = audio.find(k => props(k).take === t.id); return !a || a.name !== audioName(name, i + 1, extOf(t.mime)); });
+    return takes.some((t, i) => { const a = audio.find(k => props(k).take === t.id); return !a || a.name !== audioName(m, i, extOf(t.mime)); });
   }
   async function push(m, r, kids, parentId) {
     const name = safe(m.title);
@@ -2270,7 +2273,7 @@ const Drive = (() => {
     const meta = m.takes || [], remoteA = kids.filter(k => props(k).kind === 'audio'), keep = new Set();
     for (let i = 0; i < meta.length; i++) {
       const t = meta[i], ext = extOf(t.mime);
-      const want = audioName(name, i + 1, ext);
+      const want = audioName(m, i, ext);
       let ra = remoteA.find(k => props(k).take === t.id) || (t.id === 'a1' ? remoteA.find(k => !props(k).take) : null);   // files from before 0.12 belong to the first recording
       if (!ra) {
         const rec = await DB.get('audio', m.id + ':' + t.id); if (!rec || !rec.buf) continue;
@@ -2378,7 +2381,7 @@ const Drive = (() => {
    version.json on GitHub names the newest build. When it differs from this one, the
    version chip offers "Update to …". Updating clears only Notation's stored app files
    and reloads; notes, recordings, folders and the Drive connection are untouched. */
-const APP_VERSION = '0.14', APP_BUILD = 'e057c1238d';
+const APP_VERSION = '0.15', APP_BUILD = '41c44bfa0f';
 const Updates = (() => {
   let latest = null, last = 0;
   const chip = () => $('#verChip');
