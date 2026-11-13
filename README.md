@@ -23,7 +23,7 @@ The same approach works for chants and ślokas: bring in the script as a PDF, re
 - **Several recordings per note:** record each class, or add audio files edited elsewhere. Name them, put them in order, and they can play one after another. In Drive they're saved as *Title_01*, *Title_02*… in that order.
 - **Audio bookmarks:** anything you draw while recording, or while a recording plays, is linked to that moment in that recording.
 - **Point tool:** tap any linked mark (pen, calligraphy or highlighter) to play from that moment. Tap ink written before class to link it to wherever the recording is now.
-- **Practice:** tap-to-play with a short lead-in, loop a passage, slow down to 0.75× or 0.5×, or speed up to 2× or 3×, and follow along as the page scrolls. Jumping to a bookmark from the list or the timeline turns straight to its page.
+- **Practice:** tap-to-play with a short lead-in, loop a passage, play at 0.5×, 0.75×, 1×, 1.25× or 2×, and follow along as the page scrolls. Jumping to a bookmark from the list or the timeline turns straight to its page.
 - **Templates:** Ādi, Rūpaka, Miśra Chāpu, Khaṇḍa Chāpu, Viloma Chāpu, Tisra Triputa, Khaṇḍa Triputa, Miśra Jhampa, and a plain grid.
 - **Covers and section dividers:** a Song details page, plus 22 hand-printed textile designs, each with a label holder for the title.
 - **Your own designs:** add any PDF or image to either library.
@@ -64,6 +64,8 @@ Notation/
 ```
 
 Changes sync a few seconds after you make them, in both directions, so the iPad and the web app share one library. Renames, moves and deletions follow, and anything deleted goes to Drive's trash. If the same note is edited on two devices before they sync, both versions are kept. Notation can only see the files it creates in your Drive.
+
+**Rename inside Notation, not in Drive.** The note's title names its folder, its PDF and its recordings; the order of recordings sets _01, _02 …; recording labels stay in the app. Notation keeps the names in Drive in step with the app, so a name changed directly in Drive is changed back at the next sync. It also remembers every file it makes and tidies away any duplicate copies it finds.
 
 To connect, tap **Google Drive** in the library and paste your Google client ID (see *Setting up Google Drive* below).
 
