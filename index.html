@@ -85,6 +85,8 @@ input[type=text]{font:inherit;color:inherit;-webkit-user-select:text;user-select
 .btn.primary{background:var(--ink);color:#fff;border-color:var(--ink)}
 .btn.primary:hover{background:#23284a}
 .btn.danger{color:var(--rec)}
+.verchip{font-size:13px;color:var(--muted);padding:10px 12px}
+.verchip.new{color:#fff;background:var(--saffron);border-color:var(--saffron);font-weight:600}
 .drivechip span{font-variant-numeric:tabular-nums}
 .drivechip.warn{color:var(--saffron-2);border-color:#ecc49c;background:var(--saffron-soft)}
 .drivechip.spin svg{animation:pulse 1.2s infinite}
@@ -279,6 +281,7 @@ body.viewer .viewer-only{display:inline-flex}
       <p class="tagline">Write your notation, record the lesson, and let every mark sing back.</p>
     </div>
     <div class="lib-actions">
+      <button class="btn verchip" id="verChip" title="Notation version · tap to check for updates">v0.13</button>
       <button class="btn drivechip" id="driveChip" title="Google Drive sync"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M7 18h10.5a4.5 4.5 0 0 0 .6-8.96A6 6 0 0 0 6.6 9.2 4.4 4.4 0 0 0 7 18z"/></svg><span>Google Drive</span></button>
       <button class="btn" id="btnLib" title="Notation templates and covers"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="7" height="16" rx="1.5"/><rect x="12" y="4" width="4" height="16" rx="1"/><path d="M18 5.5l3 .8-3.6 13.4-3-.8"/></svg>Templates</button>
       <button class="btn" id="btnImport" title="Open a shared .html note"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v12m0 0-4-4m4 4 4-4"/><path d="M4 17v2a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-2"/></svg>Open shared note</button>
@@ -2322,6 +2325,50 @@ const Drive = (() => {
   return { init, sync, schedule, tombstone, openPanel, renderChip, connected, maybeSync() { if (connected() && Date.now() - lastSync > 30000) sync(); else renderChip(); } };
 })();
 
+
+/* ================= updates =================
+   version.json on GitHub names the newest build. When it differs from this one, the
+   version chip offers "Update to …". Updating clears only Notation's stored app files
+   and reloads; notes, recordings, folders and the Drive connection are untouched. */
+const APP_VERSION = '0.13', APP_BUILD = '92975d65b3';
+const Updates = (() => {
+  let latest = null, last = 0;
+  const chip = () => $('#verChip');
+  function render() {
+    const c = chip(); if (!c) return;
+    const fresh = latest && latest.build !== APP_BUILD;
+    c.classList.toggle('new', !!fresh);
+    c.textContent = fresh ? `Update to ${latest.version}` : `v${APP_VERSION}`;
+  }
+  async function check(manual) {
+    if (viewer || location.protocol === 'file:') return;
+    if (!manual && Date.now() - last < 15000) return;
+    last = Date.now();
+    try {
+      const r = await fetch('version.json?t=' + Date.now(), { cache: 'no-store' });
+      if (r.ok) latest = await r.json();
+    } catch (e) { if (manual) { toast('Could not reach GitHub. Are you online?'); return; } }
+    render();
+    if (!manual) return;
+    if (latest && latest.build !== APP_BUILD) apply();
+    else {
+      const v = await dialog({ title: 'You have the latest version', html: `<p>This is Notation <b>${APP_VERSION}</b>, the newest available.</p><p style="color:var(--muted);font-size:14px">If something looks out of date, you can still refresh Notation's app files. Your notes, recordings, folders and Drive connection are kept.</p>`, actions: [{ label: 'Close', value: null }, { label: 'Refresh anyway', value: 'go' }] });
+      if (v === 'go') apply();
+    }
+  }
+  async function apply() {
+    toast('Updating Notation…', 6000);
+    try { if (typeof flushSave === 'function') await flushSave(); } catch (e) { }
+    try { for (const k of await caches.keys()) if (k.startsWith('notation-')) await caches.delete(k); } catch (e) { }
+    try { if (navigator.serviceWorker) for (const r of await navigator.serviceWorker.getRegistrations()) await r.unregister(); } catch (e) { }
+    location.replace(location.pathname + '?v=' + Date.now());
+  }
+  document.addEventListener('visibilitychange', () => { if (!document.hidden) check(); });
+  setInterval(() => check(), 30 * 60000);
+  return { check, apply, render };
+})();
+$('#verChip').onclick = () => Updates.check(true);
+
 /* ---------------- settings & help ---------------- */
 function openSettings() {
   const box = document.createElement('div');
@@ -2335,8 +2382,10 @@ function openSettings() {
       <li><b>To practise</b>, tap any mark with your finger (or choose the Point tool) to hear that passage. Loop repeats it up to the next bookmark, and you can slow it to 0.75× or 0.5×.</li>
       <li><b>As a teacher</b>, import or record the audio, play it back, and draw marks as you listen. Then use Share to send a single file that plays everything.</li>
     </ol></div>
-    <p style="color:var(--muted);font-size:13px;margin-top:14px">Notation 0.12 · © 2026 Lakshmi Ganesan. All rights reserved. Notes are stored on this device.</p>`;
+    <p style="color:var(--muted);font-size:13px;margin-top:14px">Notation ${APP_VERSION} · © 2026 Lakshmi Ganesan. All rights reserved. Notes are stored on this device.</p>
+    <div style="margin-top:10px"><button class="btn" id="sUpdate">Check for updates</button></div>`;
   box.querySelector('#sLead').onclick = e => { const b = e.target.closest('button'); if (!b) return; lead = +b.dataset.v; $$('#sLead button').forEach(x => x.classList.toggle('on', x === b)); if (loop) setLoopFromTime(audioEl.currentTime); };
+  box.querySelector('#sUpdate').onclick = () => { closeDialog(null); Updates.check(true); };
   const sf = box.querySelector('#sFing'); if (sf) sf.onclick = e => { const b = e.target.closest('button'); if (!b) return; if (!!+b.dataset.v !== fingers) $('#tFingers').click(); $$('#sFing button').forEach(x => x.classList.toggle('on', x === b)); };
   dialog({ title: 'Settings', node: box, actions: [{ label: 'Done', value: true, primary: true }] });
 }
@@ -2358,6 +2407,8 @@ $('#btnLib').onclick = openTemplateLibrary;
   await loadMine(); await loadFolders();
   if (Drive.init() === 'redirecting') return;
   await showLibrary(); booted = true; hideBootNotice();
+  if (location.search.includes('v=')) history.replaceState(null, '', location.pathname);   // tidy the address after an update
+  setTimeout(() => Updates.check(), 1500);
   if ('serviceWorker' in navigator && (location.protocol === 'https:' || location.hostname === 'localhost')) navigator.serviceWorker.register('sw.js').catch(() => { });
 })();
 </script>

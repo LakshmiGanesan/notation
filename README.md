@@ -81,6 +81,10 @@ Your own template and cover designs stay on each device for now.
 
 Google signs you in for an hour at a time. Notation renews this quietly when it opens; if it can't, the library shows **Reconnect Drive**.
 
+## Updates
+
+The version shows at the top of the library (for example **v0.13**). Notation checks for a newer version when it opens, when you return to it, and every half hour; when there is one, the label turns saffron and reads **Update to …**. Tap it to load the newest version straight away. Your notes, recordings, folders and Drive connection are kept. **Settings → Check for updates** does the same.
+
 ## Status
 
 Notation is in active, personal development. Features and storage formats may still change.
