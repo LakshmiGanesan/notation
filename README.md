@@ -28,7 +28,7 @@ The same approach works for chants and ślokas: bring in the script as a PDF, re
 - **Your own designs:** add any PDF or image to either library.
 - **Notation books:** import a PDF of any length, or a set of photos and scans, then add, move or remove pages.
 - **Folders:** Music and Chants come built in, with one level of subfolders.
-- **Sharing:** export a note as a single file that plays the notation and audio in any browser.
+- **Sharing:** share a note as an interactive player (notation and audio, in any browser) or as a PDF of its pages with your ink.
 - **Offline:** once opened online, Notation works without Wi-Fi.
 
 Pages are sized for the iPad Pro 11" screen (2388 × 1668).
@@ -54,8 +54,8 @@ Notation/
 ├── Music/
 │   └── Varṇams/
 │       └── Sami ninne kori/
-│           ├── note.json        (ink, bookmarks, page order, details)
-│           ├── page-001.webp …  (the pages)
+│           ├── Sami ninne kori.pdf  (every page with your ink: readable anywhere)
+│           ├── note.json            (ink, bookmarks and details, kept editable)
 │           └── recording.m4a
 ├── Chants/
 └── library.json                 (your folders)

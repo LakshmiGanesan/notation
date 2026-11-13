@@ -228,6 +228,12 @@ body.fingers .page canvas.fx{touch-action:none}
 .seg{display:inline-flex;border:1px solid var(--line);border-radius:10px;overflow:hidden}
 .seg button{border:none;background:var(--card);padding:8px 12px;font-size:13px;font-weight:600}
 .seg button.on{background:var(--ink);color:#fff}
+ #bootNotice{position:fixed;inset:0;z-index:100;background:var(--desk);display:grid;place-items:center;padding:24px}
+#bootNotice .bn{max-width:520px;background:var(--paper);border:1px solid var(--line);border-radius:18px;padding:24px;box-shadow:0 20px 40px -20px rgba(0,0,0,.35)}
+#bootNotice h2{font-family:var(--serif);font-weight:500;margin:0 0 10px}
+#bootNotice p{line-height:1.55;color:#3b3a40}
+#bootNotice pre{white-space:pre-wrap;font-size:12px;background:#fff;border:1px solid var(--line);border-radius:8px;padding:10px}
+#bootNotice button{margin-top:8px;min-height:44px;padding:0 18px;border-radius:12px;border:none;background:var(--ink);color:#fff;font:inherit;font-weight:600}
 #toast{position:fixed;left:50%;bottom:calc(96px + var(--sab));transform:translateX(-50%) translateY(20px);background:var(--navy);color:#fff;padding:11px 18px;border-radius:12px;font-size:14px;opacity:0;transition:all .25s;pointer-events:none;z-index:60;max-width:90vw;text-align:center}
 #toast.show{opacity:1;transform:translateX(-50%)}
 .banner{position:absolute;top:10px;left:50%;transform:translateX(-50%);background:var(--navy);color:#fff;font-size:13px;padding:8px 14px;border-radius:20px;z-index:5;white-space:nowrap;box-shadow:0 8px 20px -10px rgba(0,0,0,.5)}
@@ -353,6 +359,23 @@ const NIB_ANGLE = -0.7;                        // broad nib held at about 40°
 const ICON_PLAY = '<svg viewBox="0 0 24 24" fill="currentColor"><path d="M8 5.5v13l11-6.5z"/></svg>';
 const ICON_PAUSE = '<svg viewBox="0 0 24 24" fill="currentColor"><rect x="6.5" y="5" width="4" height="14" rx="1"/><rect x="13.5" y="5" width="4" height="14" rx="1"/></svg>';
 
+/* ---------------- start-up safety: never leave a blank screen ---------------- */
+function bootNotice(kind, detail) {
+  let n = document.getElementById('bootNotice');
+  if (!n) { n = document.createElement('div'); n.id = 'bootNotice'; document.body.appendChild(n); }
+  const msg = kind === 'blocked'
+    ? '<h2>Notation is open somewhere else</h2><p>An older copy of Notation is still open on this device, in another Safari tab or as the Home Screen app, and it is holding your notes while this version updates them.</p><p>Close every other Notation tab, and swipe the Home Screen app closed in the app switcher. This page continues on its own once it is free.</p>'
+    : kind === 'slow'
+    ? '<h2>Notation is taking a while to start</h2><p>If this persists, close other Notation tabs or the Home Screen app, then tap Retry.</p>'
+    : `<h2>Notation could not start</h2><p>Something went wrong while opening. Please send this message to Claude:</p><pre>${String(detail || '').replace(/[<&]/g, c => c === '<' ? '&lt;' : '&amp;').slice(0, 600)}</pre>`;
+  n.innerHTML = `<div class="bn">${msg}<button onclick="location.reload()">Retry</button></div>`;
+}
+function hideBootNotice() { const n = document.getElementById('bootNotice'); if (n) n.remove(); }
+let booted = false;
+addEventListener('error', e => { if (!booted) bootNotice('error', (e.message || '') + (e.filename ? ` (${e.lineno}:${e.colno})` : '')); });
+addEventListener('unhandledrejection', e => { if (!booted) bootNotice('error', e.reason && (e.reason.stack || e.reason.message) || e.reason); });
+setTimeout(() => { if (!booted && !document.getElementById('bootNotice')) bootNotice('slow'); }, 8000);
+
 /* ---------------- storage (IndexedDB with memory fallback) ---------------- */
 const DB = (() => {
   const mem = { notes: new Map(), pages: new Map(), audio: new Map(), imgs: new Map(), tpls: new Map(), folders: new Map(), sync: new Map() };
@@ -361,7 +384,13 @@ const DB = (() => {
     if (!dbp) dbp = new Promise((res, rej) => {
       const r = indexedDB.open('notation', 5);
       r.onupgradeneeded = () => { const d = r.result; for (const n of ['notes', 'pages', 'audio', 'imgs', 'tpls', 'folders', 'sync']) if (!d.objectStoreNames.contains(n)) d.createObjectStore(n); };
-      r.onsuccess = () => res(r.result); r.onerror = () => rej(r.error);
+      r.onblocked = () => bootNotice('blocked');
+      r.onsuccess = () => {
+        const d = r.result;
+        d.onversionchange = () => { d.close(); location.reload(); };   // a newer Notation needs the storage: step aside
+        hideBootNotice(); res(d);
+      };
+      r.onerror = () => rej(r.error);
     });
     return dbp;
   }
@@ -1056,7 +1085,7 @@ $('#fAudio').onchange = async e => {
 $('#tTitle').addEventListener('input', () => { note.title = $('#tTitle').value; scheduleSave(); });
 $('#tBack').onclick = async () => {
   if (rec) { const ok = await dialog({ title: 'Stop recording?', html: '<p>Recording is still running. Stop and save it before leaving?</p>', actions: [{ label: 'Keep recording', value: false }, { label: 'Stop & save', value: true, primary: true }] }); if (!ok) return; await stopRecording(); }
-  audioEl.pause(); await flushSave(); showLibrary();
+  audioEl.pause(); await flushSave(); Drive.schedule(2500); showLibrary();
 };
 $('#tMore').onclick = () => openSettings();
 $('#tShare').onclick = () => shareNote();
@@ -1647,6 +1676,9 @@ function replaceScript(src, id, content) {
 async function shareNote() {
   if (rec) { toast('Stop recording before sharing.'); return; }
   await flushSave();
+  const how = await dialog({ title: 'Share this note', html: '<p style="margin-top:0">Choose what to share.</p>', actions: [{ label: 'Cancel', value: null }, { label: 'PDF of the pages', value: 'pdf' }, { label: 'Interactive player', value: 'player', primary: true }] });
+  if (how === 'pdf') return savePdf();
+  if (how !== 'player') return;
   toast('Preparing your shared note…', 6000);
   const data = {
     v: 1, title: note.title || 'Untitled', created: note.created, shared: Date.now(), lead,
@@ -1670,6 +1702,19 @@ async function shareNote() {
   });
   if (v === 'share') { try { await navigator.share({ files: [file], title: data.title }); } catch (e) { if (e.name !== 'AbortError') download(file); } }
   else if (v === 'dl') download(file);
+}
+async function savePdf() {
+  toast('Making the PDF…', 8000);
+  try {
+    const { blob } = await Pdf.build(note, note.pages, getBlob);
+    const name = (note.title || 'notation').replace(/[\\/:*?"<>|]+/g, '-').trim() || 'notation';
+    const file = new File([blob], name + '.pdf', { type: 'application/pdf' });
+    $('#toast').classList.remove('show');
+    const canShare = navigator.canShare && navigator.canShare({ files: [file] });
+    const v = await dialog({ title: 'PDF ready', html: `<p><b>${esc(file.name)}</b> (${(file.size / 1048576).toFixed(1)} MB): every page with your ink, ready to print, archive or send.</p>`, actions: [{ label: 'Close', value: null }, { label: 'Download', value: 'dl' }].concat(canShare ? [{ label: 'Share…', value: 'share', primary: true }] : []) });
+    if (v === 'share') { try { await navigator.share({ files: [file], title: note.title }); } catch (e) { if (e.name !== 'AbortError') download(file); } }
+    else if (v === 'dl') download(file);
+  } catch (e) { $('#toast').classList.remove('show'); dialog({ title: 'Could not make the PDF', html: `<p>${esc(e.message || e)}</p>` }); }
 }
 function download(file) { const u = URL.createObjectURL(file); const a = document.createElement('a'); a.href = u; a.download = file.name; document.body.appendChild(a); a.click(); a.remove(); setTimeout(() => URL.revokeObjectURL(u), 4000); }
 async function pagesForExport() {
@@ -1700,6 +1745,155 @@ $('#fShared').onchange = async e => {
   } catch (err) { dialog({ title: 'Could not open that file', html: `<p>${esc(err.message || err)}</p>` }); }
 };
 
+
+
+/* ================= PDF: one tidy file per note =================
+   Each page = its background image + the ink drawn as vector paths on top.
+   Notation writes the PDF itself and records where each page image sits in it,
+   so another device can lift the images straight back out. */
+const Pdf = (() => {
+  const enc = new TextEncoder(), S = 0.4;   // 2388 px page → 955 pt (about 13.3 in) wide
+  const num = n => { const r = Math.round(n * 10) / 10; return Object.is(r, -0) ? '0' : String(r); };
+  function crc32(buf) { let c, crc = ~0; for (let i = 0; i < buf.length; i++) { c = (crc ^ buf[i]) & 0xff; for (let k = 0; k < 8; k++) c = c & 1 ? (c >>> 1) ^ 0xEDB88320 : c >>> 1; crc = (crc >>> 8) ^ c; } return ~crc >>> 0; }
+  function parsePng(u) {
+    const dv = new DataView(u.buffer, u.byteOffset, u.byteLength);
+    if (u.length < 33 || dv.getUint32(0) !== 0x89504e47) return null;
+    let p = 8, ihdr, plte = null; const idat = [];
+    while (p < u.length) {
+      const len = dv.getUint32(p), type = String.fromCharCode(...u.subarray(p + 4, p + 8)), data = u.subarray(p + 8, p + 8 + len);
+      if (type === 'IHDR') ihdr = { w: dv.getUint32(p + 8), h: dv.getUint32(p + 12), bd: u[p + 16], ct: u[p + 17], il: u[p + 20] };
+      else if (type === 'PLTE') plte = data.slice();
+      else if (type === 'IDAT') idat.push(data);
+      else if (type === 'IEND') break;
+      p += 12 + len;
+    }
+    if (!ihdr || ihdr.bd !== 8 || ihdr.il !== 0 || ![0, 2, 3].includes(ihdr.ct) || (ihdr.ct === 3 && !plte)) return null;
+    const total = idat.reduce((a, d) => a + d.length, 0), data = new Uint8Array(total); let o = 0; for (const d of idat) { data.set(d, o); o += d.length; }
+    return { ...ihdr, plte, data };
+  }
+  function chunk(type, data) {
+    const out = new Uint8Array(12 + data.length), dv = new DataView(out.buffer);
+    dv.setUint32(0, data.length); out.set(enc.encode(type), 4); out.set(data, 8);
+    dv.setUint32(8 + data.length, crc32(out.subarray(4, 8 + data.length))); return out;
+  }
+  function buildPng(e, data) {
+    const ih = new Uint8Array(13), dv = new DataView(ih.buffer); dv.setUint32(0, e.w); dv.setUint32(4, e.h); ih[8] = 8; ih[9] = e.ct;
+    const parts = [new Uint8Array([137, 80, 78, 71, 13, 10, 26, 10]), chunk('IHDR', ih)];
+    if (e.plte) parts.push(chunk('PLTE', Uint8Array.from(atob(e.plte), c => c.charCodeAt(0))));
+    parts.push(chunk('IDAT', data), chunk('IEND', new Uint8Array(0)));
+    return new Blob(parts, { type: 'image/png' });
+  }
+  async function toJpeg(blob) {
+    const bmp = await createImageBitmap(blob), c = document.createElement('canvas'); c.width = bmp.width; c.height = bmp.height;
+    const x = c.getContext('2d'); x.fillStyle = '#fff'; x.fillRect(0, 0, c.width, c.height); x.drawImage(bmp, 0, 0);
+    const j = await new Promise(r => c.toBlob(r, 'image/jpeg', 0.9)); c.width = c.height = 0; return j;
+  }
+  async function imageFor(blob) {   // → { dict, bytes, entry }
+    const u = new Uint8Array(await blob.arrayBuffer());
+    if (u[0] === 0xFF && u[1] === 0xD8) {
+      let w = 0, h = 0, comps = 3;   // read the JPEG's frame header for its size
+      for (let p = 2; p < u.length - 9;) { if (u[p] !== 0xFF) { p++; continue; } const m = u[p + 1], len = (u[p + 2] << 8) | u[p + 3]; if (m >= 0xC0 && m <= 0xCF && ![0xC4, 0xC8, 0xCC].includes(m)) { h = (u[p + 5] << 8) | u[p + 6]; w = (u[p + 7] << 8) | u[p + 8]; comps = u[p + 9]; break; } p += 2 + len; }
+      const cs = comps === 1 ? '/DeviceGray' : comps === 4 ? '/DeviceCMYK' : '/DeviceRGB';
+      return { dict: `/Width ${w} /Height ${h} /ColorSpace ${cs} /BitsPerComponent 8 /Filter /DCTDecode`, bytes: u, entry: { kind: 'jpg', w, h } };
+    }
+    const png = parsePng(u);
+    if (png) {
+      const colors = png.ct === 2 ? 3 : 1;
+      const cs = png.ct === 3 ? `[/Indexed /DeviceRGB ${png.plte.length / 3 - 1} <${[...png.plte].map(b => b.toString(16).padStart(2, '0')).join('')}>]` : png.ct === 2 ? '/DeviceRGB' : '/DeviceGray';
+      let plte = null; if (png.ct === 3) { let s = ''; for (const b of png.plte) s += String.fromCharCode(b); plte = btoa(s); }
+      return { dict: `/Width ${png.w} /Height ${png.h} /ColorSpace ${cs} /BitsPerComponent 8 /Filter /FlateDecode /DecodeParms << /Predictor 15 /Colors ${colors} /BitsPerComponent 8 /Columns ${png.w} >>`, bytes: png.data, entry: { kind: 'png', w: png.w, h: png.h, ct: png.ct, plte } };
+    }
+    return imageFor(await toJpeg(blob));   // WebP covers, photos with transparency, etc.
+  }
+  function colour(c) {
+    let m = /^#?([0-9a-f]{6})$/i.exec(c);
+    if (m) { const v = parseInt(m[1], 16); return [(v >> 16 & 255) / 255, (v >> 8 & 255) / 255, (v & 255) / 255, 1]; }
+    m = /rgba?\(([^)]+)\)/.exec(c); if (m) { const p = m[1].split(',').map(Number); return [p[0] / 255, p[1] / 255, p[2] / 255, p.length > 3 ? p[3] : 1]; }
+    return [0, 0, 0, 1];
+  }
+  function smoothPath(p) {   // the same quadratic smoothing as on screen, written as PDF cubic curves
+    let o = `${num(p[0][0])} ${num(p[0][1])} m\n`;
+    if (p.length === 1) return o + `${num(p[0][0] + 0.01)} ${num(p[0][1])} l\n`;
+    let cx = p[0][0], cy = p[0][1];
+    for (let i = 1; i < p.length - 1; i++) {
+      const qx = p[i][0], qy = p[i][1], ex = (p[i][0] + p[i + 1][0]) / 2, ey = (p[i][1] + p[i + 1][1]) / 2;
+      o += `${num(cx + 2 / 3 * (qx - cx))} ${num(cy + 2 / 3 * (qy - cy))} ${num(ex + 2 / 3 * (qx - ex))} ${num(ey + 2 / 3 * (qy - ey))} ${num(ex)} ${num(ey)} c\n`; cx = ex; cy = ey;
+    }
+    const e = p[p.length - 1]; return o + `${num(e[0])} ${num(e[1])} l\n`;
+  }
+  function inkOps(strokes) {
+    let o = '';
+    const ordered = [...strokes.filter(s => s.tool === 'hl'), ...strokes.filter(s => s.tool !== 'hl')];
+    for (const s of ordered) {
+      const p = s.pts; if (!p || !p.length) continue;
+      const [r, g, b] = colour(s.color), rgb = `${num(r * 1000) / 1000} ${num(g * 1000) / 1000} ${num(b * 1000) / 1000}`;
+      if (s.tool === 'hl') { o += `q /GH gs ${rgb} RG ${num(s.size)} w 0 J 1 j\n${smoothPath(p)}S Q\n`; continue; }
+      if (s.tool === 'calli') {
+        const ca = Math.cos(NIB_ANGLE), sa = Math.sin(NIB_ANGLE);
+        const q = i => { const a = p[Math.max(0, i - 1)][2] || .5, bb = p[i][2] || .5, c = p[Math.min(p.length - 1, i + 1)][2] || .5; return (a + 2 * bb + c) / 4; };
+        const half = i => s.size * (0.28 + 0.9 * q(i)) / 2;
+        o += `${rgb} rg ${rgb} RG\n`;
+        for (let i = 1; i < p.length; i++) {
+          const [x0, y0] = p[i - 1], [x1, y1] = p[i], h0 = half(i - 1), h1 = half(i);
+          const A = [x0 + ca * h0, y0 + sa * h0], B = [x1 + ca * h1, y1 + sa * h1], C = [x1 - ca * h1, y1 - sa * h1], D = [x0 - ca * h0, y0 - sa * h0];
+          const pts = ((B[0] - A[0]) * (D[1] - A[1]) - (B[1] - A[1]) * (D[0] - A[0])) >= 0 ? [A, B, C, D] : [A, D, C, B];
+          o += `${num(pts[0][0])} ${num(pts[0][1])} m ${pts.slice(1).map(q => `${num(q[0])} ${num(q[1])} l`).join(' ')} h\n`;
+        }
+        o += `f\n${num(Math.max(1, s.size * 0.1))} w 1 J 1 j\n${smoothPath(p)}S\n`; continue;
+      }
+      const avg = p.reduce((a, q) => a + (q[2] || .5), 0) / p.length;
+      const width = s.tool === 'mono' ? s.size : s.size * (0.55 + 0.9 * avg);
+      o += `${rgb} RG ${num(width)} w 1 J 1 j\n${smoothPath(p)}S\n`;
+    }
+    return o;
+  }
+  async function deflate(str) {
+    if (typeof CompressionStream === 'undefined') return null;
+    try { return new Uint8Array(await new Response(new Blob([str]).stream().pipeThrough(new CompressionStream('deflate'))).arrayBuffer()); } catch (e) { return null; }
+  }
+  const pdfText = t => { let h = 'FEFF'; for (const ch of t) { const c = ch.codePointAt(0); if (c > 0xFFFF) { const v = c - 0x10000; h += ((0xD800 + (v >> 10)).toString(16) + (0xDC00 + (v & 1023)).toString(16)).toUpperCase(); } else h += c.toString(16).padStart(4, '0').toUpperCase(); } return `<${h}>`; };
+  /** build({title, pages:[{key,w,h}], strokes}, getBlob) → { blob, index:[{key,kind,off,len,w,h,ct?,plte?}] } */
+  async function build(m, pages, getBlob) {
+    const parts = [], offsets = []; let pos = 0;
+    const add = x => { const u = typeof x === 'string' ? enc.encode(x) : x; parts.push(u); pos += u.length; };
+    const keys = [...new Set(pages.map(p => p.key))];
+    const imgNo = {}, index = []; let n = 4;
+    for (const k of keys) imgNo[k] = n++;
+    const pageNo = pages.map(() => { const a = n; n += 2; return a; }), infoNo = n++;
+    add('%PDF-1.7\n%âãÏÓ\n'.replace(/[âãÏÓ]/g, c => String.fromCharCode(c.charCodeAt(0))));
+    offsets[1] = pos; add('1 0 obj\n<< /Type /Catalog /Pages 2 0 R >>\nendobj\n');
+    offsets[2] = pos; add(`2 0 obj\n<< /Type /Pages /Kids [${pageNo.map(x => x + ' 0 R').join(' ')}] /Count ${pages.length} >>\nendobj\n`);
+    offsets[3] = pos; add('3 0 obj\n<< /Type /ExtGState /CA 0.42 /ca 0.42 /BM /Multiply >>\nendobj\n');
+    for (const k of keys) {
+      const blob = await getBlob(k); if (!blob) throw new Error('A page image is missing on this device.');
+      const im = await imageFor(blob);
+      offsets[imgNo[k]] = pos; add(`${imgNo[k]} 0 obj\n<< /Type /XObject /Subtype /Image ${im.dict} /Length ${im.bytes.length} >>\nstream\n`);
+      index.push({ key: k, ...im.entry, off: pos, len: im.bytes.length });
+      add(im.bytes); add('\nendstream\nendobj\n');
+    }
+    for (let i = 0; i < pages.length; i++) {
+      const pg = pages[i], W = pg.w * S, H = pg.h * S, cno = pageNo[i] + 1;
+      offsets[pageNo[i]] = pos;
+      add(`${pageNo[i]} 0 obj\n<< /Type /Page /Parent 2 0 R /MediaBox [0 0 ${num(W)} ${num(H)}] /Resources << /XObject << /Im${imgNo[pg.key]} ${imgNo[pg.key]} 0 R >> /ExtGState << /GH 3 0 R >> >> /Contents ${cno} 0 R >>\nendobj\n`);
+      const ops = `q ${num(W)} 0 0 ${num(H)} 0 0 cm /Im${imgNo[pg.key]} Do Q\nq ${S} 0 0 ${-S} 0 ${num(H)} cm\n${inkOps(m.strokes.filter(s => s.page === i))}Q\n`;
+      const z = await deflate(ops);
+      offsets[cno] = pos;
+      if (z) { add(`${cno} 0 obj\n<< /Length ${z.length} /Filter /FlateDecode >>\nstream\n`); add(z); add('\nendstream\nendobj\n'); }
+      else { const b = enc.encode(ops); add(`${cno} 0 obj\n<< /Length ${b.length} >>\nstream\n`); add(b); add('\nendstream\nendobj\n'); }
+    }
+    offsets[infoNo] = pos; add(`${infoNo} 0 obj\n<< /Title ${pdfText(m.title || 'Untitled')} /Producer (Notation) /CreationDate (D:${new Date().toISOString().replace(/[-:T]/g, '').slice(0, 14)}Z) >>\nendobj\n`);
+    const xref = pos; let x = `xref\n0 ${n}\n0000000000 65535 f \n`;
+    for (let i = 1; i < n; i++) x += `${String(offsets[i] || 0).padStart(10, '0')} 00000 n \n`;
+    add(x + `trailer\n<< /Size ${n} /Root 1 0 R /Info ${infoNo} 0 R >>\nstartxref\n${xref}\n%%EOF\n`);
+    return { blob: new Blob(parts, { type: 'application/pdf' }), index };
+  }
+  /** lift one page image back out of a Notation PDF */
+  function extract(pdfBlob, e) {
+    const slice = pdfBlob.slice(e.off, e.off + e.len);
+    return e.kind === 'jpg' ? slice.slice(0, slice.size, 'image/jpeg') : slice.arrayBuffer().then(b => buildPng(e, new Uint8Array(b)));
+  }
+  return { build, extract };
+})();
 
 /* ================= Google Drive sync =================
    Your Drive mirrors your library: Notation › Music › Varṇams › <note>/
@@ -1879,6 +2073,7 @@ const Drive = (() => {
       } else if (!st && rUpd > m.updated) { if (!open) { await pull(r, kids(id)); changed = true; } }
       else if (localDirty) await push(m, r, kids(id), parentFor(m.folder));
       else if (remoteDirty) { if (!open) { await pull(r, kids(id)); changed = true; } }
+      else if (!open && (st.pdfAt !== m.updated || !kids(id).some(k => props(k).kind === 'pdf'))) await push(m, r, kids(id), parentFor(m.folder));
       else { const p = parentFor(m.folder); if (!(r.parents || []).includes(p)) await patch(r.id, {}, (r.parents || [])[0], p); }
     }
     t.notes = []; LS.set('drive.deleted', t);
@@ -1889,42 +2084,56 @@ const Drive = (() => {
     let folder = r;
     if (!folder) folder = await createFolder(name, parentId, { kind: 'note', nid: m.id });
     else if (folder.name !== name || !(folder.parents || []).includes(parentId)) folder = await patch(folder.id, { name }, (folder.parents || [])[0], parentId);
+    const st = (await DB.get('sync', 'n:' + m.id)) || {};
     const pr = await DB.get('pages', m.id), pages = (pr && pr.pages) || [];
-    const have = {}; for (const k of kids) if (props(k).kind === 'page') have[props(k).key] = k.id;
-    const used = new Set(); let n = 0;
-    for (const p of pages) {
-      n++; if (used.has(p.key)) continue; used.add(p.key); if (have[p.key]) continue;
-      const rec = await DB.get('imgs', p.key); if (!rec) continue;
-      const blob = new Blob([rec.buf], { type: rec.type }), ext = /png/.test(rec.type) ? 'png' : /webp/.test(rec.type) ? 'webp' : 'jpg';
-      const f = await upload(blob, { name: `page-${String(n).padStart(3, '0')}.${ext}`, parents: [folder.id], appProperties: { notation: '1', kind: 'page', nid: m.id, key: p.key } });
-      have[p.key] = f.id;
-    }
-    for (const [k, fid] of Object.entries(have)) if (!used.has(k)) await trash(fid);
+    // ---- the pages, with ink, as one PDF. Rebuilt when pages change, or once you've left the note.
+    const sig = pages.map(p => p.key).join(','), open = note && note.id === m.id;
+    const rp = kids.find(k => props(k).kind === 'pdf');
+    let index = st.pdfIndex, pdfAt = st.pdfAt;
+    if (!rp || st.pdfSig !== sig || (!open && st.pdfAt !== m.updated) || !index) {
+      const built = await Pdf.build(m, pages, async k => { const rec = await DB.get('imgs', k); return rec ? new Blob([rec.buf], { type: rec.type }) : null; });
+      if (rp) await upload(built.blob, { name: name + '.pdf' }, rp.id);
+      else await upload(built.blob, { name: name + '.pdf', parents: [folder.id], appProperties: { notation: '1', kind: 'pdf', nid: m.id } });
+      index = built.index; pdfAt = m.updated;
+    } else if (rp.name !== name + '.pdf') await patch(rp.id, { name: name + '.pdf' });
+    for (const k of kids) if (props(k).kind === 'page') await trash(k.id);   // tidy away page images from earlier versions
+    // ---- the recording
     const a = await DB.get('audio', m.id), ra = kids.find(k => props(k).kind === 'audio');
     if (a && a.buf) {
-      const sig = String(a.buf.byteLength);
-      if (!ra || props(ra).sig !== sig) {
+      const asig = String(a.buf.byteLength);
+      if (!ra || props(ra).sig !== asig) {
         const mime = a.mime || 'audio/mp4', ext = /webm/.test(mime) ? 'webm' : /ogg/.test(mime) ? 'ogg' : /mpeg|mp3/.test(mime) ? 'mp3' : /wav/.test(mime) ? 'wav' : 'm4a';
         const blob = new Blob([a.buf], { type: mime });
-        if (ra) await upload(blob, { appProperties: { sig } }, ra.id);
-        else await upload(blob, { name: 'recording.' + ext, parents: [folder.id], appProperties: { notation: '1', kind: 'audio', nid: m.id, sig } });
+        if (ra) await upload(blob, { appProperties: { sig: asig } }, ra.id);
+        else await upload(blob, { name: 'recording.' + ext, parents: [folder.id], appProperties: { notation: '1', kind: 'audio', nid: m.id, sig: asig } });
       }
     } else if (ra) await trash(ra.id);
-    const data = { v: 1, id: m.id, title: m.title, folder: m.folder || null, created: m.created, updated: m.updated, pages, strokes: m.strokes || [], duration: m.duration || 0, mime: m.mime || '', bm: m.bm || 0, thumb: m.thumb || '' };
+    // ---- ink, bookmarks and details (small; always current)
+    const data = { v: 2, id: m.id, title: m.title, folder: m.folder || null, created: m.created, updated: m.updated, pages, strokes: m.strokes || [], duration: m.duration || 0, mime: m.mime || '', bm: m.bm || 0, thumb: m.thumb || '', pdf: index, pdfAt };
     const jb = new Blob([JSON.stringify(data)], { type: 'application/json' }), jf = kids.find(k => props(k).kind === 'json');
     if (jf) await upload(jb, {}, jf.id); else await upload(jb, { name: 'note.json', parents: [folder.id], appProperties: { notation: '1', kind: 'json', nid: m.id } });
     await patch(folder.id, { appProperties: { updated: String(m.updated) } });   // written last: marks the note as complete
-    await DB.put('sync', 'n:' + m.id, { synced: m.updated });
+    await DB.put('sync', 'n:' + m.id, { synced: m.updated, pdfSig: sig, pdfAt, pdfIndex: index });
   }
   async function pull(r, kids, asCopy) {
     const jf = kids.find(k => props(k).kind === 'json'); if (!jf) return;   // still uploading from the other device
     const data = JSON.parse(await (await download(jf.id)).text());
     let id = data.id, rekey = k => k;
     if (asCopy) { id = uid(); rekey = k => id + k.slice(data.id.length); data.title = (data.title || 'Untitled') + ' (other device)'; }
-    for (const p of data.pages) {
-      const k = rekey(p.key); if (await DB.get('imgs', k)) continue;
-      const f = kids.find(x => props(x).kind === 'page' && props(x).key === p.key); if (!f) continue;
-      const b = await download(f.id); await DB.put('imgs', k, { buf: await b.arrayBuffer(), type: b.type || 'image/png' });
+    const rp = kids.find(k => props(k).kind === 'pdf');
+    if (data.pdf && rp) {   // lift any page images this device lacks out of the PDF
+      let pdfBlob = null;
+      for (const e of data.pdf) {
+        const k = rekey(e.key); if (await DB.get('imgs', k)) continue;
+        if (!pdfBlob) pdfBlob = await download(rp.id);
+        const b = await Pdf.extract(pdfBlob, e); await DB.put('imgs', k, { buf: await b.arrayBuffer(), type: b.type });
+      }
+    } else {   // notes uploaded by version 0.8: separate page images
+      for (const p of data.pages) {
+        const k = rekey(p.key); if (await DB.get('imgs', k)) continue;
+        const f = kids.find(x => props(x).kind === 'page' && props(x).key === p.key); if (!f) continue;
+        const b = await download(f.id); await DB.put('imgs', k, { buf: await b.arrayBuffer(), type: b.type || 'image/png' });
+      }
     }
     const pages = data.pages.map(p => ({ ...p, key: rekey(p.key) }));
     const af = kids.find(k => props(k).kind === 'audio');
@@ -1933,7 +2142,7 @@ const Drive = (() => {
     await DB.put('pages', id, { v: 2, pages });
     const meta = { id, folder: data.folder || null, title: data.title, created: data.created, updated: asCopy ? Date.now() : data.updated, strokes: data.strokes || [], duration: data.duration || 0, mime: data.mime || '', hasAudio: !!af, pageCount: pages.length, bm: data.bm || 0, thumb: data.thumb || '' };
     await DB.put('notes', id, meta);
-    if (!asCopy) await DB.put('sync', 'n:' + id, { synced: data.updated });
+    if (!asCopy) await DB.put('sync', 'n:' + id, { synced: data.updated, pdfSig: data.pages.map(p => p.key).join(','), pdfAt: data.pdfAt, pdfIndex: data.pdf || null });
   }
   async function removeLocal(id) { await DB.del('notes', id); await DB.del('pages', id); await DB.del('audio', id); await DB.delPrefix('imgs', id + ':'); await DB.del('sync', 'n:' + id); }
 
@@ -1990,7 +2199,7 @@ function openSettings() {
       <li><b>To practise</b>, tap any mark with your finger (or choose the Hand tool) to hear that passage. Loop repeats it up to the next bookmark, and you can slow it to 0.75× or 0.5×.</li>
       <li><b>As a teacher</b>, import or record the audio, play it back, and draw marks as you listen. Then use Share to send a single file that plays everything.</li>
     </ol></div>
-    <p style="color:var(--muted);font-size:13px;margin-top:14px">Notation 0.8 · © 2026 Lakshmi Ganesan. All rights reserved. Notes are stored on this device.</p>`;
+    <p style="color:var(--muted);font-size:13px;margin-top:14px">Notation 0.9 · © 2026 Lakshmi Ganesan. All rights reserved. Notes are stored on this device.</p>`;
   box.querySelector('#sLead').onclick = e => { const b = e.target.closest('button'); if (!b) return; lead = +b.dataset.v; $$('#sLead button').forEach(x => x.classList.toggle('on', x === b)); if (loop) setLoopFromTime(audioEl.currentTime); };
   const sf = box.querySelector('#sFing'); if (sf) sf.onclick = e => { const b = e.target.closest('button'); if (!b) return; if (!!+b.dataset.v !== fingers) $('#tFingers').click(); $$('#sFing button').forEach(x => x.classList.toggle('on', x === b)); };
   dialog({ title: 'Settings', node: box, actions: [{ label: 'Done', value: true, primary: true }] });
@@ -2005,14 +2214,14 @@ $('#btnLib').onclick = openTemplateLibrary;
   const shared = ($('#shared-note').textContent || '').trim();
   if (shared) {
     viewer = true; document.body.classList.add('viewer');
-    try { const d = JSON.parse(shared); if (d.lead != null) lead = d.lead; note = await dataToNote(d); showEditor(); }
+    try { const d = JSON.parse(shared); if (d.lead != null) lead = d.lead; note = await dataToNote(d); showEditor(); booted = true; }
     catch (e) { document.body.innerHTML = '<p style="padding:40px;font-family:sans-serif">This shared note could not be read.</p>'; }
     return;
   }
   // Library-first; first visit opens straight onto a fresh Ādi page so the app is never blank.
   await loadMine(); await loadFolders();
   if (Drive.init() === 'redirecting') return;
-  showLibrary();
+  await showLibrary(); booted = true; hideBootNotice();
   if ('serviceWorker' in navigator && (location.protocol === 'https:' || location.hostname === 'localhost')) navigator.serviceWorker.register('sw.js').catch(() => { });
 })();
 </script>
