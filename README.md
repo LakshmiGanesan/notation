@@ -24,9 +24,11 @@ The same approach works for chants and ślokas: bring in the script as a PDF, re
 - **Audio bookmarks:** anything you draw while recording, or while a recording plays, is linked to that moment in that recording.
 - **Point tool:** tap any linked mark (pen, calligraphy or highlighter) to play from that moment. Tap ink written before class to link it to wherever the recording is now.
 - **Practice:** tap-to-play with a short lead-in, loop a passage, play at 0.5×, 0.75×, 1×, 1.25× or 2×, and follow along as the page scrolls. Jumping to a bookmark from the list or the timeline turns straight to its page.
-- **Templates:** Ādi, Rūpaka, Miśra Chāpu, Khaṇḍa Chāpu, Viloma Chāpu, Tisra Triputa, Khaṇḍa Triputa, Miśra Jhampa, and a plain grid.
-- **Covers and section dividers:** a Song details page, plus 22 hand-printed textile designs, each with a label holder for the title.
-- **Your own designs:** add any PDF or image to either library.
+- **Three template libraries, to mix and match in any notebook:**
+  - *Notation templates:* Ādi, Rūpaka, Miśra Chāpu, Khaṇḍa Chāpu, Viloma Chāpu, Tisra Triputa, Khaṇḍa Triputa, Miśra Jhampa, a plain grid and a dot grid.
+  - *Covers & dividers:* 22 hand-printed textile designs, each with a label holder for the title.
+  - *Index & trackers:* Song details, an Index of the compositions in a notebook, and a three-month Practice tracker for class and practice days.
+- **Your own designs:** add any PDF or image to any library. A new note guides you through a notation template and a cover; after that, add pages from any library, or from your own files, wherever you like.
 - **Notation books:** import a PDF of any length, or a set of photos and scans, then add, move or remove pages.
 - **Folders:** Music and Chants come built in, with one level of subfolders.
 - **Share links:** publish a note as a view-only player at its own web address, with one tap. Listeners see your pages and ink, hear every recording and tap a mark to hear that passage, in any browser and without the app. You can also share a PDF of the pages, or download the player as a single file.
@@ -111,7 +113,7 @@ On the first visit of each quarter (1 January, 1 April, 1 July and 1 October, fr
 
 ## Updates
 
-The version shows at the top of the library (for example **v0.17**). Notation checks for a newer version when it opens, when you return to it, and every half hour; when there is one, the label turns saffron and reads **Update to …**. Tap it to load the newest version straight away. Your notes, recordings, folders and Drive connection are kept. **Settings → Check for updates** does the same.
+The version shows at the top of the library (for example **v0.18**). Notation checks for a newer version when it opens, when you return to it, and every half hour; when there is one, the label turns saffron and reads **Update to …**. Tap it to load the newest version straight away. Your notes, recordings, folders and Drive connection are kept. **Settings → Check for updates** does the same.
 
 ## Status
 
@@ -122,7 +124,7 @@ Notation is in active, personal development. Features and storage formats may st
 | Path | What it holds |
 |---|---|
 | `index.html` | The app |
-| `templates/` | Notation templates, covers and their previews |
+| `templates/` | Notation templates, covers, index and tracker pages, and their previews |
 | `lib/pdfjs/` | The PDF reader used for importing PDFs ([PDF.js](https://mozilla.github.io/pdf.js/), Apache 2.0) |
 | `icons/`, `manifest.webmanifest` | App icon and install details |
 | `sw.js` | Offline support |
