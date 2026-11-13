@@ -309,7 +309,7 @@ body.viewer .viewer-only{display:inline-flex}
       <p class="tagline">Write your notation, record the lesson, and let every mark sing back.</p>
     </div>
     <div class="lib-actions">
-      <button class="btn verchip" id="verChip" title="Notation version · tap to check for updates">v0.19</button>
+      <button class="btn verchip" id="verChip" title="Notation version · tap to check for updates">v0.20</button>
       <button class="btn drivechip" id="driveChip" title="Google Drive sync"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M7 18h10.5a4.5 4.5 0 0 0 .6-8.96A6 6 0 0 0 6.6 9.2 4.4 4.4 0 0 0 7 18z"/></svg><span>Google Drive</span></button>
       <button class="btn" id="btnLib" title="Notation templates and covers"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="7" height="16" rx="1.5"/><rect x="12" y="4" width="4" height="16" rx="1"/><path d="M18 5.5l3 .8-3.6 13.4-3-.8"/></svg>Templates</button>
       <button class="btn" id="btnImport" title="Open a shared .html note"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v12m0 0-4-4m4 4 4-4"/><path d="M4 17v2a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-2"/></svg>Open shared note</button>
@@ -340,8 +340,8 @@ body.viewer .viewer-only{display:inline-flex}
     <span class="swatches edit-only" id="swatches"></span>
     <span class="sizes edit-only" id="sizes"></span>
     <span class="sep edit-only hide-sm"></span>
-    <button class="ibtn edit-only" id="tUndo" title="Undo"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M9 14L4 9l5-5"/><path d="M4 9h10a6 6 0 0 1 0 12h-3"/></svg></button>
-    <button class="ibtn edit-only" id="tRedo" title="Redo"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M15 14l5-5-5-5"/><path d="M20 9H10a6 6 0 0 0 0 12h3"/></svg></button>
+    <button class="ibtn edit-only" id="tUndo" title="Undo (or tap with two fingers)"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M9 14L4 9l5-5"/><path d="M4 9h10a6 6 0 0 1 0 12h-3"/></svg></button>
+    <button class="ibtn edit-only" id="tRedo" title="Redo (or tap with three fingers)"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M15 14l5-5-5-5"/><path d="M20 9H10a6 6 0 0 0 0 12h3"/></svg></button>
     <span class="spacer"></span>
     <button class="ibtn edit-only hidden" id="tFingers" title="Draw with fingers too (off: only the stylus draws, fingers scroll and tap marks)"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M9 11V5a1.5 1.5 0 0 1 3 0v5"/><path d="M12 10V4a1.5 1.5 0 0 1 3 0v6"/><path d="M15 10V6a1.5 1.5 0 0 1 3 0v8a7 7 0 0 1-7 7h-.5a6 6 0 0 1-4.6-2.2L3.5 15.5a1.6 1.6 0 0 1 2.4-2.1L9 16V8.5a1.5 1.5 0 0 1 3 0"/></svg></button>
     <button class="ibtn" id="tZoom" title="Zoom"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><circle cx="11" cy="11" r="7"/><path d="M20 20l-4-4M11 8v6M8 11h6"/></svg></button>
@@ -1069,6 +1069,40 @@ function applyAct(a, inverse) {
   if (add) note.strokes.push(...a.strokes); else note.strokes = note.strokes.filter(s => !a.strokes.includes(s));
   pages.forEach(redrawInk); computeGroups(); renderAllFx(); scheduleSave();
 }
+/* Finger taps: two fingers = undo, three = redo. Only a quick tap that doesn't move counts,
+   so pinching, scrolling and the Pencil carry on as before. */
+const TapGesture = (() => {
+  let g = null;
+  const fingersOf = e => [...e.touches].filter(t => t.touchType !== 'stylus');
+  const el = $('#pages');
+  el.addEventListener('touchstart', e => {
+    if (viewer || !note) return;
+    if ([...e.changedTouches].some(t => t.touchType === 'stylus')) { g = null; return; }
+    const f = fingersOf(e);
+    if (!g) g = { t0: performance.now(), max: 0, pos: new Map(), dead: false };
+    for (const t of e.changedTouches) g.pos.set(t.identifier, [t.clientX, t.clientY]);
+    g.max = Math.max(g.max, f.length);
+    if (f.length >= 2) {   // a second finger: this is a gesture, not a tap on a mark or a finger stroke
+      tap = null;
+      if (act && live && fingers) { const pi = act.pi; act = null; live = null; renderFx(pi); }
+    }
+  }, { capture: true, passive: true });
+  el.addEventListener('touchmove', e => {
+    if (!g) return;
+    for (const t of e.changedTouches) { const p = g.pos.get(t.identifier); if (p && Math.hypot(t.clientX - p[0], t.clientY - p[1]) > 16) g.dead = true; }
+  }, { capture: true, passive: true });
+  const end = e => {
+    if (!g) return;
+    if (e.type === 'touchcancel') g.dead = true;
+    if (fingersOf(e).length) return;   // wait for the last finger to lift
+    const done = g; g = null;
+    if (done.dead || performance.now() - done.t0 > 400) return;
+    if (done.max === 2 && undoStack.length) { undo(); toast('Undo', 900); }
+    else if (done.max === 3 && redoStack.length) { redo(); toast('Redo', 900); }
+  };
+  el.addEventListener('touchend', end, { capture: true, passive: true });
+  el.addEventListener('touchcancel', end, { capture: true, passive: true });
+})();
 function undo() { const a = undoStack.pop(); if (!a) return; applyAct(a, true); redoStack.push(a); updUndo(); }
 function redo() { const a = redoStack.pop(); if (!a) return; applyAct(a, false); undoStack.push(a); updUndo(); }
 function updUndo() { $('#tUndo').disabled = !undoStack.length; $('#tRedo').disabled = !redoStack.length; }
@@ -2690,7 +2724,7 @@ const Drive = (() => {
    version.json on GitHub names the newest build. When it differs from this one, the
    version chip offers "Update to …". Updating clears only Notation's stored app files
    and reloads; notes, recordings, folders and the Drive connection are untouched. */
-const APP_VERSION = '0.19', APP_BUILD = '613bf8f028';
+const APP_VERSION = '0.20', APP_BUILD = 'c60fae895a';
 const Updates = (() => {
   let latest = null, last = 0;
   const chip = () => $('#verChip');
