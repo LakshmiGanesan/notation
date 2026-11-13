@@ -21,7 +21,8 @@ The same approach works for chants and ślokas: bring in the script as a PDF, re
 - **Highlighter, eraser, undo and redo.** Apple Pencil writes, and fingers scroll and tap.
 - **Lasso:** select ink freehand or with a rectangle, then move, copy, cut, duplicate, recolour or delete it. Paste works across pages and notes. On a Mac, ⌘C, ⌘X, ⌘V, ⌘D and Delete work too.
 - **Audio bookmarks:** anything you draw while recording, or while a recording plays, is linked to that moment.
-- **Practice:** tap-to-play with a short lead-in, loop a passage, play at 0.5×, 0.75× or 1.25×, and follow along as the page scrolls.
+- **Hand tool:** tap any linked mark (pen, calligraphy or highlighter) to play from that moment. Tap ink written before class to link it to wherever the recording is now.
+- **Practice:** tap-to-play with a short lead-in, loop a passage, play at 0.5×, 0.75× or 1.25×, and follow along as the page scrolls. Jumping to a bookmark from the list or the timeline turns straight to its page.
 - **Templates:** Ādi, Rūpaka, Miśra Chāpu, Khaṇḍa Chāpu, Viloma Chāpu, Tisra Triputa, Khaṇḍa Triputa, Miśra Jhampa, and a plain grid.
 - **Covers and section dividers:** a Song details page, plus 22 hand-printed textile designs, each with a label holder for the title.
 - **Your own designs:** add any PDF or image to either library.
