@@ -94,6 +94,9 @@ input[type=text]{font:inherit;color:inherit;-webkit-user-select:text;user-select
 .grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(250px,1fr));gap:18px}
 .card{background:var(--card);border:1px solid var(--line);border-radius:16px;overflow:hidden;position:relative;transition:transform .15s,box-shadow .15s;cursor:pointer}
 .card:hover{transform:translateY(-2px);box-shadow:0 10px 24px -14px rgba(20,24,46,.35)}
+.nudge{display:flex;flex-wrap:wrap;gap:14px 24px;align-items:flex-end;justify-content:space-between;background:#fbf3e6;border:1px solid #ecd9b8;border-left:4px solid #c8641e;border-radius:16px;padding:18px 22px;margin:0 0 22px}
+.nudge-txt{flex:1 1 420px;font-size:15px;line-height:1.55}.nudge-txt p{margin:0 0 6px}.nudge-hi{font-family:var(--serif,Georgia,serif);font-size:20px}
+.nudge-txt ol{margin:6px 0 0;padding-left:20px}.nudge-acts{display:flex;flex-wrap:wrap;gap:8px}.nudge-acts a.btn{text-decoration:none;color:inherit}
 .card .sharedbadge{position:absolute;top:8px;left:8px;display:inline-flex;align-items:center;gap:5px;padding:4px 10px 4px 7px;border:0;border-radius:999px;background:#c8641e;color:#fff;font:600 12px/1.2 inherit;font-family:inherit;box-shadow:0 1px 4px rgba(0,0,0,.18);cursor:pointer}
 .card .sharedbadge svg{width:14px;height:14px}
 .card .thumb{aspect-ratio:2388/1668;background:#fff center/cover no-repeat;border-bottom:1px solid var(--line)}
@@ -286,7 +289,7 @@ body.viewer .viewer-only{display:inline-flex}
       <p class="tagline">Write your notation, record the lesson, and let every mark sing back.</p>
     </div>
     <div class="lib-actions">
-      <button class="btn verchip" id="verChip" title="Notation version · tap to check for updates">v0.16</button>
+      <button class="btn verchip" id="verChip" title="Notation version · tap to check for updates">v0.17</button>
       <button class="btn drivechip" id="driveChip" title="Google Drive sync"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M7 18h10.5a4.5 4.5 0 0 0 .6-8.96A6 6 0 0 0 6.6 9.2 4.4 4.4 0 0 0 7 18z"/></svg><span>Google Drive</span></button>
       <button class="btn" id="btnLib" title="Notation templates and covers"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="7" height="16" rx="1.5"/><rect x="12" y="4" width="4" height="16" rx="1"/><path d="M18 5.5l3 .8-3.6 13.4-3-.8"/></svg>Templates</button>
       <button class="btn" id="btnImport" title="Open a shared .html note"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v12m0 0-4-4m4 4 4-4"/><path d="M4 17v2a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-2"/></svg>Open shared note</button>
@@ -295,7 +298,7 @@ body.viewer .viewer-only{display:inline-flex}
   </div>
   <div class="lib-body">
     <nav id="side" class="side" aria-label="Folders"></nav>
-    <div class="lib-main"><div class="crumb" id="crumb"></div><div id="subs" class="fgrid"></div><div id="grid" class="grid"></div></div>
+    <div class="lib-main"><div id="nudge"></div><div class="crumb" id="crumb"></div><div id="subs" class="fgrid"></div><div id="grid" class="grid"></div></div>
   </div>
 </section>
 
@@ -1501,7 +1504,30 @@ function renderSide(metas) {
   nf.onclick = () => newFolder(null); side.appendChild(nf);
 }
 let LIB_METAS = [];
+/* ---------------- quarterly tidy-up reminder ----------------
+   On the first visit of each quarter (from January 2027) the library opens with a short, warm note.
+   Nothing is automated: backing up and clearing out stay in your hands. */
+const Nudge = (() => {
+  const NAME = 'Lakshmi', FIRST = 2027 * 4;   // first reminder: January 2027
+  const qkey = (d = new Date()) => d.getFullYear() * 4 + Math.floor(d.getMonth() / 3);
+  const on = () => LS.get('nudge.on', true);
+  const due = () => !viewer && on() && qkey() >= FIRST && LS.get('nudge.done', 0) < qkey() && Date.now() >= LS.get('nudge.later', 0);
+  function render() {
+    const el = $('#nudge'); if (!el) return;
+    if (!due()) { el.innerHTML = ''; return; }
+    el.innerHTML = `<div class="nudge"><div class="nudge-txt">
+        <p class="nudge-hi">Hello ${NAME},</p>
+        <p>I hope your learning is going well, and that the music and chants keep nourishing your mind and heart.</p>
+        <p>A new quarter has begun, a good moment to tend your Notation space:</p>
+        <ol><li><b>Back up</b> the Notation folder in your Google Drive to your hard disk.</li><li><b>Look through</b> your notes and let go of any you no longer need.</li><li><b>Keep</b> what matters, and make room for what comes next.</li></ol>
+      </div><div class="nudge-acts"><a class="btn" href="https://drive.google.com/drive/search?q=Notation" target="_blank" rel="noopener">Open Google Drive</a><button class="btn" data-n="later">Remind me next week</button><button class="btn primary" data-n="done">Done for this quarter</button></div></div>`;
+    el.querySelector('[data-n=later]').onclick = () => { LS.set('nudge.later', Date.now() + 7 * 864e5); render(); toast('I’ll remind you next week.'); };
+    el.querySelector('[data-n=done]').onclick = () => { LS.set('nudge.done', qkey()); LS.set('nudge.later', 0); render(); toast('Lovely. See you next quarter.'); };
+  }
+  return { render, on, set: v => { LS.set('nudge.on', v); render(); } };
+})();
 async function showLibrary(fromSync) {
+  Nudge.render();
   note = null; if (io) io.disconnect(); views.forEach((_, i) => unmountPage(i, true)); views = []; $('#pages').innerHTML = ''; releaseImages();
   $('#editor').classList.add('hidden'); $('#drawer').classList.remove('open'); $('#library').classList.remove('hidden');
   document.title = 'Notation';
@@ -1894,21 +1920,30 @@ const Publish = (() => {
     }
     return false;
   }
-  async function setup(then) {
+  async function setup(then, replacing) {
+    if (token() && !replacing) {   // already set up: a calm status, with token changes tucked away
+      const tail = token().slice(-4);
+      const v = await dialog({ title: 'Share links', html: `<p style="margin-top:0">Share links are set up on this device. Notes you publish go to the <b>shared</b> folder of <b>${REPO}</b>.</p><p style="color:var(--muted);font-size:14px">GitHub token ending in <b>…${esc(tail)}</b>.</p>`, actions: [{ label: 'Manage token…', value: 'manage' }, { label: 'Done', value: null, primary: true }] });
+      if (v !== 'manage') return true;
+      const w = await dialog({ title: 'Manage token', html: '<p style="margin-top:0">Only needed when the token expires, or if you want to stop publishing from this device.</p>', actions: [{ label: 'Cancel', value: null }, { label: 'Remove from this device', value: 'off', danger: true }, { label: 'Replace token', value: 'new', primary: true }] });
+      if (w === 'new') return setup(then, true);
+      if (w === 'off') {
+        const ok = await dialog({ title: 'Remove the token?', html: '<p>This device will no longer be able to publish, update or stop sharing links until you paste a token again. Links you have already shared keep working.</p>', actions: [{ label: 'Cancel', value: false }, { label: 'Remove', value: true, danger: true }] });
+        if (ok) { LS.set('github', {}); toast('Token removed from this device.'); }
+      }
+      return false;
+    }
     const box = document.createElement('div');
-    box.innerHTML = `<p style="margin-top:0">Notation puts each shared player in your <b>notation</b> repository on GitHub, in a folder called <b>shared</b>, and gives you its link. To do that it needs a GitHub access token that can write to that one repository.</p>
+    box.innerHTML = `<p style="margin-top:0">Notation puts each shared player in the <b>shared</b> folder of your <b>notation</b> repository on GitHub, and gives you its link. For that it needs a GitHub token that can write to that one repository.</p>
       <ol style="padding-left:20px;font-size:14px;line-height:1.5">
-        <li>On GitHub, open <b>Settings → Developer settings → Personal access tokens → Fine-grained tokens</b> and choose <b>Generate new token</b>.</li>
-        <li>Name it <i>Notation sharing</i> and pick an expiry (a year is fine).</li>
-        <li>Under <b>Repository access</b>, choose <b>Only select repositories</b> → <b>${REPO}</b>.</li>
-        <li>Under <b>Permissions → Repository permissions</b>, set <b>Contents</b> to <b>Read and write</b>.</li>
-        <li>Generate the token, copy it, and paste it here.</li>
+        <li>On GitHub: <b>Settings → Developer settings → Personal access tokens → Fine-grained tokens → Generate new token</b>. Give it a name and an expiry (a year is fine).</li>
+        <li><b>Repository access:</b> Only select repositories → <b>${REPO}</b>.</li>
+        <li><b>Permissions:</b> tap <b>+ Add permissions</b>, choose <b>Contents</b>, and set it to <b>Read and write</b>.</li>
+        <li><b>Generate token</b>, copy it (it starts with github_pat_) and paste it here.</li>
       </ol>
-      <input class="tinput" id="ghTok" type="password" spellcheck="false" autocapitalize="off" autocomplete="off" placeholder="github_pat_…" value="${esc(token())}" style="font-size:14px;margin:6px 0 8px">
-      <p style="color:var(--muted);font-size:13px;margin:0">The token stays on this device only; it is never put into your Drive or into anything you share. Each device that shares needs it once.</p>`;
-    const acts = [{ label: 'Cancel', value: null }].concat(token() ? [{ label: 'Remove token', value: 'off', danger: true }] : []).concat([{ label: 'Save', value: 'go', primary: true }]);
-    const v = await dialog({ title: 'Share links', node: box, actions: acts });
-    if (v === 'off') { LS.set('github', {}); toast('Token removed from this device.'); return false; }
+      <input class="tinput" id="ghTok" type="password" spellcheck="false" autocapitalize="off" autocomplete="off" placeholder="github_pat_…" style="font-size:14px;margin:6px 0 8px">
+      <p style="color:var(--muted);font-size:13px;margin:0">The token stays on this device only. It is never put into your Drive or into anything you share.</p>`;
+    const v = await dialog({ title: replacing ? 'Replace token' : 'Set up share links', node: box, actions: [{ label: 'Cancel', value: null }, { label: 'Save', value: 'go', primary: true }] });
     if (v !== 'go') return false;
     const tk = box.querySelector('#ghTok').value.trim(); if (!tk) return false;
     const prev = cfg(); LS.set('github', { token: tk });
@@ -2550,7 +2585,7 @@ const Drive = (() => {
    version.json on GitHub names the newest build. When it differs from this one, the
    version chip offers "Update to …". Updating clears only Notation's stored app files
    and reloads; notes, recordings, folders and the Drive connection are untouched. */
-const APP_VERSION = '0.16', APP_BUILD = 'b00d518e8b';
+const APP_VERSION = '0.17', APP_BUILD = '5e6d2a2983';
 const Updates = (() => {
   let latest = null, last = 0;
   const chip = () => $('#verChip');
@@ -2602,10 +2637,12 @@ function openSettings() {
       <li><b>To practise</b>, tap any mark with your finger (or choose the Point tool) to hear that passage. Loop repeats it up to the next bookmark, and you can play it at 0.5× to 2×.</li>
       <li><b>As a teacher</b>, import or record the audio, play it back, and draw marks as you listen. Then use Share to publish a link that plays everything, for anyone you send it to.</li>
     </ol></div>
-    ${viewer ? '' : `<div class="field"><span>Share links<br><small style="color:var(--muted)">${Publish.ready() ? 'Ready on this device' : 'Publish players to your notation repository on GitHub'}</small></span><button class="btn" id="sGh">${Publish.ready() ? 'Change' : 'Set up'}</button></div>`}
+    ${viewer ? '' : `<div class="field"><span>Share links<br><small style="color:var(--muted)">${Publish.ready() ? 'Set up on this device' : 'Publish players to your notation repository on GitHub'}</small></span><button class="btn" id="sGh">${Publish.ready() ? 'View' : 'Set up'}</button></div>`}
+    ${viewer ? '' : `<div class="field"><span>Quarterly tidy-up reminder<br><small style="color:var(--muted)">A gentle note on 1 Jan, 1 Apr, 1 Jul and 1 Oct</small></span><span class="seg" id="sNudge"><button data-v="0" class="${!Nudge.on() ? 'on' : ''}">Off</button><button data-v="1" class="${Nudge.on() ? 'on' : ''}">On</button></span></div>`}
     <p style="color:var(--muted);font-size:13px;margin-top:14px">Notation ${APP_VERSION} · © 2026 Lakshmi Ganesan. All rights reserved. Notes are stored on this device.</p>
     <div style="margin-top:10px"><button class="btn" id="sUpdate">Check for updates</button></div>`;
   box.querySelector('#sLead').onclick = e => { const b = e.target.closest('button'); if (!b) return; lead = +b.dataset.v; $$('#sLead button').forEach(x => x.classList.toggle('on', x === b)); if (loop) setLoopFromTime(audioEl.currentTime); };
+  const sn = box.querySelector('#sNudge'); if (sn) sn.onclick = e => { const b = e.target.closest('button'); if (!b) return; Nudge.set(!!+b.dataset.v); $$('#sNudge button').forEach(x => x.classList.toggle('on', x === b)); };
   const gh = box.querySelector('#sGh'); if (gh) gh.onclick = () => { closeDialog(null); Publish.setup(); };
   box.querySelector('#sUpdate').onclick = () => { closeDialog(null); Updates.check(true); };
   const sf = box.querySelector('#sFing'); if (sf) sf.onclick = e => { const b = e.target.closest('button'); if (!b) return; if (!!+b.dataset.v !== fingers) $('#tFingers').click(); $$('#sFing button').forEach(x => x.classList.toggle('on', x === b)); };

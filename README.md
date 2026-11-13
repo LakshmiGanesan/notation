@@ -103,11 +103,15 @@ https://lakshmiganesan.github.io/notation/shared/sami-ninne-kori/
 - Players ask search engines not to list them, but the repository is public, so treat anything you share as public.
 - GitHub takes about a minute to put a new or updated player online. Each recording can be up to 100 MB.
 
-**Setting up (once on each device):** on GitHub, open Settings → Developer settings → Personal access tokens → **Fine-grained tokens** → Generate new token. Give it access to **Only select repositories → LakshmiGanesan/notation**, with **Repository permissions → Contents: Read and write**. Copy the token and paste it in Notation's **Settings → Share links**. The token stays on that device; it is never synced to Drive or put into anything you share.
+**Setting up (once on each device):** on GitHub, open Settings → Developer settings → Personal access tokens → **Fine-grained tokens** → Generate new token. Give it access to **Only select repositories → LakshmiGanesan/notation**, then **+ Add permissions → Contents → Read and write**. Copy the token and paste it in Notation's **Settings → Share links**. The token stays on that device; it is never synced to Drive or put into anything you share. Once set up, Settings shows a short status; replacing or removing the token sits behind **Manage token…**.
+
+## Quarterly tidy-up reminder
+
+On the first visit of each quarter (1 January, 1 April, 1 July and 1 October, from 2027), the library opens with a short note: back up the Notation folder in Google Drive to a hard disk, let go of notes you no longer need, and keep what matters. Nothing is done automatically. **Remind me next week** or **Done for this quarter** puts it away; Settings can turn it off.
 
 ## Updates
 
-The version shows at the top of the library (for example **v0.16**). Notation checks for a newer version when it opens, when you return to it, and every half hour; when there is one, the label turns saffron and reads **Update to …**. Tap it to load the newest version straight away. Your notes, recordings, folders and Drive connection are kept. **Settings → Check for updates** does the same.
+The version shows at the top of the library (for example **v0.17**). Notation checks for a newer version when it opens, when you return to it, and every half hour; when there is one, the label turns saffron and reads **Update to …**. Tap it to load the newest version straight away. Your notes, recordings, folders and Drive connection are kept. **Settings → Check for updates** does the same.
 
 ## Status
 
