@@ -127,6 +127,11 @@ input[type=text]{font:inherit;color:inherit;-webkit-user-select:text;user-select
 .ctxbtn{height:36px;border-radius:10px;border:1px solid var(--line);background:var(--card);padding:0 12px;font-size:13px;font-weight:600;flex:none;margin-left:6px}
 .ctxbtn:disabled{opacity:.35}
 #popover{position:fixed;z-index:45;background:var(--paper);border:1px solid var(--line);border-radius:16px;box-shadow:0 20px 40px -18px rgba(14,17,32,.45);padding:14px;width:300px}
+.speeds{display:flex;gap:6px}
+.speeds button{flex:1;min-height:50px;border-radius:11px;border:1px solid var(--line);background:var(--card);font-size:15px;font-weight:600;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:1px}
+.speeds button small{font-size:9.5px;font-weight:500;color:var(--muted)}
+.speeds button.on{background:var(--ink);color:#fff;border-color:var(--ink)}
+.speeds button.on small{color:#cfd3e6}
 #popover h5{margin:0 0 8px;font-size:12px;letter-spacing:.06em;text-transform:uppercase;color:var(--muted);font-weight:600}
 .pgrid{display:grid;grid-template-columns:repeat(6,1fr);gap:8px;margin-bottom:12px}
 .pgrid .sw{width:36px;height:36px;position:relative}
@@ -286,7 +291,7 @@ body.viewer .viewer-only{display:inline-flex}
     <button class="ibtn edit-only" data-tool="hl" title="Highlighter"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M9 14l-4 4v2h4l4-4"/><path d="M9 14l6-10 5 3-6 10z"/><path d="M3 21h18" opacity=".45" stroke-width="3"/></svg></button>
     <button class="ibtn edit-only" data-tool="eraser" title="Eraser"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M16 3l5 5-11 11H5l-2-2z"/><path d="M9 10l5 5"/><path d="M11 20h10"/></svg></button>
     <button class="ibtn edit-only" data-tool="lasso" title="Lasso: select, move, copy and paste ink"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M7 16c-3-1.2-4-3.2-4-5.5C3 6.4 7 3.5 12 3.5s9 2.9 9 7-4 7-9 7c-1.4 0-2.7-.2-3.9-.6" stroke-dasharray="2.6 2.6"/><path d="M8 16.5c0 2.2-1.3 3.6-3 4"/><circle cx="8" cy="16.3" r="1.4"/></svg></button>
-    <button class="ibtn listen" data-tool="play" title="Hand: tap any mark to play from it"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M8 13V5.5a1.5 1.5 0 0 1 3 0V11"/><path d="M11 10.5V4a1.5 1.5 0 0 1 3 0v6.5"/><path d="M14 10.5V5.5a1.5 1.5 0 0 1 3 0v5"/><path d="M17 10.5V9a1.5 1.5 0 0 1 3 0v5a7 7 0 0 1-7 7h-1a6 6 0 0 1-4.8-2.4L3.6 15a1.6 1.6 0 0 1 2.5-2l1.9 2"/></svg></button>
+    <button class="ibtn listen" data-tool="play" title="Point: tap any mark to play from it"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M9.5 12.5V4a1.6 1.6 0 0 1 3.2 0v7"/><path d="M12.7 10.6a1.6 1.6 0 0 1 3.2 0v1.2"/><path d="M15.9 11.4a1.6 1.6 0 0 1 3.1.4V15a6.5 6.5 0 0 1-6.5 6.5h-1a6 6 0 0 1-4.7-2.3L4 15.6a1.6 1.6 0 0 1 2.4-2.1l3.1 3.1"/><path d="M6.2 4.4 4.8 3.4M5.4 7.4H3.8M15.8 4.4l1.4-1" opacity=".55"/></svg></button>
     <span class="sep edit-only"></span>
     <span class="swatches edit-only" id="swatches"></span>
     <span class="sizes edit-only" id="sizes"></span>
@@ -971,7 +976,7 @@ function renderSwatches() {
 
 /* ---- palette, colour picker and eyedropper ---- */
 function closePopover() { $('#popover').classList.add('hidden'); document.removeEventListener('pointerdown', popOutside, true); }
-function popOutside(e) { if (!e.target.closest('#popover') && !e.target.closest('.palbtn') && !e.target.closest('[data-sa="color"]')) closePopover(); }
+function popOutside(e) { if (!e.target.closest('#popover') && !e.target.closest('.palbtn') && !e.target.closest('[data-sa="color"]') && !e.target.closest('#pSpeed')) closePopover(); }
 function showPopover(anchor, html, wire) {
   const p = $('#popover'); p.innerHTML = html; p.classList.remove('hidden');
   const r = anchor.getBoundingClientRect(), w = p.offsetWidth;
@@ -1066,7 +1071,14 @@ $('#tMarks').onclick = () => { const d = $('#drawer'); d.classList.toggle('open'
 $('#dClose').onclick = () => $('#drawer').classList.remove('open');
 $('#pPlay').onclick = togglePlay;
 $('#pRec').onclick = () => rec ? stopRecording() : startRecording();
-$('#pSpeed').onclick = () => { const r = [0.5, 0.75, 1, 1.25]; const n = r[(r.indexOf(audioEl.playbackRate) + 1) % r.length] || 1; audioEl.playbackRate = n; $('#pSpeed').textContent = n + '×'; };
+$('#pSpeed').onclick = e => {
+  e.stopPropagation(); const cur = audioEl.playbackRate || 1;
+  showPopover($('#pSpeed'), `<h5>Playback speed</h5><div class="speeds">${[0.5, 0.75, 1, 2, 3].map(r => `<button data-r="${r}" class="${r === cur ? 'on' : ''}">${r}×${r === 1 ? '<small>as recorded</small>' : ''}</button>`).join('')}</div>`, p => {
+    p.querySelectorAll('[data-r]').forEach(b => b.onclick = () => { const r = +b.dataset.r; audioEl.playbackRate = r; audioEl.preservesPitch = true; $('#pSpeed').textContent = r + '×'; $('#pSpeed').classList.toggle('on', r !== 1); closePopover(); });
+  });
+  const pop = $('#popover'), r = $('#pSpeed').getBoundingClientRect();   // open upwards, above the player bar
+  pop.style.top = Math.max(8, r.top - pop.offsetHeight - 10) + 'px';
+};
 $('#pLoop').onclick = () => { loop = !loop; $('#pLoop').classList.toggle('on', loop); if (loop) { setLoopFromTime(audioEl.currentTime || 0); toast('Looping the current passage, up to the next bookmark.'); } else loopRange = null; };
 $('#pFollow').onclick = () => { follow = !follow; $('#pFollow').classList.toggle('on', follow); };
 $('#pAudio').onclick = async () => {
@@ -1573,7 +1585,7 @@ function showEditor() {
   $('#tTitle').value = note.title || ''; $('#vTitle').textContent = note.title || 'Untitled';
   sel = null; $('#selbar').classList.add('hidden'); stopPicking();
   undoStack = []; redoStack = []; updUndo(); activeGroup = -1; loop = false; loopRange = null; $('#pLoop').classList.remove('on');
-  audioEl.playbackRate = 1; $('#pSpeed').textContent = '1×';
+  audioEl.playbackRate = 1; $('#pSpeed').textContent = '1×'; $('#pSpeed').classList.remove('on');
   setTool(viewer ? 'play' : (tool === 'eraser' ? 'pen' : tool));
   computeGroups(); buildPages(); setAudio(note.audio); $('#pages').scrollTop = 0;
 }
@@ -2196,10 +2208,10 @@ function openSettings() {
     <ol style="padding-left:20px;margin:0">
       <li><b>Before class</b>, write the notation on your template with the pen.</li>
       <li><b>In class</b>, press Record. Each time a line or saṅgati begins, draw a quick mark in the margin column. Anything drawn while recording (or while audio plays) becomes an audio bookmark.</li>
-      <li><b>To practise</b>, tap any mark with your finger (or choose the Hand tool) to hear that passage. Loop repeats it up to the next bookmark, and you can slow it to 0.75× or 0.5×.</li>
+      <li><b>To practise</b>, tap any mark with your finger (or choose the Point tool) to hear that passage. Loop repeats it up to the next bookmark, and you can slow it to 0.75× or 0.5×.</li>
       <li><b>As a teacher</b>, import or record the audio, play it back, and draw marks as you listen. Then use Share to send a single file that plays everything.</li>
     </ol></div>
-    <p style="color:var(--muted);font-size:13px;margin-top:14px">Notation 0.9 · © 2026 Lakshmi Ganesan. All rights reserved. Notes are stored on this device.</p>`;
+    <p style="color:var(--muted);font-size:13px;margin-top:14px">Notation 0.10 · © 2026 Lakshmi Ganesan. All rights reserved. Notes are stored on this device.</p>`;
   box.querySelector('#sLead').onclick = e => { const b = e.target.closest('button'); if (!b) return; lead = +b.dataset.v; $$('#sLead button').forEach(x => x.classList.toggle('on', x === b)); if (loop) setLoopFromTime(audioEl.currentTime); };
   const sf = box.querySelector('#sFing'); if (sf) sf.onclick = e => { const b = e.target.closest('button'); if (!b) return; if (!!+b.dataset.v !== fingers) $('#tFingers').click(); $$('#sFing button').forEach(x => x.classList.toggle('on', x === b)); };
   dialog({ title: 'Settings', node: box, actions: [{ label: 'Done', value: true, primary: true }] });
