@@ -279,7 +279,9 @@ body.fingers .page canvas.fx{touch-action:none}
 .tpl .tim svg{width:30px;height:30px}
 .tpl b{font-family:var(--serif);font-weight:500;font-size:17px;display:block}
 .tpl span{color:var(--muted);font-size:13px}
-.field{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:10px 0;border-bottom:1px solid var(--line)}
+.field{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:9px 0;border-bottom:1px solid var(--line)}
+.field>span:first-child{flex:1;min-width:0}.field>.seg,.field>.btn,.field>select{flex:none}.field .seg button{white-space:nowrap}
+.sgrp{font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);margin:16px 0 0;font-weight:600}.sgrp:first-child{margin-top:0}
 .field:last-child{border-bottom:none}
 .seg{display:inline-flex;border:1px solid var(--line);border-radius:10px;overflow:hidden}
 .seg button{border:none;background:var(--card);padding:8px 12px;font-size:13px;font-weight:600}
@@ -321,7 +323,7 @@ body.viewer .viewer-only{display:inline-flex}
       <p class="tagline">Write your notation, record the lesson, and let every mark sing back.</p>
     </div>
     <div class="lib-actions">
-      <button class="btn verchip" id="verChip" title="Notation version · tap to check for updates">v0.22</button>
+      <button class="btn verchip" id="verChip" title="Notation version · tap to check for updates">v0.23</button>
       <button class="btn drivechip" id="driveChip" title="Google Drive sync"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M7 18h10.5a4.5 4.5 0 0 0 .6-8.96A6 6 0 0 0 6.6 9.2 4.4 4.4 0 0 0 7 18z"/></svg><span>Google Drive</span></button>
       <button class="btn" id="btnLib" title="Notation templates and covers"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="7" height="16" rx="1.5"/><rect x="12" y="4" width="4" height="16" rx="1"/><path d="M18 5.5l3 .8-3.6 13.4-3-.8"/></svg>Templates</button>
       <button class="btn" id="btnImport" title="Open a shared .html note"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v12m0 0-4-4m4 4 4-4"/><path d="M4 17v2a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-2"/></svg>Open shared note</button>
@@ -1160,6 +1162,12 @@ function applyAct(a, inverse) {
 }
 /* Finger taps: two fingers = undo, three = redo. Only a quick tap that doesn't move counts,
    so pinching, scrolling and the Pencil carry on as before. */
+const Gest = {
+  mode: () => LS.get('gest', 'std'),
+  set(v) { LS.set('gest', v); Gest.titles(); },
+  titles() { const m = Gest.mode(); $('#tUndo').title = m === 'off' ? 'Undo' : `Undo (or tap with ${m === 'std' ? 'two' : 'three'} fingers)`; $('#tRedo').title = m === 'off' ? 'Redo' : `Redo (or tap with ${m === 'std' ? 'three' : 'two'} fingers)`; },
+};
+Gest.titles();
 const TapGesture = (() => {
   let g = null;
   const fingersOf = e => [...e.touches].filter(t => t.touchType !== 'stylus');
@@ -1186,8 +1194,11 @@ const TapGesture = (() => {
     if (fingersOf(e).length) return;   // wait for the last finger to lift
     const done = g; g = null;
     if (done.dead || performance.now() - done.t0 > 400) return;
-    if (done.max === 2 && undoStack.length) { undo(); toast('Undo', 900); }
-    else if (done.max === 3 && redoStack.length) { redo(); toast('Redo', 900); }
+    const m = Gest.mode(); if (m === 'off') return;
+    const act2 = (done.max === 2) === (m === 'std') ? 'undo' : 'redo';
+    if (done.max !== 2 && done.max !== 3) return;
+    if (act2 === 'undo' && undoStack.length) { undo(); toast('Undo', 900); }
+    else if (act2 === 'redo' && redoStack.length) { redo(); toast('Redo', 900); }
   };
   el.addEventListener('touchend', end, { capture: true, passive: true });
   el.addEventListener('touchcancel', end, { capture: true, passive: true });
@@ -2936,7 +2947,7 @@ const Drive = (() => {
    version.json on GitHub names the newest build. When it differs from this one, the
    version chip offers "Update to …". Updating clears only Notation's stored app files
    and reloads; notes, recordings, folders and the Drive connection are untouched. */
-const APP_VERSION = '0.22', APP_BUILD = 'c3dcd546a5';
+const APP_VERSION = '0.23', APP_BUILD = 'cbd3f5a0b8';
 const Updates = (() => {
   let latest = null, last = 0;
   const chip = () => $('#verChip');
@@ -2979,19 +2990,18 @@ $('#verChip').onclick = () => Updates.check(true);
 function openSettings() {
   const box = document.createElement('div');
   box.innerHTML = `
+    <h6 class="sgrp">Playing</h6>
     <div class="field"><span>Lead-in before a bookmark<br><small style="color:var(--muted)">Start this much earlier when a mark is tapped</small></span><span class="seg" id="sLead">${[0, 1, 2, 3].map(n => `<button data-v="${n}" class="${lead === n ? 'on' : ''}">${n}s</button>`).join('')}</span></div>
+    ${viewer ? '' : `<h6 class="sgrp">Writing</h6>
+    <div class="field"><span>Finger taps<br><small style="color:var(--muted)">Quick taps on the page with two or three fingers</small></span><span class="seg" id="sGest">${[['std', '2 undo · 3 redo'], ['swap', '2 redo · 3 undo'], ['off', 'Off']].map(([v, l]) => `<button data-v="${v}" class="${Gest.mode() === v ? 'on' : ''}">${l}</button>`).join('')}</span></div>`}
     ${viewer ? '' : `<div class="field"><span>Draw with fingers<br><small style="color:var(--muted)">Off: only Apple Pencil / stylus draws</small></span><span class="seg" id="sFing"><button data-v="0" class="${!fingers ? 'on' : ''}">Off</button><button data-v="1" class="${fingers ? 'on' : ''}">On</button></span></div>`}
-    <div style="margin-top:14px"><h2 style="font-size:19px;margin:10px 0 6px">How Notation works</h2>
-    <ol style="padding-left:20px;margin:0">
-      <li><b>Before class</b>, write the notation on your template with the pen.</li>
-      <li><b>In class</b>, press Record. Each time a line or saṅgati begins, draw a quick mark in the margin column. Anything drawn while recording (or while audio plays) becomes an audio bookmark.</li>
-      <li><b>To practise</b>, tap any mark with your finger (or choose the Point tool) to hear that passage. Loop repeats it up to the next bookmark, and you can play it at 0.5× to 2×.</li>
-      <li><b>As a teacher</b>, import or record the audio, play it back, and draw marks as you listen. Then use Share to publish a link that plays everything, for anyone you send it to.</li>
-    </ol></div>
-    ${viewer ? '' : `<div class="field"><span>Share links<br><small style="color:var(--muted)">${Publish.ready() ? 'Set up on this device' : 'Publish players to your notation repository on GitHub'}</small></span><button class="btn" id="sGh">${Publish.ready() ? 'View' : 'Set up'}</button></div>`}
-    ${viewer ? '' : `<div class="field"><span>Microphone<br><small style="color:var(--muted)">An external mic is used whenever it's connected</small></span><select class="tinput" id="sMic" style="max-width:220px;font-size:14px;padding:6px 8px"><option value="">Built-in / default</option></select></div>
-    <div class="field"><span>Recording mode<br><small style="color:var(--muted)">Music: natural sound, no voice-call processing. Voice: reduces room noise.</small></span><span class="seg" id="sRecMode"><button data-v="music" class="${RecQ.mode() !== 'voice' ? 'on' : ''}">Music</button><button data-v="voice" class="${RecQ.mode() === 'voice' ? 'on' : ''}">Voice</button></span></div>`}
-    ${viewer ? '' : `<div class="field"><span>Quarterly tidy-up reminder<br><small style="color:var(--muted)">A gentle note on 1 Jan, 1 Apr, 1 Jul and 1 Oct</small></span><span class="seg" id="sNudge"><button data-v="0" class="${!Nudge.on() ? 'on' : ''}">Off</button><button data-v="1" class="${Nudge.on() ? 'on' : ''}">On</button></span></div>`}
+    ${viewer ? '' : `<h6 class="sgrp">Recording</h6>
+    <div class="field"><span>Microphone<br><small style="color:var(--muted)">An external mic is used whenever it's connected</small></span><select class="tinput" id="sMic" style="max-width:220px;font-size:14px;padding:6px 8px"><option value="">Built-in / default</option></select></div>
+    <div class="field"><span>Recording mode<br><small style="color:var(--muted)">Music: natural sound, no voice-call processing<br>Voice: reduces room noise</small></span><span class="seg" id="sRecMode"><button data-v="music" class="${RecQ.mode() !== 'voice' ? 'on' : ''}">Music</button><button data-v="voice" class="${RecQ.mode() === 'voice' ? 'on' : ''}">Voice</button></span></div>`}
+    ${viewer ? '' : `<h6 class="sgrp">Sharing</h6>
+    <div class="field"><span>Share links<br><small style="color:var(--muted)">${Publish.ready() ? 'Set up on this device' : 'Publish players to your notation repository on GitHub'}</small></span><button class="btn" id="sGh">${Publish.ready() ? 'View' : 'Set up'}</button></div>`}
+    ${viewer ? '' : `<h6 class="sgrp">Notation</h6>
+    <div class="field"><span>Quarterly tidy-up reminder<br><small style="color:var(--muted)">A gentle note on 1 Jan, 1 Apr, 1 Jul and 1 Oct</small></span><span class="seg" id="sNudge"><button data-v="0" class="${!Nudge.on() ? 'on' : ''}">Off</button><button data-v="1" class="${Nudge.on() ? 'on' : ''}">On</button></span></div>`}
     <p style="color:var(--muted);font-size:13px;margin-top:14px">Notation ${APP_VERSION} · © 2026 Lakshmi Ganesan. All rights reserved. Notes are stored on this device.</p>
     <div style="margin-top:10px"><button class="btn" id="sUpdate">Check for updates</button></div>`;
   box.querySelector('#sLead').onclick = e => { const b = e.target.closest('button'); if (!b) return; lead = +b.dataset.v; $$('#sLead button').forEach(x => x.classList.toggle('on', x === b)); if (loop) setLoopFromTime(audioEl.currentTime); };
@@ -3006,6 +3016,7 @@ function openSettings() {
     });
     mic.onchange = () => { LS.set('rec.dev', mic.value); toast(mic.value ? 'Notation will record with this microphone.' : 'Notation will use the default microphone.'); };
   }
+  const sg = box.querySelector('#sGest'); if (sg) sg.onclick = e => { const b = e.target.closest('button'); if (!b) return; Gest.set(b.dataset.v); $$('#sGest button').forEach(x => x.classList.toggle('on', x === b)); };
   const sn = box.querySelector('#sNudge'); if (sn) sn.onclick = e => { const b = e.target.closest('button'); if (!b) return; Nudge.set(!!+b.dataset.v); $$('#sNudge button').forEach(x => x.classList.toggle('on', x === b)); };
   const gh = box.querySelector('#sGh'); if (gh) gh.onclick = () => { closeDialog(null); Publish.setup(); };
   box.querySelector('#sUpdate').onclick = () => { closeDialog(null); Updates.check(true); };
