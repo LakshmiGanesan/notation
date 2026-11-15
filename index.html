@@ -282,6 +282,8 @@ body.fingers .page canvas.fx{touch-action:none}
 #scrim{position:fixed;inset:0;background:rgba(14,17,32,.38);z-index:50;display:grid;place-items:center;padding:20px}
 .dlg{background:var(--paper);border-radius:18px;max-width:560px;width:100%;max-height:86vh;overflow:auto;padding:22px 22px 18px;box-shadow:0 30px 60px -20px rgba(0,0,0,.4)}
 .dlg h2{font-family:var(--serif);font-weight:500;font-size:23px;margin:0 0 10px}
+.dlg.hasx{position:relative}.dlg.hasx h2{padding-left:44px;margin-bottom:16px}.dlgx{position:absolute;left:16px;top:18px;width:34px;height:34px;border-radius:50%;border:1px solid var(--line);background:#fff;font-size:15px;color:inherit;cursor:pointer;display:grid;place-items:center}
+.dlg.hasx .acts{flex-wrap:wrap}
 .dlg p,.dlg li{line-height:1.55;color:#3b3a40}
 .dlg .acts{display:flex;justify-content:flex-end;gap:8px;margin-top:18px;flex-wrap:wrap}
 .dlg.wide{max-width:900px}
@@ -383,7 +385,7 @@ body.viewer .viewer-only{display:inline-flex}
       <p class="tagline">Write your notation, record the lesson, and let every mark sing back.</p>
     </div>
     <div class="lib-actions">
-      <button class="btn verchip" id="verChip" title="Notation version · tap to check for updates">v0.29</button>
+      <button class="btn verchip" id="verChip" title="Notation version · tap to check for updates">v0.30</button>
       <button class="btn drivechip" id="driveChip" title="Google Drive sync"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M7 18h10.5a4.5 4.5 0 0 0 .6-8.96A6 6 0 0 0 6.6 9.2 4.4 4.4 0 0 0 7 18z"/></svg><span>Google Drive</span></button>
       <button class="btn" id="btnLib" title="Notation templates and covers"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="7" height="16" rx="1.5"/><rect x="12" y="4" width="4" height="16" rx="1"/><path d="M18 5.5l3 .8-3.6 13.4-3-.8"/></svg>Templates</button>
       <button class="btn" id="btnImport" title="Open a shared .html note"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v12m0 0-4-4m4 4 4-4"/><path d="M4 17v2a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-2"/></svg>Open shared note</button>
@@ -602,7 +604,8 @@ function dialog({ title, html = '', node = null, actions = [{ label: 'OK', value
   return new Promise(res => {
     const scrim = $('#scrim'); scrim.innerHTML = '';
     const d = document.createElement('div'); d.className = 'dlg' + (arguments[0].wide ? ' wide' : '');
-    d.innerHTML = (title ? `<h2>${esc(title)}</h2>` : '') + html;
+    d.innerHTML = (arguments[0].x ? '<button class="dlgx" title="Close" aria-label="Close">✕</button>' : '') + (title ? `<h2>${esc(title)}</h2>` : '') + html;
+    if (arguments[0].x) { d.classList.add('hasx'); }
     if (node) d.appendChild(node);
     const acts = document.createElement('div'); acts.className = 'acts';
     const close = v => { scrim.classList.add('hidden'); scrim.innerHTML = ''; res(v); };
@@ -611,7 +614,7 @@ function dialog({ title, html = '', node = null, actions = [{ label: 'OK', value
       b.textContent = a.label; b.onclick = () => close(a.value); acts.appendChild(b);
     }
     if (actions.length) d.appendChild(acts);
-    d.close = close;
+    d.close = close; const xb = d.querySelector('.dlgx'); if (xb) xb.onclick = () => close(dismiss);
     scrim.onclick = e => { if (e.target === scrim) close(dismiss); };
     scrim.appendChild(d); scrim.classList.remove('hidden');
   });
@@ -2062,19 +2065,25 @@ const Side = (() => {
 /* ---- page operations ---- */
 async function pageMenu(i) {
   const n = note.pages.length;
+  const marks = note.strokes.filter(s => s.page === i).length + (note.texts || []).filter(t => t.page === i).length;
   const v = await dialog({
-    title: note.pages[i].cover ? 'Cover' : `Page ${i + 1} of ${n}`, html: '<p style="margin-top:0">Add pages after this one, move it, or remove it.</p>',
-    actions: [{ label: 'Cancel', value: null }].concat(
+    title: note.pages[i].cover ? 'Cover' : `Page ${i + 1} of ${n}`, x: true,
+    actions: [].concat(
       i === 0 ? [{ label: note.pages[0].cover ? 'Change cover' : 'Add a cover', value: 'cover' }] : [],
       i > 0 ? [{ label: 'Move up', value: 'up' }] : [], i < n - 1 ? [{ label: 'Move down', value: 'down' }] : [],
+      [{ label: 'Duplicate', value: 'dup' }], marks ? [{ label: 'Clear page', value: 'clear' }] : [],
       n > 1 ? [{ label: 'Delete page', value: 'del', danger: true }] : [], [{ label: 'Add pages after', value: 'add', primary: true }]),
   });
   if (v === 'add') addPagesMenu(i);
   else if (v === 'cover') addOrChangeCover(!!note.pages[0].cover);
   else if (v === 'up' || v === 'down') movePage(i, v === 'up' ? i - 1 : i + 1);
+  else if (v === 'dup') duplicatePage(i);
+  else if (v === 'clear') {
+    const ok = await dialog({ title: `Clear page ${i + 1}?`, html: '<p>Everything you wrote, drew or typed on this page will be removed. The page itself (its template or imported background) stays.</p>', actions: [{ label: 'Cancel', value: false }, { label: 'Clear page', value: true, danger: true }] });
+    if (ok) clearPage(i);
+  }
   else if (v === 'del') {
-    const marks = note.strokes.filter(s => s.page === i).length;
-    const ok = await dialog({ title: `Delete page ${i + 1}?`, html: `<p>${marks ? `The page and the ${marks} ink stroke${marks === 1 ? '' : 's'} on it will be removed.` : 'This page will be removed.'} This cannot be undone.</p>`, actions: [{ label: 'Cancel', value: false }, { label: 'Delete', value: true, danger: true }] });
+    const ok = await dialog({ title: `Delete page ${i + 1}?`, html: `<p>${marks ? 'The page and everything written or typed on it will be removed.' : 'This page will be removed.'} This cannot be undone.</p>`, actions: [{ label: 'Cancel', value: false }, { label: 'Delete', value: true, danger: true }] });
     if (ok) deletePage(i);
   }
 }
@@ -2094,19 +2103,41 @@ async function addPagesMenu(after) {
 }
 async function insertPages(after, pages) {
   const n = pages.length;
-  note.strokes.forEach(s => { if (s.page > after) s.page += n; });
+  Texts.commit(); [...note.strokes, ...(note.texts || [])].forEach(s => { if (s.page > after) s.page += n; });
   note.pages.splice(after + 1, 0, ...pages);
   await afterPageChange(); goToPage(after + 1);
   toast(`Added ${n} page${n === 1 ? '' : 's'}.`);
 }
+// A copy of the page right after it, with its ink and typed text. Copied marks are plain ink, so the
+// bookmark list doesn't fill with doubles; page links are kept, the star and name are not.
+async function duplicatePage(i) {
+  Texts.commit();
+  const pg = note.pages[i], copy = { key: pg.key, w: pg.w, h: pg.h, ...(pg.cover ? { cover: true } : {}), ...(pg.links && pg.links.length ? { links: JSON.parse(JSON.stringify(pg.links)) } : {}) };
+  const ink = note.strokes.filter(s => s.page === i).map(s => ({ ...cloneStroke(s, i + 1), ...(s.shape ? { shape: s.shape } : {}) }));
+  const txt = (note.texts || []).filter(t => t.page === i).map(t => ({ ...JSON.parse(JSON.stringify(t)), id: 'x' + uid(), page: i + 1 }));
+  [...note.strokes, ...(note.texts || [])].forEach(s => { if (s.page > i) s.page += 1; });
+  note.pages.splice(i + 1, 0, copy); note.strokes.push(...ink); (note.texts ||= []).push(...txt);
+  await afterPageChange(); goToPage(i + 1); toast(`Page ${i + 1} duplicated.`);
+}
+// Remove everything written or typed on the page; the template or imported page underneath stays.
+function clearPage(i) {
+  Texts.commit();
+  const gone = note.strokes.filter(s => s.page === i), txt = (note.texts || []).filter(t => t.page === i);
+  for (const t of txt) pushUndo({ type: 'text', id: t.id, before: JSON.parse(JSON.stringify(t)), after: null });
+  note.texts = (note.texts || []).filter(t => t.page !== i);
+  if (gone.length) { note.strokes = note.strokes.filter(s => s.page !== i); pushUndo({ type: 'erase', strokes: gone }); }
+  if (sel && sel.page === i) clearSel();
+  redrawInk(i); Texts.render(i); computeGroups(); renderFx(i); Side.refreshSoon(); scheduleSave();
+  toast('Page cleared. Undo brings it back.');
+}
 async function movePage(from, to) {
-  note.strokes.forEach(s => { if (s.page === from) s.page = to; else if (s.page === to) s.page = from; });
+  Texts.commit(); [...note.strokes, ...(note.texts || [])].forEach(s => { if (s.page === from) s.page = to; else if (s.page === to) s.page = from; });
   const [pg] = note.pages.splice(from, 1); note.pages.splice(to, 0, pg);
   await afterPageChange(); goToPage(to, false);
 }
 async function deletePage(i) {
-  note.strokes = note.strokes.filter(s => s.page !== i);
-  note.strokes.forEach(s => { if (s.page > i) s.page -= 1; });
+  Texts.commit(); note.strokes = note.strokes.filter(s => s.page !== i); note.texts = (note.texts || []).filter(t => t.page !== i);
+  [...note.strokes, ...note.texts].forEach(s => { if (s.page > i) s.page -= 1; });
   note.pages.splice(i, 1);
   await afterPageChange(); goToPage(Math.min(i, note.pages.length - 1), false);
 }
@@ -3364,7 +3395,7 @@ const Drive = (() => {
    version.json on GitHub names the newest build. When it differs from this one, the
    version chip offers "Update to …". Updating clears only Notation's stored app files
    and reloads; notes, recordings, folders and the Drive connection are untouched. */
-const APP_VERSION = '0.29', APP_BUILD = '0f65f7db66';
+const APP_VERSION = '0.30', APP_BUILD = '1958f5be70';
 const Updates = (() => {
   let latest = null, last = 0;
   const chip = () => $('#verChip');
