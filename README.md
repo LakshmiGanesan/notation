@@ -33,7 +33,7 @@ The same approach works for chants and ślokas: bring in the script as a PDF, re
 - **Stickers:** select any ink with the lasso (a *Pallavi* heading, a numbered saṅgati box, a play mark, a separator) and tap **☆ Sticker** to keep it. The sticker button on the toolbar holds your collection: tap one, then tap where it goes, and drag or resize it with **−** and **+**. Your stickers sync through Google Drive.
 - **Recording quality:** Notation asks each device for its best: 48 kHz, stereo where available, a high bitrate (up to 256 kbps), and no voice-call processing in **Music** mode. Choose an external microphone and the mode in Settings; each recording notes what it was made with.
 - **PDF links are kept:** when you bring in a PDF with its own links (an index that jumps to each verse, "back to index" links, web links), Notation keeps them. Tap a link with your finger (or with the Hand tool) to follow it; a **Back** button then returns you to where you were. Links keep pointing at the right page when you reorder pages, and they carry through to the Drive PDF, your other devices and shared players.
-- **Undo and redo with your fingers:** tap the page with two fingers to undo, three fingers to redo, or swap them or switch them off in Settings. Pinching, scrolling and the Pencil work as before.
+- **Finger gestures:** tap the page with two fingers to undo and three to redo. Settings → Finger gestures lets you choose the tap for each, or switch it off. Pinching, scrolling and the Pencil work as before.
 - **Page sidebar:** open the panel beside the back button to see every page of a notebook as a thumbnail with your ink. Tap one to go there, star pages (☆) and show only starred ones, and name pages (✎) such as *Pallavi* or *Index*, so the sidebar reads like a table of contents. Stars and names sync through Drive, and shared players show the names too.
 - **Notation books:** import a PDF of any length, or a set of photos and scans, then add, move or remove pages.
 - **Folders:** Music and Chants come built in, with one level of subfolders.
@@ -119,7 +119,7 @@ On the first visit of each quarter (1 January, 1 April, 1 July and 1 October, fr
 
 ## Updates
 
-The version shows at the top of the library (for example **v0.23**). Notation checks for a newer version when it opens, when you return to it, and every half hour; when there is one, the label turns saffron and reads **Update to …**. Tap it to load the newest version straight away. Your notes, recordings, folders and Drive connection are kept. **Settings → Check for updates** does the same.
+The version shows at the top of the library (for example **v0.24**). Notation checks for a newer version when it opens, when you return to it, and every half hour; when there is one, the label turns saffron and reads **Update to …**. Tap it to load the newest version straight away. Your notes, recordings, folders and Drive connection are kept. **Settings → Check for updates** does the same.
 
 ## Status
 
