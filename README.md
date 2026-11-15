@@ -31,7 +31,7 @@ The same approach works for chants and ślokas: bring in the script as a PDF, re
 - **Your own designs:** add any PDF or image to any library. A new note guides you through a notation template and a cover; after that, add pages from any library, or from your own files, wherever you like.
 - **Smooth ink:** both pens iron out the Pencil's tiny tremors while keeping corners crisp; the calligraphy pen draws its broad strokes along clean curves, from a fine hairline at a light touch to a full, broad stroke when you press firmly. The pen, calligraphy nib and highlighter have distinct icons.
 - **Text:** choose the text tool, drag out a box (or tap for a standard width) and type. Font and size apply to the box; bold, italic and underline to the words you select; alignment and colour from the toolbar. Drag the orange tab to move a box and the side handle to change its width. Text appears in thumbnails, the Drive PDF and shared players.
-- **Five curated fonts**, all with full Tamil and transliteration (ā ḷ ṇ ś …): **Garamond** (EB Garamond) for body text, **Mukta Malar** (sans, Tamil and Latin), **Cormorant** (Cormorant Garamond) for titles, **Script** (Notation Script, a calligraphy face based on Allura) and **Tamil Serif** (Noto Serif Tamil). They are bundled with the app, so they work offline.
+- **Six curated fonts:** **Garamond** (EB Garamond) for body text, **Mukta Malar** (sans, Tamil and Latin), **Cormorant** (Cormorant Garamond) for titles, **Script** (Notation Script, a calligraphy face based on Allura), **Tamil Serif** (Noto Serif Tamil) and **Devanagari** (Noto Sans Devanagari, for Sanskrit, with Vedic marks). Transliteration letters (ā ḷ ṇ ś …), Tamil and Devanagari show correctly whichever font a box uses. The fonts are bundled with the app, so they work offline.
 - **Zoom the notebook:** the magnifier opens − and +, **Whole page** (a full page inside the window, handy for writing neatly) and **Page width**, plus 75–200%. Pinch with two fingers on the iPad, or on a Mac trackpad, to zoom the notebook around your fingers; the rest of the screen stays put. Your zoom is remembered.
 - **Hold to straighten:** draw a line, a rough rectangle or square, a circle, an ellipse or a triangle with any pen or the highlighter, and keep the Pencil still at the end for a moment. It snaps into a clean shape (lines close to level or upright become exactly level or upright). Undo returns your original stroke.
 - **Stickers:** select any ink with the lasso (a *Pallavi* heading, a numbered saṅgati box, a play mark, a separator) and tap **☆ Sticker** to keep it. The sticker button on the toolbar holds your collection: tap one, then tap where it goes, and drag or resize it with **−** and **+**. Your stickers sync through Google Drive.
@@ -123,11 +123,11 @@ On the first visit of each quarter (1 January, 1 April, 1 July and 1 October, fr
 
 ## Fonts
 
-EB Garamond, Mukta Malar, Cormorant Garamond and Noto Serif Tamil are used under the SIL Open Font License 1.1. **Notation Script** is a modified version of **Allura** by TypeSETit, LLC (SIL Open Font License 1.1, Reserved Font Name "Allura"), with the transliteration letters ṛ ṝ ḷ ḹ ṅ ṭ ḍ ṇ ṣ ḥ ṃ and their capitals added from Allura's own glyphs; its licence is in `fonts/NotationScript-OFL.txt`.
+EB Garamond, Mukta Malar, Cormorant Garamond, Noto Serif Tamil and Noto Sans Devanagari are used under the SIL Open Font License 1.1. **Notation Script** is a modified version of **Allura** by TypeSETit, LLC (SIL Open Font License 1.1, Reserved Font Name "Allura"), with the transliteration letters ṛ ṝ ḷ ḹ ṅ ṭ ḍ ṇ ṣ ḥ ṃ and their capitals added from Allura's own glyphs; its licence is in `fonts/NotationScript-OFL.txt`.
 
 ## Updates
 
-The version shows at the top of the library (for example **v0.27**). Notation checks for a newer version when it opens, when you return to it, and every half hour; when there is one, the label turns saffron and reads **Update to …**. Tap it to load the newest version straight away. Your notes, recordings, folders and Drive connection are kept. **Settings → Check for updates** does the same.
+The version shows at the top of the library (for example **v0.28**). Notation checks for a newer version when it opens, when you return to it, and every half hour; when there is one, the label turns saffron and reads **Update to …**. Tap it to load the newest version straight away. Your notes, recordings, folders and Drive connection are kept. **Settings → Check for updates** does the same.
 
 ## Status
 
