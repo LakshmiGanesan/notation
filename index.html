@@ -97,19 +97,24 @@ input[type=text]{font:inherit;color:inherit;-webkit-user-select:text;user-select
 .nudge{display:flex;flex-wrap:wrap;gap:14px 24px;align-items:flex-end;justify-content:space-between;background:#fbf3e6;border:1px solid #ecd9b8;border-left:4px solid #c8641e;border-radius:16px;padding:18px 22px;margin:0 0 22px}
 .nudge-txt{flex:1 1 420px;font-size:15px;line-height:1.55}.nudge-txt p{margin:0 0 6px}.nudge-hi{font-family:var(--serif,Georgia,serif);font-size:20px}
 .nudge-txt ol{margin:6px 0 0;padding-left:20px}.nudge-acts{display:flex;flex-wrap:wrap;gap:8px}.nudge-acts a.btn{text-decoration:none;color:inherit}
-#backPill{position:absolute;left:20px;bottom:calc(var(--plh,72px) + 14px);z-index:15;display:inline-flex;align-items:center;gap:8px;border:0;border-radius:999px;padding:10px 18px 10px 14px;background:#14182e;color:#fff;font:600 14px/1 inherit;font-family:inherit;box-shadow:0 6px 20px rgba(20,24,46,.25);cursor:pointer}
+#backPill{position:absolute;left:20px;bottom:calc(var(--plh,72px) + 14px);z-index:15;display:inline-flex;align-items:center;gap:8px;border:0;border-radius:999px;padding:10px 18px 10px 14px;background:#14182e;color:#fff;font-weight:600;font-size:14px;line-height:1;font-family:inherit;box-shadow:0 6px 20px rgba(20,24,46,.25);cursor:pointer}
 #backPill svg{width:18px;height:18px}
 .linkflash{position:absolute;background:rgba(200,100,30,.28);border-radius:4px;pointer-events:none;animation:lf .7s ease-out forwards}
 @keyframes lf{from{opacity:1}to{opacity:0}}
+.zrow{display:flex;align-items:center;justify-content:space-between;gap:10px;margin:2px 0 10px}
+.zb{width:52px;height:44px;border:1px solid var(--line);background:#fff;border-radius:12px;font-weight:500;font-size:24px;line-height:1;font-family:inherit;color:inherit;cursor:pointer}
+#zPct{font-size:18px;font-weight:600;min-width:70px;text-align:center;font-variant-numeric:tabular-nums}
+.zgrid{display:grid;grid-template-columns:repeat(2,1fr);gap:6px;width:236px}.zgrid button{border:1px solid var(--line);background:#fff;border-radius:10px;padding:9px 8px;font:inherit;font-size:14px;color:inherit;cursor:pointer}
+.zgrid button.on{background:#14182e;color:#fff;border-color:#14182e}
 .stk-grid{display:grid;grid-template-columns:repeat(3,120px);gap:8px;max-height:330px;overflow:auto;margin:4px 0 8px}
 .stk-tile{position:relative;border:1px solid var(--line);background:#fff;border-radius:12px;padding:4px 4px 6px;cursor:pointer;display:flex;flex-direction:column;align-items:center;font:inherit;color:inherit}
 .stk-tile canvas{width:110px;height:66px;display:block}.stk-name{font-size:12px;color:var(--muted);max-width:110px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;min-height:14px}
 .stk-x{position:absolute;top:-7px;right:-7px;width:22px;height:22px;border-radius:50%;background:#14182e;color:#fff;font-size:12px;line-height:22px;text-align:center}
-.stk-edit{float:right;border:0;background:none;color:#c8641e;font:600 13px inherit;font-family:inherit;cursor:pointer}
+.stk-edit{float:right;border:0;background:none;color:#c8641e;font-weight:600;font-size:13px;font-family:inherit;cursor:pointer}
 .stk-help{font-size:13px;color:var(--muted);margin:2px 0 0;max-width:376px;line-height:1.45}
 #pages.placing canvas.fx{cursor:copy}
 #tSticker.pulse{animation:pulse 1.2s ease-out}@keyframes pulse{0%{background:#c8641e33}100%{background:transparent}}
-.card .sharedbadge{position:absolute;top:8px;left:8px;display:inline-flex;align-items:center;gap:5px;padding:4px 10px 4px 7px;border:0;border-radius:999px;background:#c8641e;color:#fff;font:600 12px/1.2 inherit;font-family:inherit;box-shadow:0 1px 4px rgba(0,0,0,.18);cursor:pointer}
+.card .sharedbadge{position:absolute;top:8px;left:8px;display:inline-flex;align-items:center;gap:5px;padding:4px 10px 4px 7px;border:0;border-radius:999px;background:#c8641e;color:#fff;font-weight:600;font-size:12px;line-height:1.2;font-family:inherit;box-shadow:0 1px 4px rgba(0,0,0,.18);cursor:pointer}
 .card .sharedbadge svg{width:14px;height:14px}
 .card .thumb{aspect-ratio:2388/1668;background:#fff center/cover no-repeat;border-bottom:1px solid var(--line)}
 .card .meta{padding:12px 14px 14px}
@@ -324,7 +329,7 @@ body.viewer .viewer-only{display:inline-flex}
       <p class="tagline">Write your notation, record the lesson, and let every mark sing back.</p>
     </div>
     <div class="lib-actions">
-      <button class="btn verchip" id="verChip" title="Notation version · tap to check for updates">v0.25</button>
+      <button class="btn verchip" id="verChip" title="Notation version · tap to check for updates">v0.26</button>
       <button class="btn drivechip" id="driveChip" title="Google Drive sync"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M7 18h10.5a4.5 4.5 0 0 0 .6-8.96A6 6 0 0 0 6.6 9.2 4.4 4.4 0 0 0 7 18z"/></svg><span>Google Drive</span></button>
       <button class="btn" id="btnLib" title="Notation templates and covers"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="7" height="16" rx="1.5"/><rect x="12" y="4" width="4" height="16" rx="1"/><path d="M18 5.5l3 .8-3.6 13.4-3-.8"/></svg>Templates</button>
       <button class="btn" id="btnImport" title="Open a shared .html note"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v12m0 0-4-4m4 4 4-4"/><path d="M4 17v2a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-2"/></svg>Open shared note</button>
@@ -1272,7 +1277,7 @@ function renderSwatches() {
 
 /* ---- palette, colour picker and eyedropper ---- */
 function closePopover() { $('#popover').classList.add('hidden'); document.removeEventListener('pointerdown', popOutside, true); }
-function popOutside(e) { if (!e.target.closest('#popover') && !e.target.closest('#tSticker') && !e.target.closest('.palbtn') && !e.target.closest('[data-sa="color"]') && !e.target.closest('#pSpeed')) closePopover(); }
+function popOutside(e) { if (!e.target.closest('#popover') && !e.target.closest('#tSticker') && !e.target.closest('#tZoom') && !e.target.closest('.palbtn') && !e.target.closest('[data-sa="color"]') && !e.target.closest('#pSpeed')) closePopover(); }
 function showPopover(anchor, html, wire) {
   const p = $('#popover'); p.innerHTML = html; p.classList.remove('hidden');
   const r = anchor.getBoundingClientRect(), w = p.offsetWidth;
@@ -1493,7 +1498,73 @@ $('#selbar').addEventListener('click', e => {
 $$('[data-tool]').forEach(b => b.onclick = () => setTool(b.dataset.tool));
 $('#tUndo').onclick = undo; $('#tRedo').onclick = redo;
 $('#tFingers').onclick = () => { fingers = !fingers; document.body.classList.toggle('fingers', fingers); $('#tFingers').classList.toggle('on', fingers); toast(fingers ? 'Fingers draw too. Use two fingers to scroll.' : 'Only the stylus draws. Fingers scroll and tap marks to hear them.'); };
-$('#tZoom').onclick = () => { const z = [1, 1.35, 1.75]; zoom = z[(z.indexOf(zoom) + 1) % z.length]; $('#pages').style.setProperty('--zoom', zoom); toast(`Zoom ${Math.round(zoom * 100)}%`, 900); };
+/* ---------------- zoom: the notebook, not the whole screen ----------------
+   The magnifier opens − / + and a few steps; "Whole page" fits a full page inside the window.
+   Pinching on the iPad and on a Mac trackpad zooms the notebook around your fingers. */
+const Zoom = (() => {
+  const STEPS = [0.5, 0.67, 0.75, 0.85, 1, 1.25, 1.5, 1.75, 2, 2.5];
+  let mode = LS.get('zoom', 1);   // a number, or 'fit' for the whole page
+  const el = $('#pages');
+  function fitValue() {
+    if (!note || !note.pages.length) return 1;
+    const i = Math.min(currentPage(), note.pages.length - 1), v = views[i]; if (!v) return 1;
+    const w1 = v.wrap.offsetWidth / (zoom || 1), h1 = w1 * note.pages[i].h / note.pages[i].w;
+    return Math.max(0.3, Math.min(1, (el.clientHeight - 18 - 26) / h1));
+  }
+  function apply(z, fx, fy) {   // keep the point under (fx, fy) in place
+    z = Math.max(0.3, Math.min(3, z)); if (Math.abs(z - zoom) < 0.001) return;
+    const r = el.getBoundingClientRect(); fx = fx ?? r.width / 2; fy = fy ?? r.height / 2;
+    const cx = el.scrollLeft + fx, cy = el.scrollTop + fy, k = z / zoom;
+    zoom = z; el.style.setProperty('--zoom', z);
+    void el.scrollHeight; el.scrollLeft = cx * k - fx; el.scrollTop = cy * k - fy;
+    label();
+  }
+  function set(m, fx, fy) { mode = m; LS.set('zoom', m); apply(m === 'fit' ? fitValue() : m, fx, fy); }
+  function step(dir) {
+    const z = zoom, next = dir > 0 ? STEPS.find(s => s > z + 0.01) : [...STEPS].reverse().find(s => s < z - 0.01);
+    if (next) set(next); else if (dir < 0) set('fit');
+  }
+  function label() {
+    const t = mode === 'fit' ? 'Whole page' : Math.round(zoom * 100) + '%';
+    $('#tZoom').title = `Zoom (${t})`;
+    const z = $('#zPct'); if (z) z.textContent = Math.round(zoom * 100) + '%';
+    $$('#popover [data-z]').forEach(b => b.classList.toggle('on', String(mode) === b.dataset.z));
+  }
+  function open() {
+    showPopover($('#tZoom'), `<h5>Zoom</h5>
+      <div class="zrow"><button class="zb" data-d="-1" title="Zoom out">−</button><span id="zPct">${Math.round(zoom * 100)}%</span><button class="zb" data-d="1" title="Zoom in">+</button></div>
+      <div class="zgrid"><button data-z="fit">Whole page</button><button data-z="1">Page width</button>${[0.75, 1.25, 1.5, 2].map(v => `<button data-z="${v}">${v * 100}%</button>`).join('')}</div>`, pop => {
+      pop.querySelectorAll('[data-d]').forEach(b => b.onclick = () => step(+b.dataset.d));
+      pop.querySelectorAll('[data-z]').forEach(b => b.onclick = () => set(b.dataset.z === 'fit' ? 'fit' : +b.dataset.z));
+      label();
+    });
+  }
+  function restore() { zoom = 1; el.style.setProperty('--zoom', 1); requestAnimationFrame(() => { apply(mode === 'fit' ? fitValue() : +mode || 1, 0, 0); el.scrollTop = 0; el.scrollLeft = 0; }); }
+  // pinch with two fingers
+  let pin = null;
+  el.addEventListener('touchstart', e => {
+    const f = [...e.touches].filter(t => t.touchType !== 'stylus');
+    if (f.length === 2 && !viewer || f.length === 2 && viewer) { const r = el.getBoundingClientRect(); pin = { d0: Math.hypot(f[0].clientX - f[1].clientX, f[0].clientY - f[1].clientY), z0: zoom, on: false, fx: (f[0].clientX + f[1].clientX) / 2 - r.left, fy: (f[0].clientY + f[1].clientY) / 2 - r.top }; }
+    else if (f.length !== 2) pin = null;
+  }, { passive: true });
+  el.addEventListener('touchmove', e => {
+    if (!pin) return; const f = [...e.touches].filter(t => t.touchType !== 'stylus'); if (f.length !== 2) return;
+    const ratio = Math.hypot(f[0].clientX - f[1].clientX, f[0].clientY - f[1].clientY) / (pin.d0 || 1);
+    if (!pin.on && Math.abs(ratio - 1) < 0.06) return;   // a two-finger scroll stays a scroll
+    pin.on = true; e.preventDefault();
+    if (!pin.raf) pin.raf = requestAnimationFrame(() => { pin && (pin.raf = 0, mode = +(pin.z0 * ratio).toFixed(3), apply(pin.z0 * ratio, pin.fx, pin.fy)); });
+  }, { passive: false });
+  el.addEventListener('touchend', e => { if (pin && e.touches.length < 2) { if (pin.on) LS.set('zoom', mode); pin = null; } }, { passive: true });
+  document.addEventListener('gesturestart', e => { if (!$('#editor').classList.contains('hidden')) e.preventDefault(); });   // Safari: no whole-screen zoom over the notebook
+  // Mac trackpad pinch arrives as ctrl + wheel
+  el.addEventListener('wheel', e => {
+    if (!e.ctrlKey) return; e.preventDefault(); const r = el.getBoundingClientRect();
+    mode = +(zoom * Math.exp(-e.deltaY * 0.01)).toFixed(3); apply(mode, e.clientX - r.left, e.clientY - r.top); LS.set('zoom', mode);
+  }, { passive: false });
+  addEventListener('resize', () => { if (note && mode === 'fit') apply(fitValue()); });
+  $('#tZoom').onclick = e => { e.stopPropagation(); if (!$('#popover').classList.contains('hidden') && $('#popover .zrow')) { closePopover(); return; } open(); };
+  return { set, step, restore, get: () => zoom, mode: () => mode };
+})();
 $('#tMarks').onclick = () => { const d = $('#drawer'); d.classList.toggle('open'); if (d.classList.contains('open')) renderDrawer(); };
 $('#dClose').onclick = () => $('#drawer').classList.remove('open');
 $('#pPlay').onclick = togglePlay;
@@ -2148,7 +2219,7 @@ function showEditor() {
   undoStack = []; redoStack = []; updUndo(); activeGroup = -1; loop = false; loopRange = null; $('#pLoop').classList.remove('on');
   audioEl.playbackRate = 1; $('#pSpeed').textContent = '1×'; $('#pSpeed').classList.remove('on');
   setTool(viewer ? 'play' : (tool === 'eraser' ? 'pen' : tool));
-  Side.restore(); computeGroups(); buildPages(); curTake = null; selectTake(note.takes[0] ? note.takes[0].id : null); $('#pages').scrollTop = 0;
+  Side.restore(); computeGroups(); buildPages(); curTake = null; selectTake(note.takes[0] ? note.takes[0].id : null); $('#pages').scrollTop = 0; Zoom.restore();
 }
 
 /* ---------------- PDF / image templates ---------------- */
@@ -3033,7 +3104,7 @@ const Drive = (() => {
    version.json on GitHub names the newest build. When it differs from this one, the
    version chip offers "Update to …". Updating clears only Notation's stored app files
    and reloads; notes, recordings, folders and the Drive connection are untouched. */
-const APP_VERSION = '0.25', APP_BUILD = 'c453b35b89';
+const APP_VERSION = '0.26', APP_BUILD = 'bf28ae4558';
 const Updates = (() => {
   let latest = null, last = 0;
   const chip = () => $('#verChip');

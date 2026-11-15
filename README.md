@@ -30,6 +30,7 @@ The same approach works for chants and ślokas: bring in the script as a PDF, re
   - *Index & trackers:* Song details, an Index of the compositions in a notebook, and a three-month Practice tracker for class and practice days.
 - **Your own designs:** add any PDF or image to any library. A new note guides you through a notation template and a cover; after that, add pages from any library, or from your own files, wherever you like.
 - **Smooth ink:** both pens iron out the Pencil's tiny tremors while keeping corners crisp; the calligraphy pen draws its broad strokes along clean curves, from a fine hairline at a light touch to a full, broad stroke when you press firmly. The pen, calligraphy nib and highlighter have distinct icons.
+- **Zoom the notebook:** the magnifier opens − and +, **Whole page** (a full page inside the window, handy for writing neatly) and **Page width**, plus 75–200%. Pinch with two fingers on the iPad, or on a Mac trackpad, to zoom the notebook around your fingers; the rest of the screen stays put. Your zoom is remembered.
 - **Hold to straighten:** draw a line, a rough rectangle or square, a circle, an ellipse or a triangle with any pen or the highlighter, and keep the Pencil still at the end for a moment. It snaps into a clean shape (lines close to level or upright become exactly level or upright). Undo returns your original stroke.
 - **Stickers:** select any ink with the lasso (a *Pallavi* heading, a numbered saṅgati box, a play mark, a separator) and tap **☆ Sticker** to keep it. The sticker button on the toolbar holds your collection: tap one, then tap where it goes, and drag or resize it with **−** and **+**. Your stickers sync through Google Drive.
 - **Recording quality:** Notation asks each device for its best: 48 kHz, stereo where available, a high bitrate (up to 256 kbps), and no voice-call processing in **Music** mode. Choose an external microphone and the mode in Settings; each recording notes what it was made with.
@@ -120,7 +121,7 @@ On the first visit of each quarter (1 January, 1 April, 1 July and 1 October, fr
 
 ## Updates
 
-The version shows at the top of the library (for example **v0.25**). Notation checks for a newer version when it opens, when you return to it, and every half hour; when there is one, the label turns saffron and reads **Update to …**. Tap it to load the newest version straight away. Your notes, recordings, folders and Drive connection are kept. **Settings → Check for updates** does the same.
+The version shows at the top of the library (for example **v0.26**). Notation checks for a newer version when it opens, when you return to it, and every half hour; when there is one, the label turns saffron and reads **Update to …**. Tap it to load the newest version straight away. Your notes, recordings, folders and Drive connection are kept. **Settings → Check for updates** does the same.
 
 ## Status
 
