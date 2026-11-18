@@ -241,9 +241,21 @@ body.fingers .page canvas.fx{touch-action:none}
 /* player */
 .player{display:flex;align-items:center;gap:10px;padding:10px calc(14px + var(--sar)) calc(10px + var(--sab)) calc(14px + var(--sal));background:var(--paper);border-top:1px solid var(--line)}
 .recbtn{height:46px;border-radius:23px;border:1px solid var(--line);background:var(--card);display:inline-flex;align-items:center;gap:8px;padding:0 16px 0 12px;font-weight:600;white-space:nowrap;flex:none}
-.recbtn .rd{width:16px;height:16px;border-radius:50%;background:var(--rec)}
+.recbtn .rd{display:none}.recbtn .mic{width:20px;height:20px;color:var(--rec);flex:none}
+.recbtn{letter-spacing:.06em}
 .recbtn.live{background:var(--rec);color:#fff;border-color:var(--rec)}
-.recbtn.live .rd{background:#fff;border-radius:3px;width:13px;height:13px;animation:pulse 1.2s infinite}
+.recbtn.live .rd{display:block;background:#fff;border-radius:3px;width:13px;height:13px;animation:pulse 1.2s infinite}.recbtn.live .mic{display:none}
+.shrbtn{height:46px;border-radius:23px 0 0 23px;border:1px solid var(--line);border-right:0;background:var(--card);display:inline-flex;align-items:center;gap:6px;padding:0 10px 0 12px;font-weight:600;white-space:nowrap;flex:none;color:inherit;cursor:pointer}
+.shrbtn svg{width:24px;height:24px;color:#8a5a2b}
+.shrbtn.on{background:#8a5a2b;color:#fff;border-color:#8a5a2b}.shrbtn.on svg{color:#fff;animation:shr 4.2s ease-in-out infinite}
+@keyframes shr{0%,100%{transform:rotate(0)}50%{transform:rotate(-4deg)}}
+.shrmore{height:46px;border-radius:0 23px 23px 0;border:1px solid var(--line);background:var(--card);display:inline-flex;align-items:center;gap:5px;padding:0 12px 0 10px;font-weight:600;font-variant-numeric:tabular-nums;white-space:nowrap;flex:none;color:inherit;cursor:pointer;margin-left:-10px}
+.shrmore svg{width:14px;height:14px;opacity:.6}.shrtun{font-size:12px;font-weight:600;color:var(--muted)}
+@media (max-width:1000px){#pShrLbl{display:none}.shrbtn{padding:0 8px 0 12px}#pAudio{font-size:0;gap:0}#pAudio svg{margin:0}.recbtn{padding:0 12px 0 10px}#pLoop{font-size:0;gap:0}.player{gap:7px}}
+.shrpop{width:268px}.shrpop .big{display:flex;align-items:center;justify-content:space-between;margin:2px 0 12px}.shrpop .big b{font-size:26px;font-variant-numeric:tabular-nums}.shrpop .big small{color:var(--muted);font-size:13px;display:block}
+.shrpop .row{display:flex;align-items:center;gap:10px;margin:10px 0 2px}.shrpop .row>span:first-child{width:62px;font-size:13px;color:var(--muted)}.shrpop input[type=range]{flex:1;accent-color:#8a5a2b}
+.shrpop .seg button{min-width:58px}.shrpop .note{font-size:12px;color:var(--muted);margin-top:10px;line-height:1.4}
+.adv{margin-top:6px}.adv summary{cursor:pointer;color:var(--muted);font-size:13px;padding:6px 0}.adv input[type=range]{width:180px;accent-color:#8a5a2b}
 @keyframes pulse{50%{opacity:.35}}
 .playbtn{width:48px;height:48px;border-radius:50%;border:none;background:var(--ink);color:#fff;display:grid;place-items:center;flex:none}
 .playbtn svg{width:22px;height:22px}
@@ -385,7 +397,7 @@ body.viewer .viewer-only{display:inline-flex}
       <p class="tagline">Write your notation, record the lesson, and let every mark sing back.</p>
     </div>
     <div class="lib-actions">
-      <button class="btn verchip" id="verChip" title="Notation version · tap to check for updates">v0.30</button>
+      <button class="btn verchip" id="verChip" title="Notation version · tap to check for updates">v0.31</button>
       <button class="btn drivechip" id="driveChip" title="Google Drive sync"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M7 18h10.5a4.5 4.5 0 0 0 .6-8.96A6 6 0 0 0 6.6 9.2 4.4 4.4 0 0 0 7 18z"/></svg><span>Google Drive</span></button>
       <button class="btn" id="btnLib" title="Notation templates and covers"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="7" height="16" rx="1.5"/><rect x="12" y="4" width="4" height="16" rx="1"/><path d="M18 5.5l3 .8-3.6 13.4-3-.8"/></svg>Templates</button>
       <button class="btn" id="btnImport" title="Open a shared .html note"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v12m0 0-4-4m4 4 4-4"/><path d="M4 17v2a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-2"/></svg>Open shared note</button>
@@ -436,7 +448,9 @@ body.viewer .viewer-only{display:inline-flex}
   <button id="pagePill" class="hidden" title="Go to page">1 / 1</button>
 
   <footer class="player">
-    <button class="recbtn edit-only" id="pRec"><span class="rd"></span><span id="pRecLbl">Record</span></button>
+    <button class="recbtn edit-only" id="pRec" title="Record"><svg class="mic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="3" width="6" height="11" rx="3"/><path d="M5.5 11a6.5 6.5 0 0 0 13 0M12 17.5V21M8.5 21h7"/></svg><span class="rd"></span><span id="pRecLbl">REC</span></button>
+    <button class="shrbtn edit-only" id="pShruti" title="Shruti: tap to play or stop the tambura"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2.5v9.2"/><path d="M10.6 2.5h2.8"/><path d="M10.4 5.2h3.2M10.4 7.6h3.2" opacity=".55"/><path d="M10.3 11.7h3.4l.7 1.6"/><ellipse cx="12" cy="17.2" rx="5.6" ry="4.4"/><path d="M10.2 15.4l.2 3.8M12 15.2v4.1M13.8 15.4l-.2 3.8" opacity=".6"/></svg><span id="pShrLbl">Śruti</span></button>
+    <button class="shrmore edit-only" id="pShrMore" title="Shruti: Pa or Ma, and volume"><span id="pShrPitch">4</span><span class="shrtun" id="pShrTun">Pa</span><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M7 14l5-5 5 5"/></svg></button>
     <button class="playbtn" id="pPlay" disabled title="Play / pause"></button>
     <div class="time" id="pTime"><b>0:00</b> / 0:00</div>
     <div class="track" id="pTrack"><div class="rail"></div><div class="fill"></div><div id="pTicks"></div><div class="knob"></div></div>
@@ -935,7 +949,7 @@ function updatePlayer() {
   const has = hasAudio();
   const pb = $('#pPlay'); pb.disabled = !has || !!rec; pb.innerHTML = (!audioEl.paused && has) ? ICON_PAUSE : ICON_PLAY;
   $('#pSpeed').disabled = !has; $('#pLoop').disabled = !has;
-  const rb = $('#pRec'); rb.classList.toggle('live', !!rec); $('#pRecLbl').textContent = rec ? 'Stop' : (has ? 'Record more' : 'Record');
+  const rb = $('#pRec'); rb.classList.toggle('live', !!rec); $('#pRecLbl').textContent = rec ? 'STOP' : (has ? 'REC +' : 'REC'); rb.title = rec ? 'Stop recording' : (has ? 'Record more' : 'Record');
   $('#pAudio').disabled = !!rec;
   const tk = $('#pTakes'), n = note && note.takes ? note.takes.length : 0;
   tk.classList.toggle('hidden', !n || (n < 2 && viewer)); tk.disabled = !!rec;
@@ -981,9 +995,261 @@ const RecQ = {
     catch (e) { if (dev && (e.name === 'OverconstrainedError' || e.name === 'NotFoundError')) return navigator.mediaDevices.getUserMedia(RecQ.constraints('')); throw e; }
   },
   release() { try { if (navigator.audioSession) navigator.audioSession.type = 'auto'; } catch (e) { } },
-  describe(q) { return q ? [q.sr ? `${Math.round(q.sr / 100) / 10} kHz` : '', q.ch === 2 ? 'stereo' : q.ch === 1 ? 'mono' : '', q.kbps ? `${q.kbps} kbps` : '', q.mic].filter(Boolean).join(' · ') : ''; },
+  describe(q) { return q ? [q.sr ? `${Math.round(q.sr / 100) / 10} kHz` : '', q.ch === 2 ? 'stereo' : q.ch === 1 ? 'mono' : '', q.kbps ? `${q.kbps} kbps` : '', q.mic, q.shruti ? 'with śruti' : ''].filter(Boolean).join(' · ') : ''; },
   async mics() { try { return (await navigator.mediaDevices.enumerateDevices()).filter(d => d.kind === 'audioinput'); } catch (e) { return []; } },
 };
+/* ---------------- Śruti: a tambura beside the record button ----------------
+   The sound is Lakshmi's own Shruti app (lakshmiganesan.github.io/viswiz/shruti), synthesised here
+   string by string, so it needs no files and works offline. Tap the tambura to play or stop it, the
+   pill beside it for Pa / Ma and volume. Pitch, recording level and fine tuning live in Settings.
+   While recording, the drone is mixed digitally under the microphone, at a soft level, so it is
+   captured cleanly instead of through the room. */
+const Shruti = (() => {
+  const KATTAI = [
+    { id: 'L6', k: 'low 6', note: 'A2', midi: 45 }, { id: 'L65', k: 'low 6½', note: 'A♯2', midi: 46 }, { id: 'L7', k: 'low 7', note: 'B2', midi: 47 },
+    { id: '1', k: '1', note: 'C3', midi: 48 }, { id: '15', k: '1½', note: 'C♯3', midi: 49 }, { id: '2', k: '2', note: 'D3', midi: 50 },
+    { id: '25', k: '2½', note: 'D♯3', midi: 51 }, { id: '3', k: '3', note: 'E3', midi: 52 }, { id: '4', k: '4', note: 'F3', midi: 53 },
+    { id: '45', k: '4½', note: 'F♯3', midi: 54 }, { id: '5', k: '5', note: 'G3', midi: 55 }, { id: '55', k: '5½', note: 'G♯3', midi: 56 },
+    { id: '6', k: '6', note: 'A3', midi: 57 }, { id: '65', k: '6½', note: 'A♯3', midi: 58 }, { id: '7', k: '7', note: 'B3', midi: 59 },
+  ];
+  const TUN = { pa: { name: 'Pa', ratio: 3 / 4 }, ma: { name: 'Ma', ratio: 2 / 3 } };
+  const REC_LEVEL = { off: 0, soft: 0.35, medium: 0.6 };   // share of the playing volume that goes into a recording
+  const DEF = { kattai: '4', tuning: 'pa', vol: 0.55, inRec: 'soft', cents: 0, cycle: 4.2, jivari: 0.45 };
+  const st = { ...DEF, ...LS.get('shruti', {}) };
+  if (!KATTAI.some(x => x.id === st.kattai)) st.kattai = DEF.kattai;
+  if (!TUN[st.tuning]) st.tuning = 'pa';
+  const save = () => LS.set('shruti', { kattai: st.kattai, tuning: st.tuning, vol: st.vol, inRec: st.inRec, cents: st.cents, cycle: st.cycle, jivari: st.jivari });
+  const cur = () => KATTAI.find(x => x.id === st.kattai);
+  const saHz = () => 440 * Math.pow(2, (cur().midi - 69) / 12) * Math.pow(2, st.cents / 1200);
+  const stringHz = () => { const sa = saHz(); return [sa * TUN[st.tuning].ratio, sa, sa, sa / 2]; };
+
+  let heard = false;
+  let ctx = null, master, out, recTap = null, buffers = null, token = 0, playing = false, timer = null, nextTime = 0, step = 0, cycleStart = 0;
+  const last = [null, null, null, null], PATTERN = [0, 0.23, 0.46, 0.69];
+  function makeIR(sec){
+    const sr = ctx.sampleRate, n = Math.floor(sec * sr);
+    const ir = ctx.createBuffer(2, n, sr);
+    const modes = [[118, .32, .55], [232, .24, .38], [405, .18, .26], [690, .11, .16], [1140, .07, .10], [1720, .04, .07]];
+    for (let ch = 0; ch < 2; ch++){
+      const d = ir.getChannelData(ch); let lp = 0;
+      modes.forEach(([f, a, tau]) => {
+        const ff = f * (1 + (ch ? 0.012 : -0.008)), ph = Math.random() * 6.28;
+        for (let i = 0; i < n; i++){ const t = i / sr; if (t > tau * 6) break; d[i] += a * Math.exp(-t / tau) * Math.sin(6.283185 * ff * t + ph); }
+      });
+      [0.011, 0.019, 0.027, 0.041, 0.058].forEach((t0, j) => { const i = Math.floor((t0 + (ch ? 0.003 : 0)) * sr); d[i] += (0.5 - j * 0.07) * (j % 2 ? -1 : 1); });
+      for (let i = 0; i < n; i++){
+        const t = i / sr;
+        const v = (Math.random() * 2 - 1) * Math.exp(-t * 2.1) * Math.min(1, t / 0.02);
+        lp = lp * 0.6 + v * 0.4;
+        d[i] += lp * 0.55;
+      }
+      let pk = 0; for (let i = 0; i < n; i++) pk = Math.max(pk, Math.abs(d[i]));
+      for (let i = 0; i < n; i++) d[i] /= pk * 1.6;
+    }
+    return ir;
+  }
+
+  function renderString(f, bright, dur, sr, seed){
+    let st = seed >>> 0;
+    const rnd = () => { st += 0x6D2B79F5; let t = st; t = Math.imul(t ^ t >>> 15, t | 1); t ^= t + Math.imul(t ^ t >>> 7, t | 61); return ((t ^ t >>> 14) >>> 0) / 4294967296; };
+    const N = Math.floor(dur * sr), L = new Float32Array(N), R = new Float32Array(N);
+    const maxF = Math.min(sr * 0.46, 13000);
+    const K = Math.min(150, Math.floor(maxF / f));
+    const BL = 64, TWO_PI = 6.283185307;
+    for (let k = 1; k <= K; k++){
+      const fk = k * f * Math.sqrt(1 + 0.000004 * k * k);
+      if (fk > maxF) break;
+      const w = TWO_PI * fk / sr, cr = Math.cos(w), ci = Math.sin(w);
+      const ph = rnd() * TWO_PI;
+      let re = Math.cos(ph), im = Math.sin(ph);
+      const base = k === 1 ? 0.7 : 1.15 / Math.pow(k, 0.8);
+      const decay = 0.17 + 0.011 * k + 0.00022 * k * k;
+      const m = 0.10 + 0.22 * Math.min(1, k / 10);
+      const rL = 0.12 + rnd() * 0.9, rR = 0.12 + rnd() * 0.9, pL = rnd() * TWO_PI, pR = rnd() * TWO_PI;
+      const twK = Math.min(1, fk / 2400);
+      let aL0 = 0, aR0 = 0;
+      for (let b0 = 0; b0 < N; b0 += BL){
+        const t = (b0 + BL) / sr;
+        const beta = 0.011 + 0.052 * (1 - Math.exp(-t / 1.7));
+        const comb = 1 - bright * 0.72 * (1 - Math.abs(Math.sin(Math.PI * k * beta)));
+        const fc = 380 + 3700 * Math.exp(-t / 1.35);
+        const dd = Math.log2(fk / fc);
+        const band = 1 + bright * 3.6 * Math.exp(-(dd * dd) / 0.22) * (0.35 + 0.65 * Math.exp(-t * 0.32));
+        const twang = 1 + 1.1 * Math.exp(-t / 0.028) * twK;
+        const env = base * Math.exp(-decay * t) * band * comb * twang * Math.min(1, t / 0.0025);
+        const aL = env * (1 + m * Math.sin(TWO_PI * rL * t + pL));
+        const aR = env * (1 + m * Math.sin(TWO_PI * rR * t + pR));
+        const end = Math.min(N, b0 + BL), n = end - b0;
+        const sL = (aL - aL0) / n, sR = (aR - aR0) / n;
+        let xL = aL0, xR = aR0;
+        for (let i = b0; i < end; i++){
+          L[i] += xL * im; R[i] += xR * im;
+          const nr = re * cr - im * ci; im = re * ci + im * cr; re = nr;
+          xL += sL; xR += sR;
+        }
+        const mag = Math.sqrt(re * re + im * im); re /= mag; im /= mag;
+        aL0 = aL; aR0 = aR;
+        if (env < 2e-5 && t > 0.6) break;
+      }
+    }
+    // the pluck itself: a few milliseconds of bright fingertip-on-wire noise
+    let prev = 0;
+    const nN = Math.floor(0.018 * sr);
+    for (let i = 0; i < nN; i++){
+      const x = (rnd() * 2 - 1) * Math.exp(-i / (0.0035 * sr));
+      const hpv = x - prev; prev = x;
+      L[i] += hpv * 0.12; R[i] += hpv * 0.11;
+    }
+    const fade = Math.floor(0.5 * sr);
+    for (let i = 0; i < fade; i++){ const g = i / fade; L[N - 1 - i] *= g; R[N - 1 - i] *= g; }
+    let peak = 0; for (let i = 0; i < N; i++) peak = Math.max(peak, Math.abs(L[i]), Math.abs(R[i]));
+    if (peak > 0){ const g = 0.9 / peak; for (let i = 0; i < N; i++){ L[i] *= g; R[i] *= g; } }
+    return {L, R};
+  }
+
+  let worker = null, jobId = 0; const jobs = new Map();
+  try {
+    const code = `const renderString = ${renderString.toString()};
+      onmessage = e => { const d = e.data; const r = renderString(d.f, d.bright, d.dur, d.sr, d.seed); postMessage({ id: d.id, L: r.L, R: r.R }, [r.L.buffer, r.R.buffer]); };`;
+    worker = new Worker(URL.createObjectURL(new Blob([code], { type: 'text/javascript' })));
+    worker.onmessage = e => { const j = jobs.get(e.data.id); if (j) { jobs.delete(e.data.id); j(e.data); } };
+    worker.onerror = () => { worker = null; };
+  } catch (e) { worker = null; }
+  const renderAsync = (f, bright, dur, seed) => {
+    const sr = ctx.sampleRate;
+    if (!worker) return new Promise(r => setTimeout(() => r(renderString(f, bright, dur, sr, seed)), 0));
+    return new Promise(r => { const id = ++jobId; jobs.set(id, r); worker.postMessage({ id, f, bright, dur, sr, seed }); });
+  };
+  const toBuffer = r => { const b = ctx.createBuffer(2, r.L.length, ctx.sampleRate); b.getChannelData(0).set(r.L); b.getChannelData(1).set(r.R); return b; };
+
+  function ensureCtx() {
+    if (ctx) return ctx;
+    const AC = window.AudioContext || window.webkitAudioContext;
+    try { ctx = new AC({ latencyHint: 'playback', sampleRate: 48000 }); } catch (e) { ctx = new AC(); }
+    master = ctx.createGain(); master.gain.value = st.vol;
+    const hp = ctx.createBiquadFilter(); hp.type = 'highpass'; hp.frequency.value = 42; hp.Q.value = 0.7;
+    const warm = ctx.createBiquadFilter(); warm.type = 'peaking'; warm.frequency.value = 190; warm.Q.value = 0.9; warm.gain.value = 1.5;
+    const air = ctx.createBiquadFilter(); air.type = 'highshelf'; air.frequency.value = 3800; air.gain.value = 0.5;
+    const comp = ctx.createDynamicsCompressor(); comp.threshold.value = -12; comp.ratio.value = 2.5; comp.attack.value = 0.01; comp.release.value = 0.4;
+    const dry = ctx.createGain(); dry.gain.value = 0.9; const wet = ctx.createGain(); wet.gain.value = 0.38;
+    const conv = ctx.createConvolver(); conv.buffer = makeIR(3.2);
+    master.connect(hp); hp.connect(warm); warm.connect(air); air.connect(dry); air.connect(conv); conv.connect(wet);
+    out = ctx.createGain(); dry.connect(comp); wet.connect(comp); comp.connect(out); out.connect(ctx.destination);
+    return ctx;
+  }
+  // iPad and iPhone: play even with the silent switch on, and wake the audio inside the tap
+  let silentEl = null;
+  function silentWavURL() {
+    const sr = 8000, n = sr / 4, buf = new ArrayBuffer(44 + n * 2), v = new DataView(buf);
+    const w = (o, str) => { for (let i = 0; i < str.length; i++) v.setUint8(o + i, str.charCodeAt(i)); };
+    w(0, 'RIFF'); v.setUint32(4, 36 + n * 2, true); w(8, 'WAVE'); w(12, 'fmt '); v.setUint32(16, 16, true); v.setUint16(20, 1, true); v.setUint16(22, 1, true);
+    v.setUint32(24, sr, true); v.setUint32(28, sr * 2, true); v.setUint16(32, 2, true); v.setUint16(34, 16, true); w(36, 'data'); v.setUint32(40, n * 2, true);
+    return URL.createObjectURL(new Blob([buf], { type: 'audio/wav' }));
+  }
+  function session() { try { if (navigator.audioSession && !rec) navigator.audioSession.type = playing ? 'playback' : 'auto'; } catch (e) { } }
+  function unlock() {
+    ensureCtx(); session();
+    try { if (!silentEl) { silentEl = new Audio(silentWavURL()); silentEl.loop = true; silentEl.setAttribute('playsinline', ''); } const pr = silentEl.play(); if (pr && pr.catch) pr.catch(() => { }); } catch (e) { }
+    if (ctx.state !== 'running') { try { ctx.resume(); } catch (e) { } }
+  }
+  async function rebuild() {
+    if (!ctx) return; const tk = ++token, hz = stringHz(), dur = Math.max(6, st.cycle + 3), j = st.jivari;
+    const parts = await Promise.all([renderAsync(hz[0], j, dur, 101), renderAsync(hz[1], j, dur, 202), renderAsync(hz[2] * Math.pow(2, 0.6 / 1200), j, dur, 303), renderAsync(hz[3], j * 0.92, dur, 404)]);
+    if (tk !== token) return; buffers = parts.map(toBuffer);
+  }
+  function pluck(i, when) {
+    const src = ctx.createBufferSource(); src.buffer = buffers[i]; src.playbackRate.value = 1 + (Math.random() - 0.5) * 0.0006;
+    const g = ctx.createGain(); g.gain.setValueAtTime([0.6, 0.52, 0.5, 0.7][i] * (0.92 + Math.random() * 0.08), when);
+    const pan = ctx.createStereoPanner ? ctx.createStereoPanner() : null;
+    if (pan) { pan.pan.value = [-0.22, -0.07, 0.07, 0.22][i]; src.connect(g); g.connect(pan); pan.connect(master); } else { src.connect(g); g.connect(master); }
+    const prev = last[i]; if (prev) { try { prev.g.gain.setTargetAtTime(0, when, 0.03); prev.src.stop(when + 0.3); } catch (e) { } }
+    src.start(when); last[i] = { src, g };
+  }
+  function scheduler() {
+    if (!buffers || !playing) return;
+    while (nextTime < ctx.currentTime + 0.15) {
+      pluck(step, nextTime + (Math.random() - 0.5) * 0.012); step++;
+      if (step === 4) { step = 0; cycleStart += st.cycle; }
+      nextTime = cycleStart + PATTERN[step] * st.cycle;
+    }
+  }
+  async function start() {
+    unlock(); playing = true; ui();
+    try { if (ctx.state !== 'running') await ctx.resume(); } catch (e) { }
+    if (!buffers) await rebuild(); if (!playing) return;
+    cycleStart = ctx.currentTime + 0.08; step = 0; nextTime = cycleStart;
+    clearInterval(timer); timer = setInterval(scheduler, 25); scheduler(); if (recTap) heard = true;
+  }
+  function stop() {
+    if (!playing) return; playing = false; clearInterval(timer); timer = null; ui(); session();
+    const now = ctx ? ctx.currentTime : 0;
+    last.forEach((v, i) => { if (v) { try { v.g.gain.setTargetAtTime(0, now, 0.4); v.src.stop(now + 2.5); } catch (e) { } last[i] = null; } });
+  }
+  const retune = () => { buffers = null; save(); ui(); if (ctx) rebuild(); };
+  function setVol(v) { st.vol = v; if (master) master.gain.setTargetAtTime(v, ctx.currentTime, 0.05); if (recTap) recTap.gain.setTargetAtTime(REC_LEVEL[st.inRec], ctx.currentTime, 0.05); save(); }
+  // Recording: microphone + (softer) drone into one stream. The mic is never sent to the speaker.
+  function mixInto(mic) {
+    if (st.inRec === 'off') return null;
+    try {
+      ensureCtx(); if (ctx.state !== 'running') ctx.resume();
+      const dest = ctx.createMediaStreamDestination(), src = ctx.createMediaStreamSource(mic);
+      heard = playing; src.connect(dest); recTap = ctx.createGain(); recTap.gain.value = REC_LEVEL[st.inRec]; out.connect(recTap); recTap.connect(dest);
+      const tap = recTap;
+      return { stream: dest.stream, get heard() { return heard; }, end() { try { src.disconnect(); tap.disconnect(); out.disconnect(tap); } catch (e) { } if (recTap === tap) recTap = null; } };
+    } catch (e) { return null; }
+  }
+  function ui() {
+    const b = $('#pShruti'); if (!b) return;
+    b.classList.toggle('on', playing); $('#pShrLbl').textContent = playing ? 'Stop' : 'Śruti';
+    b.title = playing ? 'Stop the tambura' : 'Play the tambura';
+    $('#pShrPitch').textContent = cur().k; $('#pShrTun').textContent = TUN[st.tuning].name;
+    const pp = $('#popover .shrpop'); if (pp) { pp.querySelector('b').textContent = cur().k; pp.querySelector('.big small').textContent = `Sa = ${cur().note}`; pp.querySelectorAll('[data-tun]').forEach(x => x.classList.toggle('on', x.dataset.tun === st.tuning)); }
+  }
+  function openPanel() {
+    showPopover($('#pShrMore'), `<div class="shrpop"><h5>Śruti</h5>
+      <div class="big"><div><b>${cur().k}</b><small>Sa = ${cur().note}</small></div><button class="btn" data-play>${playing ? 'Stop' : 'Play'}</button></div>
+      <div class="row"><span>Tuning</span><span class="seg">${Object.entries(TUN).map(([k, t]) => `<button data-tun="${k}" class="${st.tuning === k ? 'on' : ''}">${t.name}</button>`).join('')}</span></div>
+      <div class="row"><span>Volume</span><input type="range" min="0" max="1" step="0.01" value="${st.vol}" data-vol></div>
+      <div class="note">${st.inRec === 'off' ? 'Not included in recordings.' : 'Recordings include it softly under your voice.'} Pitch and more in Settings.</div></div>`, pop => {
+      pop.querySelector('[data-play]').onclick = e => { playing ? stop() : start(); e.currentTarget.textContent = playing ? 'Stop' : 'Play'; };
+      pop.querySelectorAll('[data-tun]').forEach(b => b.onclick = () => { st.tuning = b.dataset.tun; retune(); });
+      pop.querySelector('[data-vol]').oninput = e => setVol(+e.target.value);
+    });
+  }
+  function settingsHtml() {
+    return `<h6 class="sgrp">Śruti</h6>
+    <div class="field"><span>Pitch<br><small style="color:var(--muted)">Your śruti; the tambura always starts here</small></span><select class="tinput gsel" id="sShrK">${KATTAI.map(x => `<option value="${x.id}"${x.id === st.kattai ? ' selected' : ''}>${x.k} · ${x.note}</option>`).join('')}</select></div>
+    <div class="field"><span>Tuning</span><span class="seg" id="sShrT">${Object.entries(TUN).map(([k, t]) => `<button data-v="${k}" class="${st.tuning === k ? 'on' : ''}">${t.name === 'Pa' ? 'Panchama' : 'Madhyama'}</button>`).join('')}</span></div>
+    <div class="field"><span>In recordings<br><small style="color:var(--muted)">Mixed under your voice, never above it</small></span><span class="seg" id="sShrR">${[['off', 'Off'], ['soft', 'Soft'], ['medium', 'Medium']].map(([v, l]) => `<button data-v="${v}" class="${st.inRec === v ? 'on' : ''}">${l}</button>`).join('')}</span></div>
+    <details class="adv"><summary>Advanced tuning</summary>
+      <div class="field"><span>Fine tune<br><small style="color:var(--muted)" id="sShrCo">${st.cents > 0 ? '+' : ''}${st.cents} cents</small></span><input type="range" min="-50" max="50" step="1" value="${st.cents}" id="sShrC"></div>
+      <div class="field"><span>Cycle<br><small style="color:var(--muted)" id="sShrYo">${(+st.cycle).toFixed(1)} s per round of four strings</small></span><input type="range" min="2.6" max="7" step="0.1" value="${st.cycle}" id="sShrY"></div>
+      <div class="field"><span>Jivāri<br><small style="color:var(--muted)" id="sShrJo">${Math.round(st.jivari * 100)}% buzz from the bridge</small></span><input type="range" min="0" max="1" step="0.01" value="${st.jivari}" id="sShrJ"></div>
+      <div class="field"><span>Volume<br><small style="color:var(--muted)" id="sShrVo">${Math.round(st.vol * 100)}%</small></span><input type="range" min="0" max="1" step="0.01" value="${st.vol}" id="sShrV"></div>
+      <div style="padding:8px 0"><button class="btn" id="sShrReset">Reset advanced tuning</button></div>
+    </details>`;
+  }
+  function wireSettings(box) {
+    const q = id => box.querySelector(id); if (!q('#sShrK')) return;
+    q('#sShrK').onchange = e => { st.kattai = e.target.value; retune(); };
+    const seg = (id, fn) => q(id).onclick = e => { const b = e.target.closest('button'); if (!b) return; q(id).querySelectorAll('button').forEach(x => x.classList.toggle('on', x === b)); fn(b.dataset.v); };
+    seg('#sShrT', v => { st.tuning = v; retune(); });
+    seg('#sShrR', v => { st.inRec = v; save(); if (recTap) recTap.gain.value = REC_LEVEL[v]; });
+    q('#sShrC').oninput = e => { st.cents = +e.target.value; q('#sShrCo').textContent = `${st.cents > 0 ? '+' : ''}${st.cents} cents`; };
+    q('#sShrC').onchange = retune;
+    q('#sShrY').oninput = e => { st.cycle = +e.target.value; q('#sShrYo').textContent = `${st.cycle.toFixed(1)} s per round of four strings`; save(); };
+    q('#sShrY').onchange = retune;
+    q('#sShrJ').oninput = e => { st.jivari = +e.target.value; q('#sShrJo').textContent = `${Math.round(st.jivari * 100)}% buzz from the bridge`; };
+    q('#sShrJ').onchange = retune;
+    q('#sShrV').oninput = e => { setVol(+e.target.value); q('#sShrVo').textContent = `${Math.round(st.vol * 100)}%`; };
+    q('#sShrReset').onclick = () => { st.cents = DEF.cents; st.cycle = DEF.cycle; st.jivari = DEF.jivari; retune(); closeDialog(null); openSettings(); };
+  }
+  $('#pShruti').onclick = () => playing ? stop() : start();
+  $('#pShrMore').onclick = e => { e.stopPropagation(); if (!$('#popover').classList.contains('hidden') && $('#popover .shrpop')) { closePopover(); return; } openPanel(); };
+  document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'visible' && ctx && playing && ctx.state !== 'running') { try { ctx.resume(); } catch (e) { } } });
+  ui();
+  return { start, stop, mixInto, session, settingsHtml, wireSettings, isPlaying: () => playing, state: st, KATTAI };
+})();
 async function startRecording() {
   let stream;
   try {
@@ -996,16 +1262,18 @@ async function startRecording() {
   const types = ['audio/mp4;codecs=mp4a.40.2', 'audio/mp4', 'audio/webm;codecs=opus', 'audio/webm', 'audio/ogg;codecs=opus'];
   const mime = types.find(t => window.MediaRecorder && MediaRecorder.isTypeSupported && MediaRecorder.isTypeSupported(t)) || '';
   const tr = stream.getAudioTracks()[0], st = (tr && tr.getSettings && tr.getSettings()) || {};
-  const ch = st.channelCount || 1, opus = /opus|webm|ogg/.test(mime);
+  const micStream = stream, mix = Shruti.mixInto(stream);   // the śruti, softly, under your voice (if switched on in Settings)
+  if (mix) stream = mix.stream;
+  const ch = mix ? 2 : (st.channelCount || 1), opus = /opus|webm|ogg/.test(mime);
   const bps = opus ? (ch > 1 ? 192000 : 160000) : (ch > 1 ? 256000 : 192000);   // generous: music, not a phone call
   const q = { sr: st.sampleRate || 0, ch, kbps: bps / 1000, mic: tr && tr.label && !/^default$/i.test(tr.label) ? tr.label.replace(/\s*\(.*?\)\s*$/, '').slice(0, 40) : '', mode: RecQ.mode() };
   let mr;
   try { mr = new MediaRecorder(stream, mime ? { mimeType: mime, audioBitsPerSecond: bps } : { audioBitsPerSecond: bps }); }
-  catch (e) { stream.getTracks().forEach(t => t.stop()); RecQ.release(); dialog({ title: 'Recording not supported', html: '<p>This browser cannot record audio. Please update Safari/Chrome, or import an audio file instead.</p>' }); return; }
+  catch (e) { micStream.getTracks().forEach(t => t.stop()); if (mix) mix.end(); RecQ.release(); dialog({ title: 'Recording not supported', html: '<p>This browser cannot record audio. Please update Safari/Chrome, or import an audio file instead.</p>' }); return; }
   audioEl.pause();
   const chunks = [];
   mr.ondataavailable = e => { if (e.data && e.data.size) chunks.push(e.data); };
-  rec = { mr, stream, chunks, start: performance.now(), mime: mr.mimeType || mime || 'audio/webm', wake: null, hidden: false, take: 't' + uid(), q };
+  rec = { mr, stream: micStream, mix, chunks, start: performance.now(), mime: mr.mimeType || mime || 'audio/webm', wake: null, hidden: false, take: 't' + uid(), q };
   try { if (navigator.wakeLock) rec.wake = await navigator.wakeLock.request('screen'); } catch (e) { }
   mr.start(1000);
   activeGroup = -1; renderAllFx();
@@ -1018,10 +1286,11 @@ function stopRecording() {
     const r = rec;
     r.mr.onstop = async () => {
       const elapsed = (performance.now() - r.start) / 1000;
-      r.stream.getTracks().forEach(t => t.stop()); RecQ.release();
+      r.stream.getTracks().forEach(t => t.stop()); if (r.mix) r.mix.end(); RecQ.release(); Shruti.session();
       try { r.wake && r.wake.release(); } catch (e) { }
       const blob = new Blob(r.chunks, { type: r.mime.split(';')[0] });
       rec = null;
+      if (r.q && r.mix && r.mix.heard) r.q.shruti = true;
       if (r.q && elapsed > 1) r.q.kbps = Math.round(blob.size * 8 / elapsed / 1000);   // what was actually written
       const t = { id: r.take, label: '', mime: blob.type, duration: elapsed, created: Date.now(), size: blob.size, ...(r.q ? { q: r.q } : {}) };
       note.takes.push(t); takeBlobs.set(t.id, blob); await saveTake(t, blob);
@@ -1348,11 +1617,11 @@ function renderSwatches() {
 
 /* ---- palette, colour picker and eyedropper ---- */
 function closePopover() { $('#popover').classList.add('hidden'); document.removeEventListener('pointerdown', popOutside, true); }
-function popOutside(e) { if (!e.target.closest('#popover') && !e.target.closest('#tSticker') && !e.target.closest('#tZoom') && !e.target.closest('.palbtn') && !e.target.closest('[data-sa="color"]') && !e.target.closest('#pSpeed')) closePopover(); }
+function popOutside(e) { if (!e.target.closest('#popover') && !e.target.closest('#tSticker') && !e.target.closest('#tZoom') && !e.target.closest('.palbtn') && !e.target.closest('[data-sa="color"]') && !e.target.closest('#pSpeed') && !e.target.closest('#pShrMore')) closePopover(); }
 function showPopover(anchor, html, wire) {
   const p = $('#popover'); p.innerHTML = html; p.classList.remove('hidden');
   const r = anchor.getBoundingClientRect(), w = p.offsetWidth;
-  p.style.left = clamp(r.left + r.width / 2 - w / 2, 8, innerWidth - w - 8) + 'px'; p.style.top = (r.bottom + 10) + 'px';
+  p.style.left = clamp(r.left + r.width / 2 - w / 2, 8, innerWidth - w - 8) + 'px'; p.style.top = (r.bottom + 10 + p.offsetHeight > innerHeight - 8 ? Math.max(8, r.top - 10 - p.offsetHeight) : r.bottom + 10) + 'px';
   wire(p); setTimeout(() => document.addEventListener('pointerdown', popOutside, true), 0);
 }
 function openPalette(anchor, onPick) {
@@ -1828,7 +2097,7 @@ $('#fAudio').onchange = async e => {
 $('#tTitle').addEventListener('input', () => { note.title = $('#tTitle').value; scheduleSave(); });
 $('#tBack').onclick = async () => {
   if (rec) { const ok = await dialog({ title: 'Stop recording?', html: '<p>Recording is still running. Stop and save it before leaving?</p>', actions: [{ label: 'Keep recording', value: false }, { label: 'Stop & save', value: true, primary: true }] }); if (!ok) return; await stopRecording(); }
-  Texts.commit(); audioEl.pause(); await flushSave(); Drive.schedule(2500); showLibrary();
+  Texts.commit(); audioEl.pause(); Shruti.stop(); await flushSave(); Drive.schedule(2500); showLibrary();
 };
 $('#tMore').onclick = () => openSettings();
 $('#tShare').onclick = () => shareNote();
@@ -3395,7 +3664,7 @@ const Drive = (() => {
    version.json on GitHub names the newest build. When it differs from this one, the
    version chip offers "Update to …". Updating clears only Notation's stored app files
    and reloads; notes, recordings, folders and the Drive connection are untouched. */
-const APP_VERSION = '0.30', APP_BUILD = '1958f5be70';
+const APP_VERSION = '0.31', APP_BUILD = 'e0806a0f94';
 const Updates = (() => {
   let latest = null, last = 0;
   const chip = () => $('#verChip');
@@ -3448,6 +3717,7 @@ function openSettings() {
     ${viewer ? '' : `<h6 class="sgrp">Recording</h6>
     <div class="field"><span>Microphone<br><small style="color:var(--muted)">An external mic is used whenever it's connected</small></span><select class="tinput" id="sMic" style="max-width:220px;font-size:14px;padding:6px 8px"><option value="">Built-in / default</option></select></div>
     <div class="field"><span>Recording mode<br><small style="color:var(--muted)">Music: natural sound, no voice-call processing<br>Voice: reduces room noise</small></span><span class="seg" id="sRecMode"><button data-v="music" class="${RecQ.mode() !== 'voice' ? 'on' : ''}">Music</button><button data-v="voice" class="${RecQ.mode() === 'voice' ? 'on' : ''}">Voice</button></span></div>`}
+    ${viewer ? '' : Shruti.settingsHtml()}
     ${viewer ? '' : `<h6 class="sgrp">Sharing</h6>
     <div class="field"><span>Share links<br><small style="color:var(--muted)">${Publish.ready() ? 'Set up on this device' : 'Publish players to your notation repository on GitHub'}</small></span><button class="btn" id="sGh">${Publish.ready() ? 'View' : 'Set up'}</button></div>`}
     ${viewer ? '' : `<h6 class="sgrp">Notation</h6>
@@ -3467,6 +3737,7 @@ function openSettings() {
     mic.onchange = () => { LS.set('rec.dev', mic.value); toast(mic.value ? 'Notation will record with this microphone.' : 'Notation will use the default microphone.'); };
   }
   box.querySelectorAll('select[data-gest]').forEach(el => el.onchange = () => { Gest.set(el.dataset.gest, +el.value); box.querySelectorAll('select[data-gest]').forEach(o => o.value = Gest.get()[o.dataset.gest]); });
+  Shruti.wireSettings(box);
   const sn = box.querySelector('#sNudge'); if (sn) sn.onclick = e => { const b = e.target.closest('button'); if (!b) return; Nudge.set(!!+b.dataset.v); $$('#sNudge button').forEach(x => x.classList.toggle('on', x === b)); };
   const gh = box.querySelector('#sGh'); if (gh) gh.onclick = () => { closeDialog(null); Publish.setup(); };
   box.querySelector('#sUpdate').onclick = () => { closeDialog(null); Updates.check(true); };

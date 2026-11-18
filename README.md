@@ -35,6 +35,8 @@ The same approach works for chants and ślokas: bring in the script as a PDF, re
 - **Zoom the notebook:** the magnifier opens − and +, **Whole page** (a full page inside the window, handy for writing neatly) and **Page width**, plus 75–200%. Pinch with two fingers on the iPad, or on a Mac trackpad, to zoom the notebook around your fingers; the rest of the screen stays put. Your zoom is remembered.
 - **Hold to straighten:** draw a line, a rough rectangle or square, a circle, an ellipse or a triangle with any pen or the highlighter, and keep the Pencil still at the end for a moment. It snaps into a clean shape (lines close to level or upright become exactly level or upright). Undo returns your original stroke.
 - **Stickers:** select any ink with the lasso (a *Pallavi* heading, a numbered saṅgati box, a play mark, a separator) and tap **☆ Sticker** to keep it. The sticker button on the toolbar holds your collection: tap one, then tap where it goes, and drag or resize it with **−** and **+**. Your stickers sync through Google Drive.
+- **Śruti box:** a tambura sits beside the record button. Tap it to play or stop the drone; the pill beside it shows your pitch and opens Pa / Ma and volume. While you record, the drone is mixed digitally under your voice (Soft or Medium, or Off) so it is captured cleanly, never above you. Settings → Śruti holds your pitch (low 6 to 7, A2–B3), Panchama or Madhyama, the recording level, and advanced tuning (fine tune, cycle, jivāri, volume). The sound is synthesised in the app, from Lakshmi's Shruti app, so it works offline. Recordings made with it are marked "with śruti".
+- **Record button:** a microphone and **REC** (REC + once a note has recordings); STOP while recording.
 - **Recording quality:** Notation asks each device for its best: 48 kHz, stereo where available, a high bitrate (up to 256 kbps), and no voice-call processing in **Music** mode. Choose an external microphone and the mode in Settings; each recording notes what it was made with.
 - **PDF links are kept:** when you bring in a PDF with its own links (an index that jumps to each verse, "back to index" links, web links), Notation keeps them. Tap a link with your finger (or with the Hand tool) to follow it; a **Back** button then returns you to where you were. Links keep pointing at the right page when you reorder pages, and they carry through to the Drive PDF, your other devices and shared players.
 - **Finger gestures:** tap the page with two fingers to undo and three to redo. Settings → Finger gestures lets you choose the tap for each, or switch it off. Pinching, scrolling and the Pencil work as before.
@@ -128,7 +130,7 @@ EB Garamond, Mukta Malar, Cormorant Garamond, Noto Serif Tamil and Noto Sans Dev
 
 ## Updates
 
-The version shows at the top of the library (for example **v0.30**). Notation checks for a newer version when it opens, when you return to it, and every half hour; when there is one, the label turns saffron and reads **Update to …**. Tap it to load the newest version straight away. Your notes, recordings, folders and Drive connection are kept. **Settings → Check for updates** does the same.
+The version shows at the top of the library (for example **v0.31**). Notation checks for a newer version when it opens, when you return to it, and every half hour; when there is one, the label turns saffron and reads **Update to …**. Tap it to load the newest version straight away. Your notes, recordings, folders and Drive connection are kept. **Settings → Check for updates** does the same.
 
 ## Status
 
