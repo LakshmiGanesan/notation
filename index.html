@@ -244,6 +244,7 @@ body.fingers .page canvas.fx{touch-action:none}
 .recbtn .rd{display:none}.recbtn .mic{width:20px;height:20px;color:var(--rec);flex:none}
 .recbtn{letter-spacing:.06em}
 .recbtn.live{background:var(--rec);color:#fff;border-color:var(--rec)}
+.recbtn{position:relative}.recbtn.live::after{content:'';position:absolute;left:8px;right:8px;bottom:3px;height:3px;border-radius:2px;background:rgba(255,255,255,.9);transform-origin:left;transform:scaleX(var(--lv,0));transition:transform .05s linear}.recbtn.live.hot::after{background:#ffb020}
 .recbtn.live .rd{display:block;background:#fff;border-radius:3px;width:13px;height:13px;animation:pulse 1.2s infinite}.recbtn.live .mic{display:none}
 .shrbtn{height:46px;border-radius:23px 0 0 23px;border:1px solid var(--line);border-right:0;background:var(--card);display:inline-flex;align-items:center;gap:6px;padding:0 10px 0 12px;font-weight:600;white-space:nowrap;flex:none;color:inherit;cursor:pointer}
 .shrbtn svg{width:24px;height:24px;color:#8a5a2b}
@@ -397,7 +398,7 @@ body.viewer .viewer-only{display:inline-flex}
       <p class="tagline">Write your notation, record the lesson, and let every mark sing back.</p>
     </div>
     <div class="lib-actions">
-      <button class="btn verchip" id="verChip" title="Notation version · tap to check for updates">v0.31</button>
+      <button class="btn verchip" id="verChip" title="Notation version · tap to check for updates">v0.32</button>
       <button class="btn drivechip" id="driveChip" title="Google Drive sync"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M7 18h10.5a4.5 4.5 0 0 0 .6-8.96A6 6 0 0 0 6.6 9.2 4.4 4.4 0 0 0 7 18z"/></svg><span>Google Drive</span></button>
       <button class="btn" id="btnLib" title="Notation templates and covers"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="7" height="16" rx="1.5"/><rect x="12" y="4" width="4" height="16" rx="1"/><path d="M18 5.5l3 .8-3.6 13.4-3-.8"/></svg>Templates</button>
       <button class="btn" id="btnImport" title="Open a shared .html note"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v12m0 0-4-4m4 4 4-4"/><path d="M4 17v2a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-2"/></svg>Open shared note</button>
@@ -1187,15 +1188,37 @@ const Shruti = (() => {
   }
   const retune = () => { buffers = null; save(); ui(); if (ctx) rebuild(); };
   function setVol(v) { st.vol = v; if (master) master.gain.setTargetAtTime(v, ctx.currentTime, 0.05); if (recTap) recTap.gain.setTargetAtTime(REC_LEVEL[st.inRec], ctx.currentTime, 0.05); save(); }
-  // Recording: microphone + (softer) drone into one stream. The mic is never sent to the speaker.
-  function mixInto(mic) {
-    if (st.inRec === 'off') return null;
+  // Recording chain (0.32). Every take goes mic → gentle clean-up → recorder, and the drone joins softly
+  // when "In recordings" is on. Music mode: a 60 Hz high-pass (rumble, desk knocks and much of the 50 Hz
+  // mains hum; the lowest sung mandra notes sit above 80 Hz) and a soft limiter that only touches the
+  // loudest instants, so nothing in the voice is reshaped. Voice mode leaves the browser's own speech
+  // processing in charge. The mic is never sent to the speaker.
+  function mixInto(mic, chIn) {
     try {
       ensureCtx(); if (ctx.state !== 'running') ctx.resume();
-      const dest = ctx.createMediaStreamDestination(), src = ctx.createMediaStreamSource(mic);
-      heard = playing; src.connect(dest); recTap = ctx.createGain(); recTap.gain.value = REC_LEVEL[st.inRec]; out.connect(recTap); recTap.connect(dest);
-      const tap = recTap;
-      return { stream: dest.stream, get heard() { return heard; }, end() { try { src.disconnect(); tap.disconnect(); out.disconnect(tap); } catch (e) { } if (recTap === tap) recTap = null; } };
+      const drone = st.inRec !== 'off', music = RecQ.mode() !== 'voice';
+      const dest = ctx.createMediaStreamDestination(), src = ctx.createMediaStreamSource(mic), nodes = [src];
+      dest.channelCount = drone ? 2 : Math.max(1, Math.min(2, chIn || 1));
+      const meter = ctx.createAnalyser(); meter.fftSize = 1024; src.connect(meter); nodes.push(meter);
+      let tail = src;
+      if (music) {
+        // two Butterworth stages = a 4th-order high-pass at 60 Hz (Web Audio takes Q in dB here: Butterworth
+        // 0.541 and 1.307 → −5.33 and 2.33 dB): about −7 dB at 50 Hz hum, −0.3 dB at 82 Hz, flat above
+        const hp1 = ctx.createBiquadFilter(), hp2 = ctx.createBiquadFilter();
+        [[hp1, -5.33], [hp2, 2.33]].forEach(([h, q]) => { h.type = 'highpass'; h.frequency.value = 60; h.Q.value = q; });
+        // soft limiter: untouched below 0.8 of full scale, then a smooth curve that never passes 1
+        const lim = ctx.createWaveShaper(), N = 4097, cv = new Float32Array(N);
+        for (let i = 0; i < N; i++) { const x = i / (N - 1) * 2 - 1, a = Math.abs(x); cv[i] = Math.sign(x) * (a <= 0.8 ? a : 0.8 + 0.2 * Math.tanh((a - 0.8) / 0.2)); }
+        lim.curve = cv; lim.oversample = '4x';
+        tail.connect(hp1); hp1.connect(hp2); hp2.connect(lim); tail = lim; nodes.push(hp1, hp2, lim);
+      }
+      tail.connect(dest);
+      let tap = null;
+      if (drone) { heard = playing; recTap = tap = ctx.createGain(); tap.gain.value = REC_LEVEL[st.inRec]; out.connect(tap); tap.connect(dest); }
+      const buf = new Float32Array(meter.fftSize);
+      return { stream: dest.stream, ch: dest.channelCount, drone, get heard() { return drone && heard; },
+        level() { meter.getFloatTimeDomainData(buf); let pk = 0; for (let i = 0; i < buf.length; i++) { const a = Math.abs(buf[i]); if (a > pk) pk = a; } return pk; },
+        end() { nodes.forEach(n => { try { n.disconnect(); } catch (e) { } }); if (tap) { try { out.disconnect(tap); tap.disconnect(); } catch (e) { } if (recTap === tap) recTap = null; } } };
     } catch (e) { return null; }
   }
   function ui() {
@@ -1250,6 +1273,20 @@ const Shruti = (() => {
   ui();
   return { start, stop, mixInto, session, settingsHtml, wireSettings, isPlaying: () => playing, state: st, KATTAI };
 })();
+/* A small level light inside the REC button while recording: it grows with your voice and turns amber
+   when the microphone itself is at its limit (then turn the mic's gain knob down a little). */
+function recMeter(r) {
+  const b = $('#pRec'); let hot = 0, clips = 0, warned = false, shown = 0;
+  (function f() {
+    if (rec !== r) { b.style.removeProperty('--lv'); b.classList.remove('hot'); return; }
+    const pk = r.mix.level(); shown = Math.max(pk, shown * 0.9);
+    b.style.setProperty('--lv', Math.min(1, Math.sqrt(shown)).toFixed(3));
+    if (pk >= 0.98) { hot = 45; clips++; }
+    b.classList.toggle('hot', hot > 0); if (hot > 0) hot--;
+    if (!warned && clips >= 8) { warned = true; toast('Very loud: the microphone is at its limit. Turn its gain down a little.', 4200); }
+    requestAnimationFrame(f);
+  })();
+}
 async function startRecording() {
   let stream;
   try {
@@ -1262,9 +1299,9 @@ async function startRecording() {
   const types = ['audio/mp4;codecs=mp4a.40.2', 'audio/mp4', 'audio/webm;codecs=opus', 'audio/webm', 'audio/ogg;codecs=opus'];
   const mime = types.find(t => window.MediaRecorder && MediaRecorder.isTypeSupported && MediaRecorder.isTypeSupported(t)) || '';
   const tr = stream.getAudioTracks()[0], st = (tr && tr.getSettings && tr.getSettings()) || {};
-  const micStream = stream, mix = Shruti.mixInto(stream);   // the śruti, softly, under your voice (if switched on in Settings)
+  const micStream = stream, mix = Shruti.mixInto(stream, st.channelCount);   // clean-up chain, plus the śruti softly under your voice
   if (mix) stream = mix.stream;
-  const ch = mix ? 2 : (st.channelCount || 1), opus = /opus|webm|ogg/.test(mime);
+  const ch = mix ? mix.ch : (st.channelCount || 1), opus = /opus|webm|ogg/.test(mime);
   const bps = opus ? (ch > 1 ? 192000 : 160000) : (ch > 1 ? 256000 : 192000);   // generous: music, not a phone call
   const q = { sr: st.sampleRate || 0, ch, kbps: bps / 1000, mic: tr && tr.label && !/^default$/i.test(tr.label) ? tr.label.replace(/\s*\(.*?\)\s*$/, '').slice(0, 40) : '', mode: RecQ.mode() };
   let mr;
@@ -1276,6 +1313,7 @@ async function startRecording() {
   rec = { mr, stream: micStream, mix, chunks, start: performance.now(), mime: mr.mimeType || mime || 'audio/webm', wake: null, hidden: false, take: 't' + uid(), q };
   try { if (navigator.wakeLock) rec.wake = await navigator.wakeLock.request('screen'); } catch (e) { }
   mr.start(1000);
+  if (mix) recMeter(rec);
   activeGroup = -1; renderAllFx();
   updatePlayer(); tickLoop();
   toast(`Recording ${takeNo(note.takes.length)}. Any mark you draw now becomes an audio bookmark.`, 3600);
@@ -3664,7 +3702,7 @@ const Drive = (() => {
    version.json on GitHub names the newest build. When it differs from this one, the
    version chip offers "Update to …". Updating clears only Notation's stored app files
    and reloads; notes, recordings, folders and the Drive connection are untouched. */
-const APP_VERSION = '0.31', APP_BUILD = 'e0806a0f94';
+const APP_VERSION = '0.32', APP_BUILD = '2cc5f4d742';
 const Updates = (() => {
   let latest = null, last = 0;
   const chip = () => $('#verChip');
@@ -3716,7 +3754,7 @@ function openSettings() {
     <div class="field"><span>Draw with fingers<br><small style="color:var(--muted)">Off: only Apple Pencil / stylus draws</small></span><span class="seg" id="sFing"><button data-v="0" class="${!fingers ? 'on' : ''}">Off</button><button data-v="1" class="${fingers ? 'on' : ''}">On</button></span></div>`}
     ${viewer ? '' : `<h6 class="sgrp">Recording</h6>
     <div class="field"><span>Microphone<br><small style="color:var(--muted)">An external mic is used whenever it's connected</small></span><select class="tinput" id="sMic" style="max-width:220px;font-size:14px;padding:6px 8px"><option value="">Built-in / default</option></select></div>
-    <div class="field"><span>Recording mode<br><small style="color:var(--muted)">Music: natural sound, no voice-call processing<br>Voice: reduces room noise</small></span><span class="seg" id="sRecMode"><button data-v="music" class="${RecQ.mode() !== 'voice' ? 'on' : ''}">Music</button><button data-v="voice" class="${RecQ.mode() === 'voice' ? 'on' : ''}">Voice</button></span></div>`}
+    <div class="field"><span>Recording mode<br><small style="color:var(--muted)">Music: for singing<br>Voice: for speaking</small></span><span class="seg" id="sRecMode"><button data-v="music" class="${RecQ.mode() !== 'voice' ? 'on' : ''}">Music</button><button data-v="voice" class="${RecQ.mode() === 'voice' ? 'on' : ''}">Voice</button></span></div>`}
     ${viewer ? '' : Shruti.settingsHtml()}
     ${viewer ? '' : `<h6 class="sgrp">Sharing</h6>
     <div class="field"><span>Share links<br><small style="color:var(--muted)">${Publish.ready() ? 'Set up on this device' : 'Publish players to your notation repository on GitHub'}</small></span><button class="btn" id="sGh">${Publish.ready() ? 'View' : 'Set up'}</button></div>`}
