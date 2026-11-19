@@ -197,6 +197,13 @@ body.tool-text .tbox,body.tool-lasso .tbox{pointer-events:auto;cursor:move;touch
 .takes .tinfo b{font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .takes .tinfo small{color:var(--muted);font-size:12px}
 .takes .mini:disabled{opacity:.3}
+.takes .grip{width:28px;height:38px;flex:none;border:none;background:none;color:var(--muted);display:grid;place-items:center;touch-action:none;cursor:grab;padding:0;margin-right:-4px;border-radius:8px}
+.takes .grip svg{width:18px;height:18px}.takes .grip:focus-visible{outline:2px solid var(--saffron)}
+.takes .take{transition:transform .16s ease}.takes .take.dragging{transition:none;position:relative;z-index:2;box-shadow:0 12px 26px -10px rgba(0,0,0,.35);cursor:grabbing}
+.takes.sorting{user-select:none;-webkit-user-select:none}.takes.sorting .grip{cursor:grabbing}
+.dlfmt .dlname{margin:0 0 12px;display:flex;flex-direction:column}.dlfmt .dlname small,.dlfmt label small{color:var(--muted);font-size:12.5px}
+.dlfmt label{display:flex;gap:10px;align-items:flex-start;border:1px solid var(--line);background:var(--card);border-radius:12px;padding:10px 12px;margin-bottom:8px;cursor:pointer;line-height:1.4}
+.dlfmt label:has(input:checked){border-color:var(--saffron);box-shadow:0 0 0 3px var(--saffron-soft)}.dlfmt input{margin-top:3px;accent-color:var(--saffron-2)}
 .takeopts{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-top:12px;flex-wrap:wrap;font-size:14px}
 .takeopts input{width:18px;height:18px;vertical-align:-3px;accent-color:var(--saffron)}
 .speeds{display:flex;gap:6px}
@@ -398,7 +405,7 @@ body.viewer .viewer-only{display:inline-flex}
       <p class="tagline">Write your notation, record the lesson, and let every mark sing back.</p>
     </div>
     <div class="lib-actions">
-      <button class="btn verchip" id="verChip" title="Notation version · tap to check for updates">v0.32</button>
+      <button class="btn verchip" id="verChip" title="Notation version · tap to check for updates">v0.33</button>
       <button class="btn drivechip" id="driveChip" title="Google Drive sync"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M7 18h10.5a4.5 4.5 0 0 0 .6-8.96A6 6 0 0 0 6.6 9.2 4.4 4.4 0 0 0 7 18z"/></svg><span>Google Drive</span></button>
       <button class="btn" id="btnLib" title="Notation templates and covers"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="7" height="16" rx="1.5"/><rect x="12" y="4" width="4" height="16" rx="1"/><path d="M18 5.5l3 .8-3.6 13.4-3-.8"/></svg>Templates</button>
       <button class="btn" id="btnImport" title="Open a shared .html note"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v12m0 0-4-4m4 4 4-4"/><path d="M4 17v2a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-2"/></svg>Open shared note</button>
@@ -1348,6 +1355,103 @@ document.addEventListener('visibilitychange', async () => {
 });
 window.addEventListener('pagehide', flushSave);
 
+/* ---- download or share one recording: MP3, WAV, or the file as recorded ----
+   MP3 is made with LAME (lib/lame/lame.min.js, LGPL, loaded only when needed, in a worker). */
+const ICON_DOWNLOAD = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 4v11m0 0-4.5-4.5M12 15l4.5-4.5"/><path d="M4 15v3a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-3"/></svg>';
+const ICON_GRIP = '<svg viewBox="0 0 24 24" fill="currentColor"><circle cx="9" cy="6" r="1.6"/><circle cx="15" cy="6" r="1.6"/><circle cx="9" cy="12" r="1.6"/><circle cx="15" cy="12" r="1.6"/><circle cx="9" cy="18" r="1.6"/><circle cx="15" cy="18" r="1.6"/></svg>';
+const AudioExport = (() => {
+  const extOf = m => /mp4|m4a|aac/.test(m) ? 'm4a' : /mpeg|mp3/.test(m) ? 'mp3' : /wav/.test(m) ? 'wav' : /webm/.test(m) ? 'webm' : /ogg|opus/.test(m) ? 'ogg' : /flac/.test(m) ? 'flac' : 'audio';
+  const TYPE = { mp3: 'audio/mpeg', wav: 'audio/wav', m4a: 'audio/mp4' };
+  const fileName = (i, ext) => `${(takeName(note, i) || 'recording').replace(/[\\/:*?"<>|]+/g, '-').trim() || 'recording'}.${ext}`;
+  const kbps = ch => ch > 1 ? 192 : 160;
+  const mb = b => b >= 1048576 ? `${(b / 1048576).toFixed(b < 10485760 ? 1 : 0)} MB` : `${Math.max(1, Math.round(b / 1024))} KB`;
+  async function decode(blob, sr) {
+    const AC = window.OfflineAudioContext || window.webkitOfflineAudioContext;
+    const ac = new AC(1, 1, sr || 48000), buf = await blob.arrayBuffer();
+    return await new Promise((res, rej) => { const p = ac.decodeAudioData(buf, res, rej); if (p && p.catch) p.catch(rej); });
+  }
+  const toI16 = (f, a, b) => { const o = new Int16Array(b - a); for (let k = a; k < b; k++) { const v = Math.max(-1, Math.min(1, f[k])); o[k - a] = v < 0 ? v * 32768 : v * 32767; } return o; };
+  function wav(ab) {
+    const ch = Math.min(2, ab.numberOfChannels), n = ab.length, sr = ab.sampleRate, data = n * ch * 2;
+    const h = new DataView(new ArrayBuffer(44)), w = (o, s) => [...s].forEach((c, k) => h.setUint8(o + k, c.charCodeAt(0)));
+    w(0, 'RIFF'); h.setUint32(4, 36 + data, true); w(8, 'WAVE'); w(12, 'fmt '); h.setUint32(16, 16, true); h.setUint16(20, 1, true); h.setUint16(22, ch, true);
+    h.setUint32(24, sr, true); h.setUint32(28, sr * ch * 2, true); h.setUint16(32, ch * 2, true); h.setUint16(34, 16, true); w(36, 'data'); h.setUint32(40, data, true);
+    const parts = [h.buffer], cs = [...Array(ch)].map((_, c) => ab.getChannelData(c)), N = 1 << 16;
+    for (let a = 0; a < n; a += N) {
+      const b = Math.min(n, a + N), o = new Int16Array((b - a) * ch);
+      for (let k = a; k < b; k++) for (let c = 0; c < ch; c++) { const v = Math.max(-1, Math.min(1, cs[c][k])); o[(k - a) * ch + c] = v < 0 ? v * 32768 : v * 32767; }
+      parts.push(o);
+    }
+    return new Blob(parts, { type: TYPE.wav });
+  }
+  function mp3(ab, progress) {
+    const ch = Math.min(2, ab.numberOfChannels), n = ab.length, cs = [...Array(ch)].map((_, c) => ab.getChannelData(c)), N = 1152 * 100;
+    const code = 'let enc;onmessage=e=>{const m=e.data;try{if(m.init){importScripts(m.lib);enc=new lamejs.Mp3Encoder(m.ch,m.sr,m.kbps);postMessage({ok:1});return;}' +
+      'const out=m.end?enc.flush():(m.ch===2?enc.encodeBuffer(m.l,m.r):enc.encodeBuffer(m.l));postMessage({out},[out.buffer]);}catch(x){postMessage({err:String(x&&x.message||x)});}};';
+    const url = URL.createObjectURL(new Blob([code], { type: 'text/javascript' })), wk = new Worker(url);
+    const ask = (m, tr = []) => new Promise((res, rej) => { wk.onmessage = e => e.data.err ? rej(new Error(e.data.err)) : res(e.data); wk.onerror = e => { e.preventDefault(); rej(new Error('The MP3 maker could not start.')); }; wk.postMessage(m, tr); });
+    const run = async () => {
+      await ask({ init: 1, lib: new URL('lib/lame/lame.min.js', location.href).href, ch, sr: ab.sampleRate, kbps: kbps(ch) });
+      const parts = [];
+      for (let a = 0; a < n; a += N) {
+        const b = Math.min(n, a + N), l = toI16(cs[0], a, b), r = ch === 2 ? toI16(cs[1], a, b) : null;
+        const { out } = await ask({ ch, l, r }, r ? [l.buffer, r.buffer] : [l.buffer]); if (out.length) parts.push(out);
+        progress(b / n);
+      }
+      const { out } = await ask({ end: 1 }); if (out.length) parts.push(out);
+      return new Blob(parts, { type: TYPE.mp3 });
+    };
+    return run().finally(() => { wk.terminate(); URL.revokeObjectURL(url); });
+  }
+  // The file for recording i in format fmt ('mp3' | 'wav' | 'orig'); converts only when it has to.
+  async function make(i, fmt, progress = () => { }) {
+    const t = note.takes[i], blob = takeBlobs.get(t.id); if (!blob) throw new Error('This recording is not on this device yet.');
+    const own = extOf(blob.type || t.mime || '');
+    if (fmt === 'orig' || fmt === own) return new File([blob], fileName(i, own), { type: blob.type || TYPE[own] || 'audio/mp4' });
+    let ab = await decode(blob, (t.q && t.q.sr) || 48000);
+    const out = fmt === 'wav' ? wav(ab) : await mp3(ab, progress); ab = null;
+    return new File([out], fileName(i, fmt), { type: TYPE[fmt] });
+  }
+  const canShare = f => { try { return !!(navigator.canShare && navigator.canShare({ files: [f] })); } catch (e) { return false; } };
+  async function share(file) {
+    try { await navigator.share({ files: [file], title: file.name }); return true; }
+    catch (e) { if (e.name === 'AbortError') return true; if (e.name === 'NotAllowedError') return false; throw e; }
+  }
+  async function offer(i) {
+    const t = note.takes[i], blob = takeBlobs.get(t.id); if (!blob) return toast('This recording is not on this device yet.');
+    const own = extOf(blob.type || t.mime || ''), d = t.duration || 0, ch = (t.q && t.q.ch) || 1, sr = (t.q && t.q.sr) || 48000;
+    const opts = [
+      ['mp3', 'MP3', 'Small; plays anywhere. Good for WhatsApp.', own === 'mp3' ? blob.size : d * kbps(ch) * 125],
+      ['wav', 'WAV', 'Full quality, uncompressed. For editing.', own === 'wav' ? blob.size : d * sr * ch * 2],
+    ];
+    if (own !== 'mp3' && own !== 'wav') opts.push(['orig', `As recorded (.${own})`, 'The file exactly as saved; no conversion.', blob.size]);
+    let pick = LS.get('dlFormat', 'mp3'); if (!opts.some(o => o[0] === pick)) pick = 'mp3';
+    const probe = new File([new Uint8Array(1)], 'x.mp3', { type: TYPE.mp3 }), sharing = canShare(probe);
+    const box = document.createElement('div'); box.className = 'dlfmt';
+    box.innerHTML = `<p class="dlname"><b>${esc(takeName(note, i))}</b><small>${fmt(d)}${t.q ? ' · ' + esc(RecQ.describe(t.q)) : ''}</small></p>` + opts.map(([v, l, h, sz]) =>
+      `<label><input type="radio" name="dlf" value="${v}" ${v === pick ? 'checked' : ''}><span><b>${esc(l)}</b> <small>${own === v || v === 'orig' ? '' : 'about '}${mb(sz)}</small><br><small>${esc(h)}</small></span></label>`).join('');
+    const v = await dialog({ title: `Recording ${takeNo(i)}`, node: box, actions: [{ label: 'Cancel', value: null }].concat(sharing ? [{ label: 'Download', value: 'dl' }, { label: 'Share…', value: 'share', primary: true }] : [{ label: 'Download', value: 'dl', primary: true }]) });
+    if (!v) return;
+    pick = (box.querySelector('input[name=dlf]:checked') || {}).value || 'mp3'; LS.set('dlFormat', pick);
+    const slow = pick !== 'orig' && pick !== own;
+    if (slow) toast(pick === 'mp3' ? 'Making the MP3…' : 'Making the WAV…', 60000);
+    let file;
+    try { file = await make(i, pick, p => toast(`Making the MP3… ${Math.round(p * 100)}%`, 60000)); }
+    catch (e) { $('#toast').classList.remove('show'); return dialog({ title: 'Could not make the file', html: `<p>${esc(e.message || e)}</p>${pick === 'mp3' ? '<p>WAV, or the file as recorded, may still work.</p>' : ''}` }); }
+    $('#toast').classList.remove('show');
+    if (v === 'share' && canShare(file)) {
+      if (await share(file)) return;
+      // the share sheet needs a fresh tap after a long conversion
+      const again = await dialog({ title: `${file.name.split('.').pop().toUpperCase()} ready`, html: `<p><b>${esc(file.name)}</b> (${mb(file.size)})</p>`, actions: [{ label: 'Close', value: null }, { label: 'Download', value: 'dl' }, { label: 'Share…', value: 'share', primary: true }] });
+      if (again === 'share') { if (!(await share(file))) download(file); }
+      else if (again === 'dl') download(file);
+      return;
+    }
+    download(file); toast(`Downloaded ${file.name}`);
+  }
+  return { offer, make, extOf };
+})();
+
 /* ---- the Recordings list: order, labels, delete, import ---- */
 async function openTakes() {
   if (!note) return;
@@ -1357,10 +1461,11 @@ async function openTakes() {
     box.innerHTML = (n ? '' : '<p style="margin-top:0;color:var(--muted)">No recordings yet. Press Record during your lesson, or bring in an audio file.</p>') + note.takes.map((t, i) => {
       const marks = groups.filter(g => g.take === t.id).length;
       return `<div class="take ${t.id === curTake ? 'on' : ''}" data-id="${t.id}">
+        ${viewer || n < 2 ? '' : `<button class="grip" title="Drag to move" aria-label="Move recording ${takeNo(i)}: drag, or use the arrow keys">${ICON_GRIP}</button>`}
         <button class="tplay" data-a="play" title="Play this recording">${t.id === curTake && !audioEl.paused ? ICON_PAUSE : ICON_PLAY}</button>
         <span class="tno">${takeNo(i)}</span>
         <span class="tinfo"><b>${esc(takeName(note, i))}</b><small>${fmt(t.duration)} · ${new Date(t.created).toLocaleDateString(undefined, { day: 'numeric', month: 'short' })}${marks ? ` · ${marks} bookmark${marks === 1 ? '' : 's'}` : ''}${t.q ? `<br>${esc(RecQ.describe(t.q))}` : ''}</small></span>
-        ${viewer ? '' : `<button class="mini" data-a="up" ${i ? '' : 'disabled'} title="Move up">↑</button><button class="mini" data-a="down" ${i < n - 1 ? '' : 'disabled'} title="Move down">↓</button><button class="mini" data-a="ren" title="Rename">✎</button><button class="mini" data-a="del" title="Delete">✕</button>`}
+        ${viewer ? '' : `<button class="mini" data-a="dl" title="Download or share this recording" aria-label="Download">${ICON_DOWNLOAD}</button><button class="mini" data-a="ren" title="Rename">✎</button><button class="mini" data-a="del" title="Delete">✕</button>`}
       </div>`;
     }).join('') + (viewer ? '' : `<div class="takeopts"><label><input type="checkbox" id="playOn" ${playOn ? 'checked' : ''}> Play recordings one after another</label><button class="btn" data-a="import">Add an audio file</button></div>`);
     const po = box.querySelector('#playOn'); if (po) po.onchange = () => { playOn = po.checked; LS.set('playOn', playOn); };
@@ -1370,7 +1475,7 @@ async function openTakes() {
     const row = b.closest('.take'), id = row && row.dataset.id, i = id ? takeIdx(id) : -1, a = b.dataset.a;
     if (a === 'import') { closeDialog(null); $('#fAudio').value = ''; $('#fAudio').click(); return; }
     if (a === 'play') { if (id === curTake && !audioEl.paused) audioEl.pause(); else { await selectTake(id); audioEl.currentTime = 0; audioEl.play().catch(() => { }); } }
-    else if (a === 'up' || a === 'down') { const j = a === 'up' ? i - 1 : i + 1; const [t] = note.takes.splice(i, 1); note.takes.splice(j, 0, t); computeGroups(); scheduleSave(); }
+    else if (a === 'dl') { closeDialog(null); await AudioExport.offer(i); return openTakes(); }
     else if (a === 'ren') { const t = note.takes[i]; closeDialog(null); const v = await promptText(`Rename recording ${takeNo(i)}`, takeName(note, i), 'e.g. Class 2 · charaṇam'); if (v !== null) { const nv = v.trim(); t.label = nv === autoTakeName(note.title, i) ? '' : nv; scheduleSave(); } return openTakes(); }
     else if (a === 'del') {
       const marks = note.strokes.filter(s => s.take === id && s.t != null).length;
@@ -1386,6 +1491,47 @@ async function openTakes() {
     }
     updatePlayer(); render();
   };
+  // Reorder: positions stay 1, 2, 3 …; dragging changes which recording sits where. Default names
+  // (<title>_01 …) follow the new positions, names you gave keep, bookmarks travel with their recording.
+  const moveTake = (from, to) => {
+    if (to === from || to < 0 || to >= note.takes.length) return false;
+    const [t] = note.takes.splice(from, 1); note.takes.splice(to, 0, t);
+    computeGroups(); renderAllFx(); scheduleSave(); updatePlayer(); render(); return true;
+  };
+  box.addEventListener('keydown', e => {
+    const g = e.target.closest('.grip'); if (!g || (e.key !== 'ArrowUp' && e.key !== 'ArrowDown')) return;
+    e.preventDefault(); const id = g.closest('.take').dataset.id, i = takeIdx(id);
+    if (moveTake(i, i + (e.key === 'ArrowUp' ? -1 : 1))) box.querySelector(`.take[data-id="${id}"] .grip`).focus();
+  });
+  box.addEventListener('pointerdown', e => {
+    const g = e.target.closest('.grip'); if (!g || e.button > 0) return;
+    e.preventDefault(); try { g.setPointerCapture(e.pointerId); } catch (_) { }
+    const row = g.closest('.take'), rows = [...box.querySelectorAll('.take')], from = rows.indexOf(row);
+    const scroller = box.closest('.dlg'), sc0 = scroller ? scroller.scrollTop : 0;
+    const tops = rows.map(r => r.offsetTop), step = rows.length > 1 ? tops[1] - tops[0] : row.offsetHeight + 8;
+    const y0 = e.clientY; let to = from, raf = 0, lastY = y0;
+    row.classList.add('dragging'); box.classList.add('sorting');
+    const place = () => {
+      const dy = lastY - y0 + (scroller ? scroller.scrollTop - sc0 : 0);
+      row.style.transform = `translateY(${dy}px)`;
+      to = Math.max(0, Math.min(rows.length - 1, Math.round(from + dy / step)));
+      rows.forEach((r, k) => { if (r !== row) r.style.transform = k > from && k <= to ? `translateY(${-step}px)` : k < from && k >= to ? `translateY(${step}px)` : ''; });
+    };
+    const edge = () => {   // near the top or bottom of the panel, scroll it
+      raf = 0; if (!scroller) return; const r = scroller.getBoundingClientRect();
+      const v = lastY < r.top + 50 ? -8 : lastY > r.bottom - 50 ? 8 : 0;
+      if (v) { scroller.scrollTop += v; place(); raf = requestAnimationFrame(edge); }
+    };
+    const move = ev => { if (ev.pointerId !== e.pointerId) return; lastY = ev.clientY; place(); if (!raf) raf = requestAnimationFrame(edge); };
+    const end = ev => {
+      if (ev.pointerId !== e.pointerId) return;
+      g.removeEventListener('pointermove', move); g.removeEventListener('pointerup', end); g.removeEventListener('pointercancel', end);
+      cancelAnimationFrame(raf); box.classList.remove('sorting');
+      rows.forEach(r => { r.style.transform = ''; r.classList.remove('dragging'); });
+      if (ev.type === 'pointerup' && moveTake(from, to)) toast(`Moved to position ${takeNo(to)}`, 1400);
+    };
+    g.addEventListener('pointermove', move); g.addEventListener('pointerup', end); g.addEventListener('pointercancel', end);
+  });
   render();
   await dialog({ title: 'Recordings', node: box, actions: [{ label: 'Done', value: true, primary: true }], wide: true });
   updatePlayer();
@@ -3702,7 +3848,7 @@ const Drive = (() => {
    version.json on GitHub names the newest build. When it differs from this one, the
    version chip offers "Update to …". Updating clears only Notation's stored app files
    and reloads; notes, recordings, folders and the Drive connection are untouched. */
-const APP_VERSION = '0.32', APP_BUILD = '2cc5f4d742';
+const APP_VERSION = '0.33', APP_BUILD = '252e66fcdc';
 const Updates = (() => {
   let latest = null, last = 0;
   const chip = () => $('#verChip');

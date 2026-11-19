@@ -37,6 +37,7 @@ The same approach works for chants and ślokas: bring in the script as a PDF, re
 - **Stickers:** select any ink with the lasso (a *Pallavi* heading, a numbered saṅgati box, a play mark, a separator) and tap **☆ Sticker** to keep it. The sticker button on the toolbar holds your collection: tap one, then tap where it goes, and drag or resize it with **−** and **+**. Your stickers sync through Google Drive.
 - **Śruti box:** a tambura sits beside the record button. Tap it to play or stop the drone; the pill beside it shows your pitch and opens Pa / Ma and volume. While you record, the drone is mixed digitally under your voice (Soft or Medium, or Off) so it is captured cleanly, never above you. Settings → Śruti holds your pitch (low 6 to 7, A2–B3), Panchama or Madhyama, the recording level, and advanced tuning (fine tune, cycle, jivāri, volume). The sound is synthesised in the app, from Lakshmi's Shruti app, so it works offline. Recordings made with it are marked "with śruti".
 - **Record button:** a microphone and **REC** (REC + once a note has recordings); STOP while recording.
+- **Recordings panel:** drag a recording by its grip (⠿) to move it, with a finger, the Pencil or a trackpad (or focus the grip and use the arrow keys). Positions stay 1, 2, 3 …: a numbered name (*Title_01* …) follows its new position, a name you gave keeps, and its audio bookmarks travel with it. The download button beside each recording saves it under its name as **MP3** (small, for WhatsApp), **WAV** (uncompressed, for editing) or the file as recorded; on the iPad, **Share…** opens the share sheet (WhatsApp, Save to Files …). Your choice of format is remembered.
 - **Recording quality:** Notation asks each device for its best: 48 kHz, stereo where available, a high bitrate (up to 256 kbps). **Music** mode (for singing) switches off all voice-call processing, which would otherwise dip held notes and gamakas, and adds only a gentle clean-up: a 60 Hz high-pass that takes out rumble and much of the mains hum, and a soft limiter that touches only the loudest instants. **Voice** mode (for speaking) keeps the browser's noise reduction. While you record, a thin light in the REC button shows your level and turns amber when the microphone is at its limit. Choose an external microphone and the mode in Settings; each recording notes what it was made with.
 - **PDF links are kept:** when you bring in a PDF with its own links (an index that jumps to each verse, "back to index" links, web links), Notation keeps them. Tap a link with your finger (or with the Hand tool) to follow it; a **Back** button then returns you to where you were. Links keep pointing at the right page when you reorder pages, and they carry through to the Drive PDF, your other devices and shared players.
 - **Finger gestures:** tap the page with two fingers to undo and three to redo. Settings → Finger gestures lets you choose the tap for each, or switch it off. Pinching, scrolling and the Pencil work as before.
@@ -130,7 +131,7 @@ EB Garamond, Mukta Malar, Cormorant Garamond, Noto Serif Tamil and Noto Sans Dev
 
 ## Updates
 
-The version shows at the top of the library (for example **v0.32**). Notation checks for a newer version when it opens, when you return to it, and every half hour; when there is one, the label turns saffron and reads **Update to …**. Tap it to load the newest version straight away. Your notes, recordings, folders and Drive connection are kept. **Settings → Check for updates** does the same.
+The version shows at the top of the library (for example **v0.33**). Notation checks for a newer version when it opens, when you return to it, and every half hour; when there is one, the label turns saffron and reads **Update to …**. Tap it to load the newest version straight away. Your notes, recordings, folders and Drive connection are kept. **Settings → Check for updates** does the same.
 
 ## Status
 
@@ -143,6 +144,7 @@ Notation is in active, personal development. Features and storage formats may st
 | `index.html` | The app |
 | `templates/` | Notation templates, covers, index and tracker pages, and their previews |
 | `lib/pdfjs/` | The PDF reader used for importing PDFs ([PDF.js](https://mozilla.github.io/pdf.js/), Apache 2.0) |
+| `lib/lame/` | The MP3 encoder used when downloading a recording as MP3 ([LAME](https://lame.sourceforge.io/), via lamejs, LGPL; unmodified, loaded only when needed; licence in `lib/lame/LICENSE.txt`) |
 | `icons/`, `manifest.webmanifest` | App icon and install details |
 | `sw.js` | Offline support |
 | `shared/` | Players published from Notation with Share → Publish link, one folder per note |
@@ -151,4 +153,4 @@ Notation is in active, personal development. Features and storage formats may st
 
 © 2026 Lakshmi Ganesan. All rights reserved.
 
-The code, templates, cover designs and icon in this repository are not licensed for reuse, copying or redistribution. You may view them here, but please do not copy or republish them without written permission. PDF.js is included under its own Apache 2.0 licence.
+The code, templates, cover designs and icon in this repository are not licensed for reuse, copying or redistribution. You may view them here, but please do not copy or republish them without written permission. PDF.js is included under its own Apache 2.0 licence, and LAME (lamejs) under the LGPL.
