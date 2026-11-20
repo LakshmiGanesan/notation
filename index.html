@@ -422,7 +422,7 @@ body.viewer .viewer-only{display:inline-flex}
       <p class="tagline">Write your notation, record the lesson, and let every mark sing back.</p>
     </div>
     <div class="lib-actions">
-      <button class="btn verchip" id="verChip" title="Notation version · tap to check for updates">v0.37</button>
+      <button class="btn verchip" id="verChip" title="Notation version · tap to check for updates">v0.38</button>
       <button class="btn drivechip" id="driveChip" title="Google Drive sync"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M7 18h10.5a4.5 4.5 0 0 0 .6-8.96A6 6 0 0 0 6.6 9.2 4.4 4.4 0 0 0 7 18z"/></svg><span>Google Drive</span></button>
       <button class="btn" id="btnLib" title="Notation templates and covers"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="7" height="16" rx="1.5"/><rect x="12" y="4" width="4" height="16" rx="1"/><path d="M18 5.5l3 .8-3.6 13.4-3-.8"/></svg>Templates</button>
       <button class="btn" id="btnImport" title="Open a shared .html note"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v12m0 0-4-4m4 4 4-4"/><path d="M4 17v2a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-2"/></svg>Open shared note</button>
@@ -1023,6 +1023,13 @@ const RecQ = {
   // Level (0.34): Music mode hands over the microphone's raw signal, and the iPad's built-in mics are quiet
   // without the gain that Voice Memos or Notability add, so Notation lifts the voice itself (see mixInto).
   // The lift each microphone settled at is remembered in rec.lift and starts its next take.
+  // Only built-in mics are lifted (0.37); browsers name them "iPad Microphone", "MacBook Pro Microphone
+  // (Built-in)", "Built-in Microphone" and the like. Anything else, such as "Yeti Stereo Microphone", is external.
+  builtIn(label) {
+    const l = (label || '').replace(/^default\s*-\s*/i, '');
+    if (!l) return /iPad|iPhone/.test(navigator.userAgent) || (navigator.maxTouchPoints > 1 && /Macintosh/.test(navigator.userAgent));
+    return /built-?in|internal|\b(ipad|iphone|macbook|imac|mac mini|mac studio|mac pro)\b/i.test(l);
+  },
   lift: (mic, db) => { const m = LS.get('rec.lift', {}) || {}; if (db === undefined) return m[mic || '-'] || 0; m[mic || '-'] = db; LS.set('rec.lift', m); },
   describe(q) { return q ? [q.sr ? `${Math.round(q.sr / 100) / 10} kHz` : '', q.ch === 2 ? 'stereo' : q.ch === 1 ? 'mono' : '', q.kbps ? `${q.kbps} kbps` : '', q.mic, q.lift ? `level +${q.lift} dB` : '', q.shruti ? 'with śruti' : ''].filter(Boolean).join(' · ') : ''; },
   async mics() { try { return (await navigator.mediaDevices.enumerateDevices()).filter(d => d.kind === 'audioinput'); } catch (e) { return []; } },
@@ -1042,7 +1049,8 @@ const Shruti = (() => {
     { id: '6', k: '6', note: 'A3', midi: 57 }, { id: '65', k: '6½', note: 'A♯3', midi: 58 }, { id: '7', k: '7', note: 'B3', midi: 59 },
   ];
   const TUN = { pa: { name: 'Pa', ratio: 3 / 4 }, ma: { name: 'Ma', ratio: 2 / 3 } };
-  const DRONE_UNDER = { off: 0, soft: 0.1, medium: 0.18 };   // śruti in a recording, relative to the voice (−20 / −15 dB, 0.36)
+  const DRONE_UNDER = { off: 0, soft: 0.1, medium: 0.18 };   // built-in mics: śruti relative to the voice (−20 / −15 dB, 0.36)
+  const REC_FIXED = { off: 0, soft: 0.35, medium: 0.6 };     // external mics: share of the playing volume, as in 0.31–0.33 (0.37)
   const DEF = { kattai: '4', tuning: 'pa', vol: 0.55, inRec: 'soft', cents: 0, cycle: 4.2, jivari: 0.45 };
   const st = { ...DEF, ...LS.get('shruti', {}) };
   if (!KATTAI.some(x => x.id === st.kattai)) st.kattai = DEF.kattai;
@@ -1227,10 +1235,14 @@ const Shruti = (() => {
   // mains hum; the lowest sung mandra notes sit above 80 Hz) and a soft limiter that only touches the
   // loudest instants, so nothing in the voice is reshaped. Voice mode leaves the browser's own speech
   // processing in charge. The mic is never sent to the speaker.
-  function mixInto(mic, chIn, micName) {
+  // Two paths (0.37), chosen by the microphone, with no setting. Built-in mics (iPad, MacBook) are quiet
+  // and far away, so they get the automatic lift and the śruti follows the voice. An external mic (her Blue
+  // Yeti) is set up close and at a good gain, so it is recorded as it is, the 0.32–0.33 chain she found
+  // "crystal clear": nothing lifts its hiss or the room, and the śruti is a fixed, gentle bed beneath.
+  function mixInto(mic, chIn, micName, builtIn) {
     try {
       ensureCtx(); if (ctx.state !== 'running') ctx.resume();
-      const drone = st.inRec !== 'off', music = RecQ.mode() !== 'voice';
+      const drone = st.inRec !== 'off', music = RecQ.mode() !== 'voice', boost = music && builtIn, follow = drone && builtIn;
       const dest = ctx.createMediaStreamDestination(), src = ctx.createMediaStreamSource(mic), nodes = [src];
       dest.channelCount = drone ? 2 : Math.max(1, Math.min(2, chIn || 1));
       const meter = ctx.createAnalyser(); meter.fftSize = 1024; src.connect(meter); nodes.push(meter);
@@ -1250,12 +1262,12 @@ const Shruti = (() => {
       // take's first seconds), and holds still in silence so the room's hiss is not pumped up between lines.
       // Voice mode leaves the voice's level to the browser's own gain.
       const pre = ctx.createAnalyser(); pre.fftSize = 2048; tail.connect(pre); nodes.push(pre);
-      const lift = ctx.createGain(); let g = music ? Math.pow(10, Math.min(30, RecQ.lift(micName)) / 20) : 1;
+      const lift = ctx.createGain(); let g = boost ? Math.pow(10, Math.min(30, RecQ.lift(micName)) / 20) : 1;
       lift.gain.value = g; tail.connect(lift); nodes.push(lift); tail = lift;
       // soft limiter: untouched below 0.6 of full scale, then a smooth curve that never passes 0.8, leaving
       // room for the recording's encoder, which overshoots on sharp sounds such as a Pencil tap (0.35)
       const lim = ctx.createWaveShaper(), N = 4097, cv = new Float32Array(N);
-      for (let i = 0; i < N; i++) { const x = i / (N - 1) * 2 - 1, a = Math.abs(x); cv[i] = Math.sign(x) * (a <= 0.6 ? a : 0.6 + 0.2 * Math.tanh((a - 0.6) / 0.2)); }
+      for (let i = 0; i < N; i++) { const x = i / (N - 1) * 2 - 1, a = Math.abs(x); cv[i] = Math.sign(x) * (builtIn ? (a <= 0.6 ? a : 0.6 + 0.2 * Math.tanh((a - 0.6) / 0.2)) : (a <= 0.8 ? a : 0.8 + 0.2 * Math.tanh((a - 0.8) / 0.2))); }   // external: the 0.32 curve
       lim.curve = cv; lim.oversample = '4x'; tail.connect(lim); tail = lim; nodes.push(lim);
       const post = ctx.createAnalyser(); post.fftSize = 1024; tail.connect(post); nodes.push(post);
       tail.connect(dest);
@@ -1264,20 +1276,21 @@ const Shruti = (() => {
       // or distant voice never ends up under the drone. Until the voice is heard it stays very soft.
       let tap = null, dAn = null;
       if (drone) {
-        heard = playing; recTap = tap = ctx.createGain(); tap.gain.value = 0;
-        dAn = ctx.createAnalyser(); dAn.fftSize = 2048; out.connect(dAn); out.connect(tap); tap.connect(dest);
+        heard = playing; recTap = tap = ctx.createGain(); tap.fixed = !follow; tap.gain.value = follow ? 0 : REC_FIXED[st.inRec];
+        if (follow) { dAn = ctx.createAnalyser(); dAn.fftSize = 2048; out.connect(dAn); }
+        out.connect(tap); tap.connect(dest);
       }
       const pb = new Float32Array(pre.fftSize), db = dAn ? new Float32Array(dAn.fftSize) : null;
       const hist = new Float32Array(200), dHist = new Float32Array(20), t0 = performance.now(); let hi = 0, di = 0, last = t0;
       const pkOf = (an, b) => { an.getFloatTimeDomainData(b); let pk = 0; for (let i = 0; i < b.length; i++) { const a = Math.abs(b[i]); if (a > pk) pk = a; } return pk; };
-      const rider = setInterval(() => {
+      const rider = (boost || follow) && setInterval(() => {
         const now = performance.now(), dt = (now - last) / 1000; last = now;
         hist[hi++ % hist.length] = pkOf(pre, pb);
         const act = []; for (let i = 0; i < hist.length; i++) if (hist[i] > 0.0015) act.push(hist[i]);
         let lvl = 0;
         if (act.length >= 4) {
           act.sort((x, y) => x - y); lvl = act[Math.floor(0.9 * (act.length - 1))];
-          if (music) {
+          if (boost) {
             const recent = []; for (let k = 1; k <= 20; k++) recent.push(hist[(hi - k + hist.length * 2) % hist.length]);
             recent.sort((x, y) => y - x);                              // 3rd loudest of the last second: ignores a tap
             let want = Math.min(31.6, Math.max(1, 0.5 / lvl));
@@ -1288,7 +1301,7 @@ const Shruti = (() => {
             lift.gain.setTargetAtTime(g, ctx.currentTime, down ? 0.03 : 0.08);
           }
         }
-        if (tap) {
+        if (dAn) {
           dHist[di++ % dHist.length] = pkOf(dAn, db);
           let dl = 0; for (let i = 0; i < dHist.length; i++) if (dHist[i] > dl) dl = dHist[i];
           const ratio = DRONE_UNDER[st.inRec] || 0, voice = lvl ? Math.min(0.8, lvl * g) : 0.15;
@@ -1303,7 +1316,7 @@ const Shruti = (() => {
         shown() { return peak(post, pbuf); },          // what is being recorded (for the level light)
         get lift() { return dB(); },
         end() {
-          clearInterval(rider); if (music) RecQ.lift(micName, dB());
+          if (rider) clearInterval(rider); if (boost) RecQ.lift(micName, dB());
           if (dAn) { try { out.disconnect(dAn); } catch (e) { } }
           nodes.forEach(n => { try { n.disconnect(); } catch (e) { } }); if (tap) { try { out.disconnect(tap); tap.disconnect(); } catch (e) { } if (recTap === tap) recTap = null; } } };
     } catch (e) { return null; }
@@ -1344,7 +1357,7 @@ const Shruti = (() => {
     q('#sShrK').onchange = e => { st.kattai = e.target.value; retune(); };
     const seg = (id, fn) => q(id).onclick = e => { const b = e.target.closest('button'); if (!b) return; q(id).querySelectorAll('button').forEach(x => x.classList.toggle('on', x === b)); fn(b.dataset.v); };
     seg('#sShrT', v => { st.tuning = v; retune(); });
-    seg('#sShrR', v => { st.inRec = v; save(); });
+    seg('#sShrR', v => { st.inRec = v; save(); if (recTap && recTap.fixed) recTap.gain.value = REC_FIXED[v]; });
     q('#sShrC').oninput = e => { st.cents = +e.target.value; q('#sShrCo').textContent = `${st.cents > 0 ? '+' : ''}${st.cents} cents`; };
     q('#sShrC').onchange = retune;
     q('#sShrY').oninput = e => { st.cycle = +e.target.value; q('#sShrYo').textContent = `${st.cycle.toFixed(1)} s per round of four strings`; save(); };
@@ -1387,7 +1400,8 @@ async function startRecording() {
   const mime = types.find(t => window.MediaRecorder && MediaRecorder.isTypeSupported && MediaRecorder.isTypeSupported(t)) || '';
   const tr = stream.getAudioTracks()[0], st = (tr && tr.getSettings && tr.getSettings()) || {};
   const micName = tr && tr.label && !/^default$/i.test(tr.label) ? tr.label.replace(/\s*\(.*?\)\s*$/, '').slice(0, 40) : '';
-  const micStream = stream, mix = Shruti.mixInto(stream, st.channelCount, micName || tr && tr.label);   // clean-up chain, plus the śruti softly under your voice
+  const builtIn = RecQ.builtIn(tr && tr.label);
+  const micStream = stream, mix = Shruti.mixInto(stream, st.channelCount, micName || tr && tr.label, builtIn);   // clean-up chain, plus the śruti softly under your voice
   if (mix) stream = mix.stream;
   const ch = mix ? mix.ch : (st.channelCount || 1), opus = /opus|webm|ogg/.test(mime);
   const bps = opus ? (ch > 1 ? 192000 : 160000) : (ch > 1 ? 256000 : 192000);   // generous: music, not a phone call
@@ -4013,7 +4027,7 @@ const Drive = (() => {
    version.json on GitHub names the newest build. When it differs from this one, the
    version chip offers "Update to …". Updating clears only Notation's stored app files
    and reloads; notes, recordings, folders and the Drive connection are untouched. */
-const APP_VERSION = '0.37', APP_BUILD = '0584188e4d';
+const APP_VERSION = '0.38', APP_BUILD = 'eb81e9dfae';
 const Updates = (() => {
   let latest = null, last = 0;
   const chip = () => $('#verChip');
