@@ -405,7 +405,7 @@ body.viewer .viewer-only{display:inline-flex}
       <p class="tagline">Write your notation, record the lesson, and let every mark sing back.</p>
     </div>
     <div class="lib-actions">
-      <button class="btn verchip" id="verChip" title="Notation version · tap to check for updates">v0.35</button>
+      <button class="btn verchip" id="verChip" title="Notation version · tap to check for updates">v0.36</button>
       <button class="btn drivechip" id="driveChip" title="Google Drive sync"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M7 18h10.5a4.5 4.5 0 0 0 .6-8.96A6 6 0 0 0 6.6 9.2 4.4 4.4 0 0 0 7 18z"/></svg><span>Google Drive</span></button>
       <button class="btn" id="btnLib" title="Notation templates and covers"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="7" height="16" rx="1.5"/><rect x="12" y="4" width="4" height="16" rx="1"/><path d="M18 5.5l3 .8-3.6 13.4-3-.8"/></svg>Templates</button>
       <button class="btn" id="btnImport" title="Open a shared .html note"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v12m0 0-4-4m4 4 4-4"/><path d="M4 17v2a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-2"/></svg>Open shared note</button>
@@ -1025,7 +1025,7 @@ const Shruti = (() => {
     { id: '6', k: '6', note: 'A3', midi: 57 }, { id: '65', k: '6½', note: 'A♯3', midi: 58 }, { id: '7', k: '7', note: 'B3', midi: 59 },
   ];
   const TUN = { pa: { name: 'Pa', ratio: 3 / 4 }, ma: { name: 'Ma', ratio: 2 / 3 } };
-  const DRONE_UNDER = { off: 0, soft: 0.2, medium: 0.4 };   // śruti in a recording, relative to the voice (−14 / −8 dB)
+  const DRONE_UNDER = { off: 0, soft: 0.1, medium: 0.18 };   // śruti in a recording, relative to the voice (−20 / −15 dB, 0.36)
   const DEF = { kattai: '4', tuning: 'pa', vol: 0.55, inRec: 'soft', cents: 0, cycle: 4.2, jivari: 0.45 };
   const st = { ...DEF, ...LS.get('shruti', {}) };
   if (!KATTAI.some(x => x.id === st.kattai)) st.kattai = DEF.kattai;
@@ -1143,9 +1143,15 @@ const Shruti = (() => {
     const warm = ctx.createBiquadFilter(); warm.type = 'peaking'; warm.frequency.value = 190; warm.Q.value = 0.9; warm.gain.value = 1.5;
     const air = ctx.createBiquadFilter(); air.type = 'highshelf'; air.frequency.value = 3800; air.gain.value = 0.5;
     const comp = ctx.createDynamicsCompressor(); comp.threshold.value = -12; comp.ratio.value = 2.5; comp.attack.value = 0.01; comp.release.value = 0.4;
-    const dry = ctx.createGain(); dry.gain.value = 0.9; const wet = ctx.createGain(); wet.gain.value = 0.38;
+    const dry = ctx.createGain(); dry.gain.value = 0.64; const wet = ctx.createGain(); wet.gain.value = 0.27;   // 0.36: about 3 dB softer at the same volume
     const conv = ctx.createConvolver(); conv.buffer = makeIR(3.2);
-    master.connect(hp); hp.connect(warm); warm.connect(air); air.connect(dry); air.connect(conv); conv.connect(wet);
+    // Mellow (0.36): her ear found the tambura sharp. Two gentle stages after the engine, which stays as it
+    // is: a soft low-pass that rounds off the jivāri's top and the fingertip tick of each pluck, and a shelf
+    // that lowers the 2.5 kHz-and-up region the ear hears as harsh. The body of Sa and Pa is untouched.
+    const soft1 = ctx.createBiquadFilter(); soft1.type = 'lowpass'; soft1.frequency.value = 3200; soft1.Q.value = 0.5;
+    const soft2 = ctx.createBiquadFilter(); soft2.type = 'highshelf'; soft2.frequency.value = 1800; soft2.gain.value = -6;
+    master.connect(hp); hp.connect(warm); warm.connect(air); air.connect(soft1); soft1.connect(soft2);
+    soft2.connect(dry); soft2.connect(conv); conv.connect(wet);
     out = ctx.createGain(); dry.connect(comp); wet.connect(comp); comp.connect(out); out.connect(ctx.destination);
     return ctx;
   }
@@ -1237,7 +1243,7 @@ const Shruti = (() => {
       const post = ctx.createAnalyser(); post.fftSize = 1024; tail.connect(post); nodes.push(post);
       tail.connect(dest);
       // The śruti in a recording follows the voice (0.35): it is set a fixed step below the voice's typical
-      // level (Soft about 14 dB below, Medium about 8 dB), whatever the tambura's playing volume, so a faint
+      // level (Soft about 20 dB below, Medium about 15 dB; 0.36), whatever the tambura's playing volume, so a faint
       // or distant voice never ends up under the drone. Until the voice is heard it stays very soft.
       let tap = null, dAn = null;
       if (drone) {
@@ -3907,7 +3913,7 @@ const Drive = (() => {
    version.json on GitHub names the newest build. When it differs from this one, the
    version chip offers "Update to …". Updating clears only Notation's stored app files
    and reloads; notes, recordings, folders and the Drive connection are untouched. */
-const APP_VERSION = '0.35', APP_BUILD = '5c065e77b4';
+const APP_VERSION = '0.36', APP_BUILD = 'a1bdff4040';
 const Updates = (() => {
   let latest = null, last = 0;
   const chip = () => $('#verChip');
