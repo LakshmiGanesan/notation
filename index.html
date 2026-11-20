@@ -405,7 +405,7 @@ body.viewer .viewer-only{display:inline-flex}
       <p class="tagline">Write your notation, record the lesson, and let every mark sing back.</p>
     </div>
     <div class="lib-actions">
-      <button class="btn verchip" id="verChip" title="Notation version · tap to check for updates">v0.33</button>
+      <button class="btn verchip" id="verChip" title="Notation version · tap to check for updates">v0.34</button>
       <button class="btn drivechip" id="driveChip" title="Google Drive sync"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M7 18h10.5a4.5 4.5 0 0 0 .6-8.96A6 6 0 0 0 6.6 9.2 4.4 4.4 0 0 0 7 18z"/></svg><span>Google Drive</span></button>
       <button class="btn" id="btnLib" title="Notation templates and covers"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="7" height="16" rx="1.5"/><rect x="12" y="4" width="4" height="16" rx="1"/><path d="M18 5.5l3 .8-3.6 13.4-3-.8"/></svg>Templates</button>
       <button class="btn" id="btnImport" title="Open a shared .html note"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v12m0 0-4-4m4 4 4-4"/><path d="M4 17v2a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-2"/></svg>Open shared note</button>
@@ -1003,7 +1003,12 @@ const RecQ = {
     catch (e) { if (dev && (e.name === 'OverconstrainedError' || e.name === 'NotFoundError')) return navigator.mediaDevices.getUserMedia(RecQ.constraints('')); throw e; }
   },
   release() { try { if (navigator.audioSession) navigator.audioSession.type = 'auto'; } catch (e) { } },
-  describe(q) { return q ? [q.sr ? `${Math.round(q.sr / 100) / 10} kHz` : '', q.ch === 2 ? 'stereo' : q.ch === 1 ? 'mono' : '', q.kbps ? `${q.kbps} kbps` : '', q.mic, q.shruti ? 'with śruti' : ''].filter(Boolean).join(' · ') : ''; },
+  // Level (0.34): Music mode hands over the microphone's raw signal, and the iPad's built-in mics are quiet
+  // without the gain that Voice Memos or Notability add. 'auto' lifts a soft or distant voice slowly, like
+  // a sound engineer riding a fader; the numbers are a fixed lift. Remembered per microphone in rec.lift.
+  level: () => LS.get('rec.level', 'auto'),
+  lift: (mic, db) => { const m = LS.get('rec.lift', {}) || {}; if (db === undefined) return m[mic || '-'] || 0; m[mic || '-'] = db; LS.set('rec.lift', m); },
+  describe(q) { return q ? [q.sr ? `${Math.round(q.sr / 100) / 10} kHz` : '', q.ch === 2 ? 'stereo' : q.ch === 1 ? 'mono' : '', q.kbps ? `${q.kbps} kbps` : '', q.mic, q.lift ? `level +${q.lift} dB` : '', q.shruti ? 'with śruti' : ''].filter(Boolean).join(' · ') : ''; },
   async mics() { try { return (await navigator.mediaDevices.enumerateDevices()).filter(d => d.kind === 'audioinput'); } catch (e) { return []; } },
 };
 /* ---------------- Śruti: a tambura beside the record button ----------------
@@ -1200,10 +1205,10 @@ const Shruti = (() => {
   // mains hum; the lowest sung mandra notes sit above 80 Hz) and a soft limiter that only touches the
   // loudest instants, so nothing in the voice is reshaped. Voice mode leaves the browser's own speech
   // processing in charge. The mic is never sent to the speaker.
-  function mixInto(mic, chIn) {
+  function mixInto(mic, chIn, micName) {
     try {
       ensureCtx(); if (ctx.state !== 'running') ctx.resume();
-      const drone = st.inRec !== 'off', music = RecQ.mode() !== 'voice';
+      const drone = st.inRec !== 'off', music = RecQ.mode() !== 'voice', lvl = RecQ.level();
       const dest = ctx.createMediaStreamDestination(), src = ctx.createMediaStreamSource(mic), nodes = [src];
       dest.channelCount = drone ? 2 : Math.max(1, Math.min(2, chIn || 1));
       const meter = ctx.createAnalyser(); meter.fftSize = 1024; src.connect(meter); nodes.push(meter);
@@ -1213,19 +1218,49 @@ const Shruti = (() => {
         // 0.541 and 1.307 → −5.33 and 2.33 dB): about −7 dB at 50 Hz hum, −0.3 dB at 82 Hz, flat above
         const hp1 = ctx.createBiquadFilter(), hp2 = ctx.createBiquadFilter();
         [[hp1, -5.33], [hp2, 2.33]].forEach(([h, q]) => { h.type = 'highpass'; h.frequency.value = 60; h.Q.value = q; });
-        // soft limiter: untouched below 0.8 of full scale, then a smooth curve that never passes 1
-        const lim = ctx.createWaveShaper(), N = 4097, cv = new Float32Array(N);
-        for (let i = 0; i < N; i++) { const x = i / (N - 1) * 2 - 1, a = Math.abs(x); cv[i] = Math.sign(x) * (a <= 0.8 ? a : 0.8 + 0.2 * Math.tanh((a - 0.8) / 0.2)); }
-        lim.curve = cv; lim.oversample = '4x';
-        tail.connect(hp1); hp1.connect(hp2); hp2.connect(lim); tail = lim; nodes.push(hp1, hp2, lim);
+        tail.connect(hp1); hp1.connect(hp2); tail = hp2; nodes.push(hp1, hp2);
       }
+      // Level (0.34): a gain before the limiter. Auto rides it slowly from the loudest moment of the last
+      // 10 seconds, aiming for peaks near half of full scale; it never turns a mic down below as-is, lifts at
+      // most +24 dB, comes down at once for a loud note, and goes up only 2 dB a second (quickly in the first
+      // seconds of a take), so the rise and fall of a phrase stay yours. In silence it holds still, so the
+      // room's hiss is never pumped up between lines. Voice mode leaves Auto to the browser's own gain.
+      const auto = lvl === 'auto' && music, fixed = auto ? 0 : (+lvl || 0);
+      const pre = ctx.createAnalyser(); pre.fftSize = 2048; tail.connect(pre); nodes.push(pre);
+      const lift = ctx.createGain(); let g = Math.pow(10, (auto ? RecQ.lift(micName) : fixed) / 20);
+      lift.gain.value = g; tail.connect(lift); nodes.push(lift); tail = lift;
+      // soft limiter: untouched below 0.8 of full scale, then a smooth curve that never passes 1
+      const lim = ctx.createWaveShaper(), N = 4097, cv = new Float32Array(N);
+      for (let i = 0; i < N; i++) { const x = i / (N - 1) * 2 - 1, a = Math.abs(x); cv[i] = Math.sign(x) * (a <= 0.8 ? a : 0.8 + 0.2 * Math.tanh((a - 0.8) / 0.2)); }
+      lim.curve = cv; lim.oversample = '4x'; tail.connect(lim); tail = lim; nodes.push(lim);
+      const post = ctx.createAnalyser(); post.fftSize = 1024; tail.connect(post); nodes.push(post);
       tail.connect(dest);
+      let rider = null;
+      if (auto) {
+        const pb = new Float32Array(pre.fftSize), hist = new Float32Array(200), t0 = performance.now(); let hi = 0, last = t0;
+        rider = setInterval(() => {
+          const now = performance.now(), dt = (now - last) / 1000; last = now;
+          pre.getFloatTimeDomainData(pb); let pk = 0; for (let i = 0; i < pb.length; i++) { const a = Math.abs(pb[i]); if (a > pk) pk = a; }
+          hist[hi++ % hist.length] = pk;
+          let win = 0; for (let i = 0; i < hist.length; i++) if (hist[i] > win) win = hist[i];
+          if (win < 0.0015) return;                                   // silence (below −56 dBFS): hold
+          const want = Math.min(16, Math.max(1, 0.5 / win)), down = want < g;
+          g = down ? want : Math.min(want, g * Math.pow(10, ((now - t0) < 6000 ? 18 : 2) * dt / 20));
+          lift.gain.setTargetAtTime(g, ctx.currentTime, down ? 0.02 : 0.08);
+        }, 50);
+      }
       let tap = null;
       if (drone) { heard = playing; recTap = tap = ctx.createGain(); tap.gain.value = REC_LEVEL[st.inRec]; out.connect(tap); tap.connect(dest); }
-      const buf = new Float32Array(meter.fftSize);
+      const buf = new Float32Array(meter.fftSize), pbuf = new Float32Array(post.fftSize);
+      const peak = (an, b) => { an.getFloatTimeDomainData(b); let pk = 0; for (let i = 0; i < b.length; i++) { const a = Math.abs(b[i]); if (a > pk) pk = a; } return pk; };
+      const dB = () => Math.max(0, Math.round(20 * Math.log10(g)));
       return { stream: dest.stream, ch: dest.channelCount, drone, get heard() { return drone && heard; },
-        level() { meter.getFloatTimeDomainData(buf); let pk = 0; for (let i = 0; i < buf.length; i++) { const a = Math.abs(buf[i]); if (a > pk) pk = a; } return pk; },
-        end() { nodes.forEach(n => { try { n.disconnect(); } catch (e) { } }); if (tap) { try { out.disconnect(tap); tap.disconnect(); } catch (e) { } if (recTap === tap) recTap = null; } } };
+        level() { return peak(meter, buf); },          // the microphone itself (for the clipping warning)
+        shown() { return peak(post, pbuf); },          // what is being recorded (for the level light)
+        get lift() { return dB(); },
+        end() {
+          if (rider) { clearInterval(rider); RecQ.lift(micName, dB()); }
+          nodes.forEach(n => { try { n.disconnect(); } catch (e) { } }); if (tap) { try { out.disconnect(tap); tap.disconnect(); } catch (e) { } if (recTap === tap) recTap = null; } } };
     } catch (e) { return null; }
   }
   function ui() {
@@ -1286,7 +1321,7 @@ function recMeter(r) {
   const b = $('#pRec'); let hot = 0, clips = 0, warned = false, shown = 0;
   (function f() {
     if (rec !== r) { b.style.removeProperty('--lv'); b.classList.remove('hot'); return; }
-    const pk = r.mix.level(); shown = Math.max(pk, shown * 0.9);
+    const pk = r.mix.level(); shown = Math.max(r.mix.shown(), shown * 0.9);
     b.style.setProperty('--lv', Math.min(1, Math.sqrt(shown)).toFixed(3));
     if (pk >= 0.98) { hot = 45; clips++; }
     b.classList.toggle('hot', hot > 0); if (hot > 0) hot--;
@@ -1306,11 +1341,12 @@ async function startRecording() {
   const types = ['audio/mp4;codecs=mp4a.40.2', 'audio/mp4', 'audio/webm;codecs=opus', 'audio/webm', 'audio/ogg;codecs=opus'];
   const mime = types.find(t => window.MediaRecorder && MediaRecorder.isTypeSupported && MediaRecorder.isTypeSupported(t)) || '';
   const tr = stream.getAudioTracks()[0], st = (tr && tr.getSettings && tr.getSettings()) || {};
-  const micStream = stream, mix = Shruti.mixInto(stream, st.channelCount);   // clean-up chain, plus the śruti softly under your voice
+  const micName = tr && tr.label && !/^default$/i.test(tr.label) ? tr.label.replace(/\s*\(.*?\)\s*$/, '').slice(0, 40) : '';
+  const micStream = stream, mix = Shruti.mixInto(stream, st.channelCount, micName || tr && tr.label);   // clean-up chain, plus the śruti softly under your voice
   if (mix) stream = mix.stream;
   const ch = mix ? mix.ch : (st.channelCount || 1), opus = /opus|webm|ogg/.test(mime);
   const bps = opus ? (ch > 1 ? 192000 : 160000) : (ch > 1 ? 256000 : 192000);   // generous: music, not a phone call
-  const q = { sr: st.sampleRate || 0, ch, kbps: bps / 1000, mic: tr && tr.label && !/^default$/i.test(tr.label) ? tr.label.replace(/\s*\(.*?\)\s*$/, '').slice(0, 40) : '', mode: RecQ.mode() };
+  const q = { sr: st.sampleRate || 0, ch, kbps: bps / 1000, mic: micName, mode: RecQ.mode() };
   let mr;
   try { mr = new MediaRecorder(stream, mime ? { mimeType: mime, audioBitsPerSecond: bps } : { audioBitsPerSecond: bps }); }
   catch (e) { micStream.getTracks().forEach(t => t.stop()); if (mix) mix.end(); RecQ.release(); dialog({ title: 'Recording not supported', html: '<p>This browser cannot record audio. Please update Safari/Chrome, or import an audio file instead.</p>' }); return; }
@@ -1336,6 +1372,7 @@ function stopRecording() {
       const blob = new Blob(r.chunks, { type: r.mime.split(';')[0] });
       rec = null;
       if (r.q && r.mix && r.mix.heard) r.q.shruti = true;
+      if (r.q && r.mix && r.mix.lift) r.q.lift = r.mix.lift;
       if (r.q && elapsed > 1) r.q.kbps = Math.round(blob.size * 8 / elapsed / 1000);   // what was actually written
       const t = { id: r.take, label: '', mime: blob.type, duration: elapsed, created: Date.now(), size: blob.size, ...(r.q ? { q: r.q } : {}) };
       note.takes.push(t); takeBlobs.set(t.id, blob); await saveTake(t, blob);
@@ -3848,7 +3885,7 @@ const Drive = (() => {
    version.json on GitHub names the newest build. When it differs from this one, the
    version chip offers "Update to …". Updating clears only Notation's stored app files
    and reloads; notes, recordings, folders and the Drive connection are untouched. */
-const APP_VERSION = '0.33', APP_BUILD = '252e66fcdc';
+const APP_VERSION = '0.34', APP_BUILD = '9920de2c7a';
 const Updates = (() => {
   let latest = null, last = 0;
   const chip = () => $('#verChip');
@@ -3900,7 +3937,8 @@ function openSettings() {
     <div class="field"><span>Draw with fingers<br><small style="color:var(--muted)">Off: only Apple Pencil / stylus draws</small></span><span class="seg" id="sFing"><button data-v="0" class="${!fingers ? 'on' : ''}">Off</button><button data-v="1" class="${fingers ? 'on' : ''}">On</button></span></div>`}
     ${viewer ? '' : `<h6 class="sgrp">Recording</h6>
     <div class="field"><span>Microphone<br><small style="color:var(--muted)">An external mic is used whenever it's connected</small></span><select class="tinput" id="sMic" style="max-width:220px;font-size:14px;padding:6px 8px"><option value="">Built-in / default</option></select></div>
-    <div class="field"><span>Recording mode<br><small style="color:var(--muted)">Music: for singing<br>Voice: for speaking</small></span><span class="seg" id="sRecMode"><button data-v="music" class="${RecQ.mode() !== 'voice' ? 'on' : ''}">Music</button><button data-v="voice" class="${RecQ.mode() === 'voice' ? 'on' : ''}">Voice</button></span></div>`}
+    <div class="field"><span>Recording mode<br><small style="color:var(--muted)">Music: for singing<br>Voice: for speaking</small></span><span class="seg" id="sRecMode"><button data-v="music" class="${RecQ.mode() !== 'voice' ? 'on' : ''}">Music</button><button data-v="voice" class="${RecQ.mode() === 'voice' ? 'on' : ''}">Voice</button></span></div>
+    <div class="field"><span>Level<br><small style="color:var(--muted)">Auto: lifts a soft or distant voice</small></span><select class="tinput gsel" id="sRecLvl">${[['auto', 'Auto'], ['0', 'As is'], ['6', '+6 dB'], ['12', '+12 dB'], ['18', '+18 dB']].map(([v, l]) => `<option value="${v}"${RecQ.level() === v ? ' selected' : ''}>${l}</option>`).join('')}</select></div>`}
     ${viewer ? '' : Shruti.settingsHtml()}
     ${viewer ? '' : `<h6 class="sgrp">Sharing</h6>
     <div class="field"><span>Share links<br><small style="color:var(--muted)">${Publish.ready() ? 'Set up on this device' : 'Publish players to your notation repository on GitHub'}</small></span><button class="btn" id="sGh">${Publish.ready() ? 'View' : 'Set up'}</button></div>`}
@@ -3910,6 +3948,7 @@ function openSettings() {
     <div style="margin-top:10px"><button class="btn" id="sUpdate">Check for updates</button></div>`;
   box.querySelector('#sLead').onclick = e => { const b = e.target.closest('button'); if (!b) return; lead = +b.dataset.v; $$('#sLead button').forEach(x => x.classList.toggle('on', x === b)); if (loop) setLoopFromTime(audioEl.currentTime); };
   const rm = box.querySelector('#sRecMode'); if (rm) rm.onclick = e => { const b = e.target.closest('button'); if (!b) return; LS.set('rec.mode', b.dataset.v); $$('#sRecMode button').forEach(x => x.classList.toggle('on', x === b)); };
+  const rl = box.querySelector('#sRecLvl'); if (rl) rl.onchange = () => LS.set('rec.level', rl.value);
   const mic = box.querySelector('#sMic');
   if (mic) {
     RecQ.mics().then(list => {
