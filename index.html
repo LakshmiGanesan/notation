@@ -49,6 +49,22 @@ input[type=text]{font:inherit;color:inherit;-webkit-user-select:text;user-select
 .fitem .fm:hover{opacity:1;background:#efe6d6}
 .fitem .fm svg{width:16px;height:16px}
 .newf{color:var(--saffron-2);font-weight:500}
+.side .shead{display:flex;align-items:center;justify-content:space-between;margin:14px 0 6px}.side .shead h4{margin:0 10px}
+.side .arr{border:none;background:none;color:var(--saffron-2);font-size:13px;font-weight:600;padding:6px 10px;border-radius:8px;min-height:32px}
+.side .arr:hover{background:#efe6d6}.side.arranging .arr{background:var(--saffron-2);color:#fff}
+.fblock{display:flex;flex-direction:column;gap:2px;transition:transform .16s ease}
+.fitem .fg{display:none;width:26px;height:32px;place-items:center;color:var(--muted);flex:none}.fitem .fg svg{width:17px;height:17px}
+.side.arranging .fitem.mv{touch-action:none;cursor:grab;background:rgba(255,253,249,.55);box-shadow:inset 0 0 0 1px var(--line);transition:transform .16s ease}
+.side.arranging .fitem.mv .fg{display:grid}.side.arranging .fitem.mv .ct,.side.arranging .fitem .fm{display:none}
+.side.arranging .fitem.fix{opacity:.45;pointer-events:none}.side.arranging .fitem.on:not(.mv){box-shadow:none;background:none}
+.side.arranging .newf{display:none}.side.arranging .fitem.mv:focus-visible{outline:2px solid var(--saffron)}
+.side .dragging{transition:none!important;position:relative;z-index:3;box-shadow:0 12px 26px -10px rgba(0,0,0,.35)!important;background:var(--card)!important;border-radius:11px;cursor:grabbing}
+.side.sorting{user-select:none;-webkit-user-select:none}
+.fcols{display:flex;flex-wrap:wrap;gap:8px;margin:0 0 4px}
+.fcols button{width:48px;height:44px;border-radius:12px;border:1px solid var(--line);background:var(--card);display:grid;place-items:center;padding:0}
+.fcols button svg{width:24px;height:24px;color:var(--saffron)}
+.fcols button.on{border-color:var(--saffron);box-shadow:0 0 0 3px var(--saffron-soft)}
+.fcap{color:var(--muted);font-size:12.5px;margin:0 0 8px}
 .crumb{display:flex;align-items:baseline;gap:10px;margin:0 0 14px;flex-wrap:wrap}
 .crumb h2{font-family:var(--serif);font-weight:500;font-size:26px;margin:0}
 .crumb .up{font-family:var(--serif);font-size:26px;color:var(--muted);cursor:pointer}
@@ -74,6 +90,7 @@ input[type=text]{font:inherit;color:inherit;-webkit-user-select:text;user-select
   .side h4{display:none}
   .fitem,.fitem.sub{width:auto;flex:none;padding:0 12px;border:1px solid var(--line);background:var(--card)}
   .fitem .fm{display:none}
+  .fblock{display:contents}.side .shead{display:none}
 }
 .lib-head{display:flex;align-items:flex-end;justify-content:space-between;gap:16px;flex-wrap:wrap;margin-bottom:26px}
 .wordmark{font-family:var(--serif);font-weight:650;font-size:42px;letter-spacing:-.02em;line-height:1;margin:0;display:flex;align-items:center;gap:12px}
@@ -405,7 +422,7 @@ body.viewer .viewer-only{display:inline-flex}
       <p class="tagline">Write your notation, record the lesson, and let every mark sing back.</p>
     </div>
     <div class="lib-actions">
-      <button class="btn verchip" id="verChip" title="Notation version · tap to check for updates">v0.36</button>
+      <button class="btn verchip" id="verChip" title="Notation version · tap to check for updates">v0.37</button>
       <button class="btn drivechip" id="driveChip" title="Google Drive sync"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M7 18h10.5a4.5 4.5 0 0 0 .6-8.96A6 6 0 0 0 6.6 9.2 4.4 4.4 0 0 0 7 18z"/></svg><span>Google Drive</span></button>
       <button class="btn" id="btnLib" title="Notation templates and covers"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="7" height="16" rx="1.5"/><rect x="12" y="4" width="4" height="16" rx="1"/><path d="M18 5.5l3 .8-3.6 13.4-3-.8"/></svg>Templates</button>
       <button class="btn" id="btnImport" title="Open a shared .html note"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v12m0 0-4-4m4 4 4-4"/><path d="M4 17v2a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-2"/></svg>Open shared note</button>
@@ -2701,6 +2718,10 @@ const ICON_FOLDER = '<svg class="fi" viewBox="0 0 24 24" fill="none" stroke="cur
 const ICON_ALL = '<svg class="fi" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"><rect x="4" y="3" width="13" height="17" rx="2"/><path d="M8 3v17M20 6v14a2 2 0 0 1-2 2H8"/></svg>';
 const ICON_TRAY = '<svg class="fi" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"><path d="M3 13l3-8h12l3 8v6a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1z"/><path d="M3 13h5l1 2h6l1-2h5"/></svg>';
 const byOrder = (a, b) => (a.order ?? 0) - (b.order ?? 0);
+/* Folder colours (0.37): none (the usual saffron outline) or one of five, shown as a filled folder. */
+const FOLDER_COLORS = [['red', 'Red', '#d23c32'], ['yellow', 'Yellow', '#e3a812'], ['blue', 'Blue', '#2c6bd3'], ['green', 'Green', '#2f9255'], ['purple', 'Purple', '#8a4fc4']];
+const folderHex = f => { const c = f && FOLDER_COLORS.find(x => x[0] === f.color); return c ? c[2] : null; };
+const folderIcon = f => { const h = folderHex(f); return h ? `<svg class="fi" style="color:${h};opacity:1" viewBox="0 0 24 24" fill="currentColor" fill-opacity=".88" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"><path d="M3 7a2 2 0 0 1 2-2h4l2 2h8a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/></svg>` : ICON_FOLDER; };
 async function loadFolders() {
   FOLDERS = ((await DB.all('folders')) || []).filter(Boolean);
   for (const f of BUILTIN_FOLDERS) if (!FOLDERS.find(x => x.id === f.id)) { await DB.put('folders', f.id, f); FOLDERS.push({ ...f }); }
@@ -2726,10 +2747,27 @@ async function newFolder(parent = null) {
   await DB.put('folders', f.id, f); FOLDERS.push(f); curFolder = f.id; Drive.schedule(3000); showLibrary(); return f.id;
 }
 async function folderMenu(f) {
-  const acts = [{ label: 'Cancel', value: null }, { label: 'Rename', value: 'ren' }];
+  const acts = [{ label: 'Rename', value: 'ren' }];
   if (!f.parent) acts.push({ label: 'New subfolder', value: 'sub' });
   if (!f.builtin) acts.push({ label: 'Delete folder', value: 'del', danger: true });
-  const v = await dialog({ title: folderPath(f.id), html: `<p style="margin-top:0">${f.builtin ? 'A built-in folder. You can rename it and add subfolders.' : 'Rename, add a subfolder, or delete this folder.'}</p>`, actions: acts });
+  // colour: tap a swatch and it applies at once; the sidebar behind updates
+  const box = document.createElement('div');
+  box.innerHTML = `<p class="fcap">Colour</p><div class="fcols" role="radiogroup" aria-label="Folder colour"></div>`;
+  const row = box.querySelector('.fcols');
+  for (const [key, label] of [['', 'None'], ...FOLDER_COLORS]) {
+    const b = document.createElement('button'); b.dataset.c = key; b.title = label; b.setAttribute('aria-label', label); b.setAttribute('role', 'radio');
+    b.innerHTML = folderIcon({ color: key });
+    b.onclick = async () => {
+      if ((f.color || '') === key) return;
+      if (key) f.color = key; else delete f.color;
+      f.updated = Date.now(); await DB.put('folders', f.id, f); Drive.schedule(3000);
+      paint(); renderLibrary(LIB_METAS);
+    };
+    row.appendChild(b);
+  }
+  const paint = () => row.querySelectorAll('button').forEach(b => { const on = b.dataset.c === (f.color || ''); b.classList.toggle('on', on); b.setAttribute('aria-checked', on); });
+  paint();
+  const v = await dialog({ title: folderPath(f.id), node: box, actions: acts, x: true });
   if (v === 'ren') { const n = await promptText('Rename folder', f.name); if (n) { f.name = n; f.updated = Date.now(); await DB.put('folders', f.id, f); Drive.schedule(3000); showLibrary(); } }
   else if (v === 'sub') newFolder(f.id);
   else if (v === 'del') {
@@ -2746,34 +2784,95 @@ async function folderMenu(f) {
 function pickFolder(title, current) {   // resolves with a folder id, null (no folder) or undefined (cancelled)
   return new Promise(res => {
     const box = document.createElement('div'); box.className = 'fpick'; let done = false;
-    const add = (id, label, cls = '') => { const b = document.createElement('button'); b.className = cls + (id === current ? ' on' : ''); b.innerHTML = (id ? ICON_FOLDER : ICON_TRAY) + esc(label); b.onclick = () => { done = true; closeDialog(null); res(id); }; box.appendChild(b); };
+    const add = (id, label, cls = '') => { const b = document.createElement('button'); b.className = cls + (id === current ? ' on' : ''); b.innerHTML = (id ? folderIcon(folderById(id)) : ICON_TRAY) + esc(label); b.onclick = () => { done = true; closeDialog(null); res(id); }; box.appendChild(b); };
     for (const t of topFolders()) { add(t.id, t.name); for (const sf of subsOf(t.id)) add(sf.id, sf.name, 'sub'); }
     add(null, 'Not in a folder');
     dialog({ title, node: box, actions: [{ label: 'Cancel', value: null }] }).then(() => { if (!done) res(undefined); });
   });
 }
+/* Arrange (0.37): "Arrange" beside the Folders heading puts the sidebar in a sorting mode. Drag a folder
+   (finger, Pencil, mouse) to a new place; its subfolders travel with it. Subfolders move within their own
+   folder. Keyboard: focus a row, ArrowUp / ArrowDown. "Done" ends it. Order is the folders' `order` field
+   (0, 1, 2… among siblings), synced through library.json like names. */
+let arranging = false, sideDrag = null;
+async function moveFolder(id, by) {   // move a folder `by` places among its siblings (by may be the target delta)
+  const f = folderById(id); if (!f) return false;
+  const sibs = f.parent ? subsOf(f.parent) : topFolders(), from = sibs.indexOf(f), to = Math.max(0, Math.min(sibs.length - 1, from + by));
+  if (to === from) return false;
+  sibs.splice(to, 0, ...sibs.splice(from, 1));
+  const now = Date.now();
+  for (const [i, x] of sibs.entries()) if (x.order !== i) { x.order = i; x.updated = now; await DB.put('folders', x.id, x); }
+  Drive.schedule(3000); renderLibrary(LIB_METAS); return true;
+}
 function renderSide(metas) {
-  const side = $('#side'); side.innerHTML = '';
+  if (sideDrag) { sideDrag.stale = true; return; }   // a sync landed mid-drag: redraw when it ends
+  const side = $('#side'); side.innerHTML = ''; side.classList.toggle('arranging', arranging);
   const count = id => metas.filter(m => m.folder === id).length;
-  const item = (id, name, n, icon, cls = '', f = null) => {
-    const b = document.createElement('div'); b.className = 'fitem ' + cls + (curFolder === id ? ' on' : ''); b.role = 'button'; b.tabIndex = 0;
-    b.innerHTML = `${icon}<span class="nm">${esc(name)}</span><span class="ct">${n || ''}</span>` + (f ? `<button class="fm" title="Folder options">${ICON_DOTS}</button>` : '');
-    b.onclick = e => { if (e.target.closest('.fm')) { e.stopPropagation(); folderMenu(f); return; } curFolder = id; renderLibrary(metas); };
-    side.appendChild(b);
+  const item = (parent, id, name, n, icon, cls = '', f = null) => {
+    const b = document.createElement('div'); b.className = 'fitem ' + cls + (curFolder === id ? ' on' : '') + (f ? ' mv' : ' fix'); b.role = 'button'; b.tabIndex = 0;
+    if (f) b.dataset.fid = f.id;
+    b.innerHTML = `${icon}<span class="nm">${esc(name)}</span><span class="ct">${n || ''}</span>` + (f ? `<button class="fm" title="Folder options">${ICON_DOTS}</button><span class="fg" aria-hidden="true">${ICON_GRIP}</span>` : '');
+    if (f) b.setAttribute('aria-label', name);
+    b.onclick = e => { if (arranging) return; if (e.target.closest('.fm')) { e.stopPropagation(); folderMenu(f); return; } curFolder = id; renderLibrary(metas); };
+    parent.appendChild(b); return b;
   };
-  item('all', 'All notes', metas.length, ICON_ALL);
-  const h = document.createElement('h4'); h.textContent = 'Folders'; side.appendChild(h);
+  item(side, 'all', 'All notes', metas.length, ICON_ALL);
+  const head = document.createElement('div'); head.className = 'shead';
+  head.innerHTML = `<h4>Folders</h4><button class="arr" title="${arranging ? 'Finish arranging' : 'Drag folders into the order you like'}">${arranging ? 'Done' : 'Arrange'}</button>`;
+  head.querySelector('.arr').onclick = () => { arranging = !arranging; renderSide(metas); if (arranging) toast('Drag folders into place.', 2200); };
+  side.appendChild(head);
   for (const t of topFolders()) {
-    const subs = subsOf(t.id);
-    item(t.id, t.name, count(t.id) + subs.reduce((a, x) => a + count(x.id), 0), ICON_FOLDER, '', t);
-    for (const sf of subs) item(sf.id, sf.name, count(sf.id), ICON_FOLDER, 'sub', sf);
+    const subs = subsOf(t.id), blk = document.createElement('div'); blk.className = 'fblock'; blk.dataset.fid = t.id;
+    item(blk, t.id, t.name, count(t.id) + subs.reduce((a, x) => a + count(x.id), 0), folderIcon(t), '', t);
+    for (const sf of subs) item(blk, sf.id, sf.name, count(sf.id), folderIcon(sf), 'sub', sf);
+    side.appendChild(blk);
   }
   const unfiled = metas.filter(m => !m.folder || !folderById(m.folder)).length;
-  if (unfiled) item('unfiled', 'Not in a folder', unfiled, ICON_TRAY);
+  if (unfiled) item(side, 'unfiled', 'Not in a folder', unfiled, ICON_TRAY);
   const nf = document.createElement('button'); nf.className = 'fitem newf';
   nf.innerHTML = `<svg class="fi" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg><span class="nm">New folder</span>`;
   nf.onclick = () => newFolder(null); side.appendChild(nf);
 }
+/* the moving element: a top folder's whole block, or a subfolder's row */
+const sideMover = row => row.classList.contains('sub') ? row : row.closest('.fblock');
+(() => {
+  const side = $('#side');
+  side.addEventListener('keydown', e => {
+    if (!arranging || (e.key !== 'ArrowUp' && e.key !== 'ArrowDown')) return;
+    const row = e.target.closest('.fitem.mv'); if (!row) return;
+    e.preventDefault(); const id = row.dataset.fid;
+    moveFolder(id, e.key === 'ArrowUp' ? -1 : 1).then(() => { const r = $(`#side .fitem[data-fid="${id}"]`); if (r) r.focus(); });
+  });
+  side.addEventListener('pointerdown', e => {
+    if (!arranging || e.button > 0) return;
+    const row = e.target.closest('.fitem.mv'); if (!row) return;
+    e.preventDefault(); try { row.setPointerCapture(e.pointerId); } catch (_) { }
+    const el = sideMover(row), sibs = row.classList.contains('sub') ? [...el.parentNode.querySelectorAll(':scope > .fitem.sub')] : [...side.querySelectorAll(':scope > .fblock')];
+    const from = sibs.indexOf(el), rects = sibs.map(s => s.getBoundingClientRect()), mid = r => (r.top + r.bottom) / 2;
+    const gap = sibs.length > 1 ? Math.max(0, (from < sibs.length - 1 ? rects[from + 1].top - rects[from].bottom : rects[from].top - rects[from - 1].bottom)) : 2;
+    const shift = rects[from].height + gap, y0 = e.clientY;
+    let to = from;
+    sideDrag = { stale: false }; el.classList.add('dragging'); side.classList.add('sorting');
+    const move = ev => {
+      if (ev.pointerId !== e.pointerId) return;
+      // its leading edge decides: moving up, the top edge passes a sibling's middle; moving down, the bottom edge
+      // (so a tall block, a folder with its subfolders, moves as readily as a single row)
+      const dy = ev.clientY - y0, top = rects[from].top + dy, bot = rects[from].bottom + dy;
+      el.style.transform = `translateY(${dy}px)`;
+      to = from - sibs.filter((s, k) => k < from && mid(rects[k]) > top).length + sibs.filter((s, k) => k > from && mid(rects[k]) < bot).length;
+      sibs.forEach((s, k) => { if (k !== from) s.style.transform = k > from && k <= to ? `translateY(${-shift}px)` : k < from && k >= to ? `translateY(${shift}px)` : ''; });
+    };
+    const end = async ev => {
+      if (ev.pointerId !== e.pointerId) return;
+      row.removeEventListener('pointermove', move); row.removeEventListener('pointerup', end); row.removeEventListener('pointercancel', end);
+      side.classList.remove('sorting'); el.classList.remove('dragging'); sibs.forEach(s => s.style.transform = '');
+      const stale = sideDrag.stale; sideDrag = null;
+      const moved = ev.type === 'pointerup' && await moveFolder(row.dataset.fid, to - from);
+      if (!moved && stale) renderLibrary(LIB_METAS);
+    };
+    row.addEventListener('pointermove', move); row.addEventListener('pointerup', end); row.addEventListener('pointercancel', end);
+  });
+})();
 let LIB_METAS = [];
 /* ---------------- quarterly tidy-up reminder ----------------
    On the first visit of each quarter (from January 2027) the library opens with a short, warm note.
@@ -2798,6 +2897,7 @@ const Nudge = (() => {
   return { render, on, set: v => { LS.set('nudge.on', v); render(); } };
 })();
 async function showLibrary(fromSync) {
+  if (!fromSync) arranging = false;
   Nudge.render();
   note = null; if (io) io.disconnect(); views.forEach((_, i) => unmountPage(i, true)); views = []; $('#pages').innerHTML = ''; releaseImages();
   $('#editor').classList.add('hidden'); $('#drawer').classList.remove('open'); $('#library').classList.remove('hidden');
@@ -2820,7 +2920,7 @@ function renderLibrary(all) {
     for (const sf of subsOf(f.id)) {
       const n = all.filter(m => m.folder === sf.id).length;
       const t = document.createElement('div'); t.className = 'ftile';
-      t.innerHTML = `${ICON_FOLDER}<div><b>${esc(sf.name)}</b><span>${n} note${n === 1 ? '' : 's'}</span></div>`;
+      t.innerHTML = `${folderIcon(sf)}<div><b>${esc(sf.name)}</b><span>${n} note${n === 1 ? '' : 's'}</span></div>`;
       t.onclick = () => { curFolder = sf.id; renderLibrary(all); }; subs.appendChild(t);
     }
     const t = document.createElement('div'); t.className = 'ftile add';
@@ -3913,7 +4013,7 @@ const Drive = (() => {
    version.json on GitHub names the newest build. When it differs from this one, the
    version chip offers "Update to …". Updating clears only Notation's stored app files
    and reloads; notes, recordings, folders and the Drive connection are untouched. */
-const APP_VERSION = '0.36', APP_BUILD = 'a1bdff4040';
+const APP_VERSION = '0.37', APP_BUILD = '0584188e4d';
 const Updates = (() => {
   let latest = null, last = 0;
   const chip = () => $('#verChip');

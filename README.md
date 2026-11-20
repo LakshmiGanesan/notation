@@ -44,7 +44,7 @@ The same approach works for chants and ślokas: bring in the script as a PDF, re
 - **Page menu:** each page's ⋯ button offers Move up, Move down, **Duplicate** (a copy with its ink and typed text), **Clear page** (removes what you wrote, drew or typed, and keeps the template or imported page; undo brings it back), Delete page and Add pages after.
 - **Page sidebar:** open the panel beside the back button to see every page of a notebook as a thumbnail with your ink. Tap one to go there, star pages (☆) and show only starred ones, and name pages (✎) such as *Pallavi* or *Index*, so the sidebar reads like a table of contents. Stars and names sync through Drive, and shared players show the names too.
 - **Notation books:** import a PDF of any length, or a set of photos and scans, then add, move or remove pages.
-- **Folders:** Music and Chants come built in, with one level of subfolders.
+- **Folders:** Music and Chants come built in, with one level of subfolders. **Arrange** (beside the Folders heading) lets you drag folders and subfolders into any order with a finger, the Pencil or a mouse; each folder's ⋯ menu can give it a colour (red, yellow, blue, green or purple). Order and colours sync through Google Drive.
 - **Share links:** publish a note as a view-only player at its own web address, with one tap. Listeners see your pages and ink, hear every recording and tap a mark to hear that passage, in any browser and without the app. You can also share a PDF of the pages, or download the player as a single file.
 - **Offline:** once opened online, Notation works without Wi-Fi.
 
@@ -131,7 +131,7 @@ EB Garamond, Mukta Malar, Cormorant Garamond, Noto Serif Tamil and Noto Sans Dev
 
 ## Updates
 
-The version shows at the top of the library (for example **v0.36**). Notation checks for a newer version when it opens, when you return to it, and every half hour; when there is one, the label turns saffron and reads **Update to …**. Tap it to load the newest version straight away. Your notes, recordings, folders and Drive connection are kept. **Settings → Check for updates** does the same.
+The version shows at the top of the library (for example **v0.37**). Notation checks for a newer version when it opens, when you return to it, and every half hour; when there is one, the label turns saffron and reads **Update to …**. Tap it to load the newest version straight away. Your notes, recordings, folders and Drive connection are kept. **Settings → Check for updates** does the same.
 
 ## Status
 
