@@ -324,6 +324,18 @@ body.fingers .page canvas.fx{touch-action:none}
 .dlg p,.dlg li{line-height:1.55;color:#3b3a40}
 .dlg .acts{display:flex;justify-content:flex-end;gap:8px;margin-top:18px;flex-wrap:wrap}
 .dlg.wide{max-width:900px}
+.card .twobadge{position:absolute;top:8px;left:8px;display:inline-flex;align-items:center;gap:5px;padding:4px 10px 4px 8px;border:0;border-radius:999px;background:#8a4fc4;color:#fff;font-weight:600;font-size:12px;line-height:1.2;font-family:inherit;box-shadow:0 1px 4px rgba(0,0,0,.18);cursor:pointer}
+.card .twobadge svg{width:13px;height:13px}.card .twobadge.low{top:38px}
+.vers{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.vcard{border:1px solid var(--line);background:var(--card);border-radius:14px;overflow:hidden;display:flex;flex-direction:column}
+.vcard .vth{aspect-ratio:1194/834;background:#f3ede2 center/cover no-repeat;border-bottom:1px solid var(--line)}
+.vcard .vbody{padding:10px 12px 12px;display:flex;flex-direction:column;gap:3px;flex:1;font-size:13.5px}
+.vcard .vwho{font-weight:600;font-size:15px;display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.vcard .vnew{font-size:11px;font-weight:600;color:#fff;background:var(--ok);border-radius:999px;padding:2px 8px}
+.vcard .vsub{color:var(--muted)}.vcard .vonly{color:var(--saffron-2);font-weight:500}
+.vcard .btn{justify-content:center;width:100%}.vcard .vsp{flex:1;min-height:10px}
+.vcap{color:var(--muted);font-size:13px;margin:12px 2px 0}
+@media (max-width:560px){.vers{grid-template-columns:1fr}}
 .tabs{margin:0 0 14px}
 .tgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(190px,1fr));gap:12px}
 .tcard{position:relative;border:1px solid var(--line);background:var(--card);border-radius:14px;padding:8px 8px 10px;cursor:pointer;display:flex;flex-direction:column;gap:3px;transition:border-color .15s,transform .15s}
@@ -422,7 +434,7 @@ body.viewer .viewer-only{display:inline-flex}
       <p class="tagline">Write your notation, record the lesson, and let every mark sing back.</p>
     </div>
     <div class="lib-actions">
-      <button class="btn verchip" id="verChip" title="Notation version · tap to check for updates">v0.38</button>
+      <button class="btn verchip" id="verChip" title="Notation version · tap to check for updates">v0.39</button>
       <button class="btn drivechip" id="driveChip" title="Google Drive sync"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M7 18h10.5a4.5 4.5 0 0 0 .6-8.96A6 6 0 0 0 6.6 9.2 4.4 4.4 0 0 0 7 18z"/></svg><span>Google Drive</span></button>
       <button class="btn" id="btnLib" title="Notation templates and covers"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="7" height="16" rx="1.5"/><rect x="12" y="4" width="4" height="16" rx="1"/><path d="M18 5.5l3 .8-3.6 13.4-3-.8"/></svg>Templates</button>
       <button class="btn" id="btnImport" title="Open a shared .html note"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v12m0 0-4-4m4 4 4-4"/><path d="M4 17v2a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-2"/></svg>Open shared note</button>
@@ -2918,9 +2930,10 @@ async function showLibrary(fromSync) {
   document.title = 'Notation';
   if (!FOLDERS.length) await loadFolders();
   LIB_METAS = (await DB.all('notes')).filter(Boolean).sort((a, b) => b.updated - a.updated);
+  await Versions.refresh(LIB_METAS);
   if (curFolder !== 'all' && curFolder !== 'unfiled' && !folderById(curFolder)) curFolder = 'all';
   renderLibrary(LIB_METAS);
-  if (!fromSync) Drive.maybeSync();
+  if (!fromSync) { Drive.maybeSync(); setTimeout(() => Versions.nudge(), 600); }
 }
 function renderLibrary(all) {
   renderSide(all);
@@ -2958,6 +2971,7 @@ function renderLibrary(all) {
   for (const m of metas) {
     const c = document.createElement('div'); c.className = 'card';
     c.innerHTML = `<div class="thumb" style="background-image:url(${m.thumb || ''})"></div>
+      ${Versions.involved(m.id) ? `<button class="twobadge${m.share ? ' low' : ''}" title="Two versions · tap to choose one"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="6" width="12" height="15" rx="2"/><path d="M9 3h10a2 2 0 0 1 2 2v12"/></svg>2 versions</button>` : ''}
       ${m.share ? `<button class="sharedbadge" title="Shared publicly · tap to copy the link"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M3 12h18M12 3c2.5 2.6 3.8 5.6 3.8 9s-1.3 6.4-3.8 9c-2.5-2.6-3.8-5.6-3.8-9S9.5 5.6 12 3z"/></svg>Shared</button>` : ''}
       <div class="meta"><p class="title">${esc(m.title || 'Untitled')}</p>
       <div class="sub"><span>${new Date(m.updated).toLocaleDateString(undefined, { day: 'numeric', month: 'short', year: 'numeric' })}</span>
@@ -2965,7 +2979,8 @@ function renderLibrary(all) {
       ${m.bm ? `<span class="chip"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M6 3h12v18l-6-4-6 4z"/></svg>${m.bm}</span>` : ''}
       <span>${m.pageCount} page${m.pageCount === 1 ? '' : 's'}</span></div></div>
       <button class="more" title="Options"><svg viewBox="0 0 24 24" fill="currentColor"><circle cx="5" cy="12" r="1.8"/><circle cx="12" cy="12" r="1.8"/><circle cx="19" cy="12" r="1.8"/></svg></button>`;
-    c.onclick = e => { if (e.target.closest('.more') || e.target.closest('.sharedbadge')) return; openNote(m.id); };
+    c.onclick = e => { if (e.target.closest('.more') || e.target.closest('.sharedbadge') || e.target.closest('.twobadge')) return; openNote(m.id); };
+    if (Versions.involved(m.id)) c.querySelector('.twobadge').onclick = e => { e.stopPropagation(); Versions.askFor(m.id); };
     if (m.share) c.querySelector('.sharedbadge').onclick = e => { e.stopPropagation(); copyLink(m.share.url); };
     c.querySelector('.more').onclick = async e => {
       e.stopPropagation();
@@ -3096,7 +3111,8 @@ async function createNote(title, pages, id = uid()) {
   await savePages(); dirty = true; await flushSave();
   showEditor();
 }
-async function openNote(id) {
+async function openNote(id, asked) {
+  if (!asked && Versions.involved(id)) { const r = await Versions.askFor(id); if (r) id = r; }
   const m = await DB.get('notes', id), p = await DB.get('pages', id);
   if (!m || !p) { toast('That note could not be opened.'); return; }
   releaseImages();
@@ -3816,9 +3832,11 @@ const Drive = (() => {
       if (!cfg().email) json(`${API}/about?fields=user(emailAddress)`).then(a => LS.set('drive', { ...cfg(), email: a.user.emailAddress })).catch(() => { });
     } catch (e) { console.warn('sync', e); setState(e.auth ? 'reconnect' : 'error', e.message); }
     finally { busy = false; }
-    if (changed && !note && !$('#library').classList.contains('hidden')) { await loadFolders(); showLibrary(true); }
+    if (changed && !note && !$('#library').classList.contains('hidden')) { await loadFolders(); await showLibrary(true); }
     if (again) { again = false; schedule(2000); }
+    setTimeout(() => Versions.nudge(), 400);
   }
+  async function syncNow() { while (busy) await new Promise(r => setTimeout(r, 200)); await sync(); }
   async function syncFolders(root, live) {
     const libFile = live.find(f => props(f).kind === 'library');
     let remote = { folders: [], deleted: [] };
@@ -3864,7 +3882,7 @@ const Drive = (() => {
     for (const id of R.keys()) gone.delete(id);
     const kids = id => live.filter(f => props(f).nid === id && props(f).kind !== 'note');
     const parentFor = fid => (fid && folderDrive[fid]) ? folderDrive[fid].id : root.id;
-    const ids = [...new Set([...L.keys(), ...R.keys()])]; let i = 0, changed = false;
+    const ids = [...new Set([...L.keys(), ...R.keys()])], held = new Set(); let i = 0, changed = false;
     for (const id of ids) {
       setState('syncing', `Syncing ${++i} of ${ids.length}`);
       const m = L.get(id), r = R.get(id), st = await DB.get('sync', 'n:' + id);
@@ -3876,9 +3894,17 @@ const Drive = (() => {
       if (!m && r) { await pull(r, kids(id)); changed = true; continue; }
       const rUpd = +(props(r).updated || 0), localDirty = !st || m.updated > st.synced, remoteDirty = !st || rUpd > st.synced;
       const open = note && note.id === id;
-      if (st && localDirty && remoteDirty && rUpd !== m.updated) {   // edited on both devices: keep both versions
-        if (!open) { await pull(r, kids(id), true); changed = true; again = true; }   // the copy uploads on the next pass
-        await push(m, r, kids(id), parentFor(m.folder));
+      if (st && localDirty && remoteDirty && rUpd !== m.updated) {   // edited on both devices: hold both, and ask which to keep (0.39)
+        const c = await DB.get('sync', 'c:' + id);
+        if (c && c.choice === 'local') { await push(m, r, kids(id), parentFor(m.folder)); await DB.del('sync', 'c:' + id); changed = true; }
+        else if (c && c.choice === 'remote' && !open) { await pull(r, kids(id)); await DB.del('sync', 'c:' + id); changed = true; }
+        else {
+          held.add(id);
+          if (!c || c.rUpd !== rUpd) {   // note the other version's details, for the question
+            const jf = kids(id).find(k => props(k).kind === 'json');
+            if (jf) { try { const d = JSON.parse(await (await download(jf.id)).text()); await DB.put('sync', 'c:' + id, { id, rUpd, at: Date.now(), ...(c && c.choice ? { choice: c.choice } : {}), remote: { title: d.title, updated: d.updated, device: d.device || '', pages: (d.pages || []).length, takes: (d.takes || []).map(t => ({ id: t.id, duration: t.duration || 0 })), bm: d.bm || 0, thumb: d.thumb || '' } }); changed = true; } catch (e) { if (e.auth) throw e; } }
+          }
+        }
       } else if (!st && rUpd > m.updated) { if (!open) { await pull(r, kids(id)); changed = true; } }
       else if (localDirty) await push(m, r, kids(id), parentFor(m.folder));
       else if (remoteDirty) { if (!open) { await pull(r, kids(id)); changed = true; } }
@@ -3887,6 +3913,7 @@ const Drive = (() => {
       else { const p = parentFor(m.folder); if (!(r.parents || []).includes(p)) await patch(r.id, {}, (r.parents || [])[0], p); }
     }
     t.notes = []; LS.set('drive.deleted', t);
+    for (const k of await DB.keysPrefix('sync', 'c:')) if (!held.has(k.slice(2))) { await DB.del('sync', k); changed = true; }   // settled
     return changed;
   }
   const extOf = mime => /webm/.test(mime) ? 'webm' : /ogg/.test(mime) ? 'ogg' : /mpeg|mp3/.test(mime) ? 'mp3' : /wav/.test(mime) ? 'wav' : 'm4a';
@@ -3932,7 +3959,7 @@ const Drive = (() => {
     }
     for (const k of remoteA) if (!keep.has(k.id)) await trash(k.id);
     // ---- ink, bookmarks and details (small; always current)
-    const data = { v: 3, id: m.id, title: m.title, folder: m.folder || null, created: m.created, updated: m.updated, pages, strokes: m.strokes || [], texts: m.texts || [], takes: m.takes || [], duration: m.duration || 0, bm: m.bm || 0, thumb: m.thumb || '', pdf: index, pdfAt, share: m.share || null };
+    const data = { v: 3, id: m.id, title: m.title, folder: m.folder || null, created: m.created, updated: m.updated, pages, strokes: m.strokes || [], texts: m.texts || [], takes: m.takes || [], duration: m.duration || 0, bm: m.bm || 0, thumb: m.thumb || '', pdf: index, pdfAt, share: m.share || null, device: Versions.device() };
     const jb = new Blob([JSON.stringify(data)], { type: 'application/json' }), jf = kids.find(k => props(k).kind === 'json');
     if (jf) await upload(jb, {}, jf.id); else remember({ ...(await upload(jb, { name: 'note.json', parents: [folder.id], appProperties: { notation: '1', kind: 'json', nid: m.id } })), appProperties: { kind: 'json', nid: m.id } });
     await patch(folder.id, { appProperties: { updated: String(m.updated) } });   // written last: marks the note as complete
@@ -4019,15 +4046,137 @@ const Drive = (() => {
     setState('reconnect');
   }
   addEventListener('online', () => schedule(1500));
-  return { init, sync, schedule, tombstone, openPanel, renderChip, connected, maybeSync() { if (connected() && Date.now() - lastSync > 30000) sync(); else renderChip(); } };
+  return { init, sync, syncNow, schedule, tombstone, openPanel, renderChip, connected, maybeSync() { if (connected() && Date.now() - lastSync > 30000) sync(); else renderChip(); } };
 })();
 
+
+/* ================= two versions of one note (0.39) =================
+   When the same note was changed on two devices before they could sync, Notation keeps both
+   aside, changes nothing in Drive for that note, and asks which version to keep: on whichever
+   device sees both first, when a sync finishes, when you open the note, or from the purple
+   "2 versions" badge on its card. Closing the question decides later. Copies named
+   "… (other device)" made by versions before 0.39 are offered the same way, paired with their original. */
+const Versions = (() => {
+  const SUFFIX = ' (other device)', later = new Set();
+  let items = [], asking = false;
+  function device() {
+    const u = navigator.userAgent || '';
+    if (/iPad/.test(u) || (/Macintosh/.test(u) && navigator.maxTouchPoints > 1)) return 'iPad';
+    if (/iPhone/.test(u)) return 'iPhone';
+    if (/Android/.test(u)) return /Mobile/.test(u) ? 'Android phone' : 'Android tablet';
+    if (/Macintosh/.test(u)) return 'Mac';
+    if (/Windows/.test(u)) return 'Windows PC';
+    return 'computer';
+  }
+  // what needs a decision: notes held by sync, and old "(other device)" copies beside their original
+  async function refresh(metas) {
+    const out = [], byId = new Map(metas.map(m => [m.id, m]));
+    for (const k of await DB.keysPrefix('sync', 'c:')) { const c = await DB.get('sync', k); if (c && !c.choice && byId.has(c.id)) out.push({ kind: 'sync', id: c.id, c }); }
+    const used = new Set(out.map(x => x.id));
+    for (const m of metas) {
+      const t = m.title || ''; if (!t.endsWith(SUFFIX) || used.has(m.id)) continue;
+      const base = t.slice(0, -SUFFIX.length) || 'Untitled';
+      const cands = metas.filter(o => o.id !== m.id && !used.has(o.id) && (o.title || 'Untitled') === base); if (!cands.length) continue;
+      const o = cands.find(x => (x.folder || null) === (m.folder || null)) || cands[0];
+      out.push({ kind: 'copy', id: o.id, copy: m.id }); used.add(o.id); used.add(m.id);
+    }
+    items = out; return out;
+  }
+  const involved = id => items.some(x => x.id === id || x.copy === id);
+  const lkey = it => it.kind === 'sync' ? it.id + '@' + it.c.rUpd : it.id;   // "later" lasts until the other version changes again
+  const when = t => new Date(t).toLocaleString(undefined, { day: 'numeric', month: 'short', hour: 'numeric', minute: '2-digit' });
+  const plural = (n, w) => `${n} ${w}${n === 1 ? '' : 's'}`;
+  function side(label, s, newer, only) {
+    const dur = (s.takes || []).reduce((a, t) => a + (t.duration || 0), 0);
+    return `<div class="vcard"><div class="vth" style="background-image:url('${s.thumb || ''}')"></div><div class="vbody">
+      <div class="vwho">${esc(label)}${newer ? '<span class="vnew">Newer</span>' : ''}</div>
+      <div class="vsub">Edited ${esc(when(s.updated))}</div>
+      <div class="vsub">${plural(s.pages || 0, 'page')} · ${plural((s.takes || []).length, 'recording')}${dur ? ` (${fmt(dur)})` : ''}${s.bm ? ` · ${plural(s.bm, 'bookmark')}` : ''}</div>
+      ${only ? `<div class="vonly">${plural(only, 'recording')} only in this one</div>` : ''}
+      <div class="vsp"></div><button class="btn primary">Keep this</button></div></div>`;
+  }
+  const local = m => ({ title: m.title, updated: m.updated, pages: m.pageCount || 0, takes: (m.takes || []).map(t => ({ id: t.id, duration: t.duration || 0 })), bm: m.bm || 0, thumb: m.thumb || '' });
+  // returns 'a' | 'b' | null (decide later)
+  async function question(title, A, B, la, lb) {
+    const ia = new Set(A.takes.map(t => t.id)), ib = new Set(B.takes.map(t => t.id));
+    const onlyA = A.takes.filter(t => !ib.has(t.id)).length, onlyB = B.takes.filter(t => !ia.has(t.id)).length;
+    const box = document.createElement('div');
+    box.innerHTML = `<div class="vers">${side(la, A, A.updated > B.updated, onlyA)}${side(lb, B, B.updated > A.updated, onlyB)}</div><p class="vcap">The one you keep replaces the other on all your devices and in Google Drive.</p>`;
+    const p = dialog({ title: `Two versions of “${title || 'Untitled'}”`, node: box, actions: [], x: true, dismiss: null, wide: true });
+    const bs = box.querySelectorAll('.vcard .btn'); bs[0].onclick = () => closeDialog('a'); bs[1].onclick = () => closeDialog('b');
+    const v = await p; if (!v) return null;
+    const lost = v === 'a' ? onlyB : onlyA;
+    if (lost) {
+      const ok = await dialog({ title: 'Remove a recording?', html: `<p>The version you are letting go has ${plural(lost, 'recording')} that the other doesn’t. ${lost === 1 ? 'It' : 'They'} will be removed.</p>`, actions: [{ label: 'Go back', value: false }, { label: 'Keep my choice', value: true, danger: true }] });
+      if (!ok) return question(title, A, B, la, lb);
+    }
+    return v;
+  }
+  async function dropLocal(id) { await DB.del('notes', id); await DB.del('pages', id); await DB.del('audio', id); await DB.delPrefix('audio', id + ':'); await DB.delPrefix('imgs', id + ':'); await DB.del('sync', 'n:' + id); Drive.tombstone('notes', id); }
+  // answer one item; returns the id to open afterwards, or null if postponed
+  async function ask(it) {
+    if (it.kind === 'sync') {
+      const m = await DB.get('notes', it.id); if (!m) return null;
+      const r = it.c.remote, here = device(), there = r.device && r.device !== here ? r.device : '';
+      const v = await question(m.title, local(m), r, `This ${here}`, there ? `From your ${there}` : 'From your other device');
+      if (!v) { later.add(lkey(it)); return null; }
+      const open = note && note.id === it.id;
+      if (v === 'b' && open) { clearTimeout(saveTimer); dirty = false; audioEl.pause(); Shruti.stop(); await showLibrary(true); }
+      await DB.put('sync', 'c:' + it.id, { ...it.c, choice: v === 'a' ? 'local' : 'remote' });
+      items = items.filter(x => x !== it); if (!note) renderLibrary(LIB_METAS);
+      toast('Keeping one version…', 6000);
+      await Drive.syncNow();
+      const done = !(await DB.get('sync', 'c:' + it.id));
+      toast(done ? 'Done. One version of this note now.' : 'Saved your choice. It will finish at the next sync.');
+      if (v === 'b' && open) await openNote(it.id, true);
+      return it.id;
+    }
+    const a = await DB.get('notes', it.id), b = await DB.get('notes', it.copy); if (!a || !b) return null;
+    const v = await question(a.title, local(a), local(b), 'Original', 'Copy (other device)');
+    if (!v) { later.add(lkey(it)); return null; }
+    if (v === 'b') {   // the copy's content moves into the original note (same id, title, folder and share link)
+      const pr = await DB.get('pages', b.id), rekey = k => a.id + k.slice(b.id.length);
+      await DB.delPrefix('imgs', a.id + ':'); await DB.delPrefix('audio', a.id + ':'); await DB.del('audio', a.id);
+      for (const k of await DB.keysPrefix('imgs', b.id + ':')) await DB.put('imgs', rekey(k), await DB.get('imgs', k));
+      for (const k of await DB.keysPrefix('audio', b.id + ':')) await DB.put('audio', rekey(k), await DB.get('audio', k));
+      await DB.put('pages', a.id, { v: 2, pages: ((pr && pr.pages) || []).map(p => p.key ? { ...p, key: rekey(p.key) } : p) });
+      await DB.put('notes', a.id, { ...b, id: a.id, title: a.title, folder: a.folder || null, created: a.created, updated: Date.now(), ...(a.share ? { share: a.share } : { share: undefined }) });
+    }
+    await dropLocal(b.id);
+    items = items.filter(x => x !== it); Drive.schedule(1500);
+    toast('Done. One version of this note now.');
+    if (!note) await showLibrary(true);
+    return it.id;
+  }
+  // from a card's badge, or when opening a note: returns the id to open (or null to open as it was)
+  async function askFor(id) {
+    const it = items.find(x => x.id === id || x.copy === id); if (!it || asking) return null;
+    asking = true; try { return await ask(it); } finally { asking = false; }
+  }
+  // ask unprompted (once per session for each, unless chosen): after a sync, on showing the library
+  async function nudge() {
+    if (asking || !booted || viewer || rec || !$('#scrim').classList.contains('hidden')) return;
+    if (!note) await refresh(LIB_METAS || []);
+    else await refresh((await DB.all('notes')).filter(Boolean));
+    asking = true;
+    try {
+      for (const it of [...items]) {
+        if (later.has(lkey(it))) continue;
+        if (note && note.id !== it.id) continue;   // while writing, only the open note
+        if (rec || !$('#scrim').classList.contains('hidden')) break;
+        await ask(it);
+      }
+    } finally { asking = false; }
+    if (!note && !$('#library').classList.contains('hidden')) renderLibrary(LIB_METAS);
+  }
+  return { device, refresh, involved, askFor, nudge };
+})();
 
 /* ================= updates =================
    version.json on GitHub names the newest build. When it differs from this one, the
    version chip offers "Update to …". Updating clears only Notation's stored app files
    and reloads; notes, recordings, folders and the Drive connection are untouched. */
-const APP_VERSION = '0.38', APP_BUILD = 'eb81e9dfae';
+const APP_VERSION = '0.39', APP_BUILD = 'c4b848ac20';
 const Updates = (() => {
   let latest = null, last = 0;
   const chip = () => $('#verChip');

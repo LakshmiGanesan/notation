@@ -79,7 +79,9 @@ Notation/
 └── library.json                 (your folders)
 ```
 
-Changes sync a few seconds after you make them, in both directions, so the iPad and the web app share one library. Renames, moves and deletions follow, and anything deleted goes to Drive's trash. If the same note is edited on two devices before they sync, both versions are kept. Notation can only see the files it creates in your Drive.
+Changes sync a few seconds after you make them, in both directions, so the iPad and the web app share one library. Renames, moves and deletions follow, and anything deleted goes to Drive's trash. Notation can only see the files it creates in your Drive.
+
+**One version of every note.** If the same note is changed on two devices before they sync, Notation doesn't make a copy. The device that finds both asks *Two versions of “…” — which would you like to keep?*, showing each side (which device, when it was edited, pages, recordings, bookmarks; the newer one is marked). Until you choose, the note is held: Drive keeps the version it has, and a purple **2 versions** badge sits on the note's card. Tap **Keep this** on one; it replaces the other on every device and in Drive. If the version you let go has a recording the other lacks, Notation checks with you first. Close the question to decide later; tap the badge, or open the note, to be asked again. Copies named *… (other device)* made by earlier versions are offered the same way, paired with their original.
 
 **Notation leads; Drive is a mirror.** Everything flows from Notation to Drive, never the other way. Name and organise things in Notation and Drive follows at the next sync:
 
@@ -131,7 +133,7 @@ EB Garamond, Mukta Malar, Cormorant Garamond, Noto Serif Tamil and Noto Sans Dev
 
 ## Updates
 
-The version shows at the top of the library (for example **v0.38**). Notation checks for a newer version when it opens, when you return to it, and every half hour; when there is one, the label turns saffron and reads **Update to …**. Tap it to load the newest version straight away. Your notes, recordings, folders and Drive connection are kept. **Settings → Check for updates** does the same.
+The version shows at the top of the library (for example **v0.39**). Notation checks for a newer version when it opens, when you return to it, and every half hour; when there is one, the label turns saffron and reads **Update to …**. Tap it to load the newest version straight away. Your notes, recordings, folders and Drive connection are kept. **Settings → Check for updates** does the same.
 
 ## Status
 
