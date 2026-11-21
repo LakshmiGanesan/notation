@@ -90,6 +90,8 @@ Changes sync a few seconds after you make them, in both directions, so the iPad 
 - A name changed directly in Drive is changed back at the next sync, and files you add to the Notation folder yourself are ignored: Notation can only see the files it made.
 - Notation remembers every file it makes and tidies away any duplicate copies it finds.
 
+**Offline.** Notation works without the internet: writing, recording, the Śruti box and playback all happen on the device. The Drive button then reads **Offline**, and everything you do waits on the device. When you are back online it syncs by itself. Google's permission for Drive lasts an hour; if it ran out while you were away, Notation renews it by itself (a brief hop to Google and back) as soon as the library is showing, so nothing you are writing or recording is interrupted, and you return to the same folder. Only if Google declines does the button ask you to **Reconnect Drive**.
+
 To connect, tap **Google Drive** in the library and paste your Google client ID (see *Setting up Google Drive* below).
 
 Your own template and cover designs stay on each device for now.
@@ -133,7 +135,7 @@ EB Garamond, Mukta Malar, Cormorant Garamond, Noto Serif Tamil and Noto Sans Dev
 
 ## Updates
 
-The version shows at the top of the library (for example **v0.39**). Notation checks for a newer version when it opens, when you return to it, and every half hour; when there is one, the label turns saffron and reads **Update to …**. Tap it to load the newest version straight away. Your notes, recordings, folders and Drive connection are kept. **Settings → Check for updates** does the same.
+The version shows at the top of the library (for example **v0.40**). Notation checks for a newer version when it opens, when you return to it, and every half hour; when there is one, the label turns saffron and reads **Update to …**. Tap it to load the newest version straight away. Your notes, recordings, folders and Drive connection are kept. **Settings → Check for updates** does the same.
 
 ## Status
 

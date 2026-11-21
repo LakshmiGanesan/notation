@@ -434,7 +434,7 @@ body.viewer .viewer-only{display:inline-flex}
       <p class="tagline">Write your notation, record the lesson, and let every mark sing back.</p>
     </div>
     <div class="lib-actions">
-      <button class="btn verchip" id="verChip" title="Notation version · tap to check for updates">v0.39</button>
+      <button class="btn verchip" id="verChip" title="Notation version · tap to check for updates">v0.40</button>
       <button class="btn drivechip" id="driveChip" title="Google Drive sync"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M7 18h10.5a4.5 4.5 0 0 0 .6-8.96A6 6 0 0 0 6.6 9.2 4.4 4.4 0 0 0 7 18z"/></svg><span>Google Drive</span></button>
       <button class="btn" id="btnLib" title="Notation templates and covers"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="7" height="16" rx="1.5"/><rect x="12" y="4" width="4" height="16" rx="1"/><path d="M18 5.5l3 .8-3.6 13.4-3-.8"/></svg>Templates</button>
       <button class="btn" id="btnImport" title="Open a shared .html note"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v12m0 0-4-4m4 4 4-4"/><path d="M4 17v2a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-2"/></svg>Open shared note</button>
@@ -3815,7 +3815,7 @@ const Drive = (() => {
     if (viewer || !connected()) { renderChip(); return; }
     if (busy) { again = true; return; }
     if (!navigator.onLine) { setState('offline'); return; }
-    if (!tokenValid()) { setState('reconnect'); return; }
+    if (!tokenValid()) { setState('reconnect'); renew(); return; }
     busy = true; let changed = false;
     try {
       setState('syncing', 'Syncing…');
@@ -4040,12 +4040,26 @@ const Drive = (() => {
     if (viewer) return;
     handleRedirect();
     if (!connected()) { setState('off'); return; }
+    if (!navigator.onLine) { setState('offline'); return; }
     if (tokenValid()) { setState('ok'); return; }
-    // the hour-long pass has expired: quietly renew it once per launch when online
-    if (navigator.onLine && !sessionStorage.getItem('drive.renewed')) { sessionStorage.setItem('drive.renewed', '1'); signIn('silent'); return 'redirecting'; }
+    // the hour-long pass has expired: quietly renew it when online
+    if (renew(true)) return 'redirecting';
     setState('reconnect');
   }
-  addEventListener('online', () => schedule(1500));
+  /* Quiet renewal (0.40). Google's pass for Drive lasts an hour. When it has run out and the iPad or Mac is
+     online, Notation fetches a new one by itself: a brief hop to Google and back, with no tap, as at launch.
+     It waits for a calm moment (the library showing, no recording, no open question) so nothing is
+     interrupted, and tries at most once every 5 minutes, so a refusal falls back to "Reconnect Drive". */
+  function renew(atLaunch) {
+    if (viewer || !connected() || !navigator.onLine || tokenValid()) return false;
+    if (!atLaunch && (note || rec || !$('#scrim').classList.contains('hidden') || $('#library').classList.contains('hidden'))) return false;
+    if (Date.now() - LS.get('drive.renewAt', 0) < 5 * 60000) return false;
+    LS.set('drive.renewAt', Date.now());
+    try { sessionStorage.setItem('drive.place', JSON.stringify({ folder: curFolder, y: scrollY })); } catch (e) { }
+    signIn('silent'); return true;
+  }
+  addEventListener('online', () => { renderChip(); schedule(1500); });
+  addEventListener('offline', () => { if (connected()) setState('offline'); });
   return { init, sync, syncNow, schedule, tombstone, openPanel, renderChip, connected, maybeSync() { if (connected() && Date.now() - lastSync > 30000) sync(); else renderChip(); } };
 })();
 
@@ -4176,7 +4190,7 @@ const Versions = (() => {
    version.json on GitHub names the newest build. When it differs from this one, the
    version chip offers "Update to …". Updating clears only Notation's stored app files
    and reloads; notes, recordings, folders and the Drive connection are untouched. */
-const APP_VERSION = '0.39', APP_BUILD = 'c4b848ac20';
+const APP_VERSION = '0.40', APP_BUILD = 'ae9717b93e';
 const Updates = (() => {
   let latest = null, last = 0;
   const chip = () => $('#verChip');
@@ -4273,7 +4287,10 @@ $('#btnLib').onclick = openTemplateLibrary;
   // Library-first; first visit opens straight onto a fresh Ādi page so the app is never blank.
   await loadMine(); await loadFolders();
   if (Drive.init() === 'redirecting') return;
+  let place = null; try { place = JSON.parse(sessionStorage.getItem('drive.place') || 'null'); sessionStorage.removeItem('drive.place'); } catch (e) { }
+  if (place && place.folder) curFolder = place.folder;   // back from a quiet Drive renewal: same folder, same spot
   await showLibrary(); booted = true; hideBootNotice();
+  if (place) { if (place.y) scrollTo(0, place.y); Drive.schedule(1000); }   // and carry on syncing at once
   if (location.search.includes('v=')) history.replaceState(null, '', location.pathname);   // tidy the address after an update
   setTimeout(() => Updates.check(), 1500);
   if ('serviceWorker' in navigator && (location.protocol === 'https:' || location.hostname === 'localhost')) navigator.serviceWorker.register('sw.js').catch(() => { });
