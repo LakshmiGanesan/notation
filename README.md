@@ -135,7 +135,7 @@ EB Garamond, Mukta Malar, Cormorant Garamond, Noto Serif Tamil and Noto Sans Dev
 
 ## Updates
 
-The version shows at the top of the library (for example **v0.41**). Notation checks for a newer version when it opens, when you return to it, and every half hour; when there is one, the label turns saffron and reads **Update to …**. Tap it to load the newest version straight away. Your notes, recordings, folders and Drive connection are kept. **Settings → Check for updates** does the same.
+The version shows at the top of the library (for example **v0.42**). Notation checks for a newer version when it opens, when you return to it, and every half hour; when there is one, the label turns saffron and reads **Update to …**. Tap it to load the newest version straight away. Your notes, recordings, folders and Drive connection are kept. **Settings → Check for updates** does the same.
 
 ## Status
 
