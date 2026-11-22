@@ -23,7 +23,7 @@ The same approach works for chants and ślokas: bring in the script as a PDF, re
 - **Several recordings per note:** record each class, or add audio files edited elsewhere. Name them, put them in order, and they can play one after another. They're named *Title_01*, *Title_02*… in order until you rename them, and Drive uses the same names.
 - **Audio bookmarks:** anything you draw while recording, or while a recording plays, is linked to that moment in that recording.
 - **Point tool:** tap any linked mark (pen, calligraphy or highlighter) to play from that moment. Tap ink written before class to link it to wherever the recording is now.
-- **Practice:** tap-to-play with a short lead-in, loop a passage, play at 0.5×, 0.75×, 1×, 1.25× or 2×, and follow along as the page scrolls. Jumping to a bookmark from the list or the timeline turns straight to its page.
+- **Practice:** tap-to-play with a short lead-in, loop a passage, skip back or forward 10 seconds with the buttons either side of play (or the ← and → keys), play at 0.5×, 0.75×, 1×, 1.25× or 2×, and follow along as the page scrolls. Jumping to a bookmark from the list or the timeline turns straight to its page.
 - **Three template libraries, to mix and match in any notebook:**
   - *Notation templates:* Ādi, Rūpaka, Miśra Chāpu, Khaṇḍa Chāpu, Viloma Chāpu, Tisra Triputa, Khaṇḍa Triputa, Miśra Jhampa, a plain grid and a dot grid.
   - *Covers & dividers:* 22 hand-printed textile designs, each with a label holder for the title.
@@ -135,7 +135,7 @@ EB Garamond, Mukta Malar, Cormorant Garamond, Noto Serif Tamil and Noto Sans Dev
 
 ## Updates
 
-The version shows at the top of the library (for example **v0.40**). Notation checks for a newer version when it opens, when you return to it, and every half hour; when there is one, the label turns saffron and reads **Update to …**. Tap it to load the newest version straight away. Your notes, recordings, folders and Drive connection are kept. **Settings → Check for updates** does the same.
+The version shows at the top of the library (for example **v0.41**). Notation checks for a newer version when it opens, when you return to it, and every half hour; when there is one, the label turns saffron and reads **Update to …**. Tap it to load the newest version straight away. Your notes, recordings, folders and Drive connection are kept. **Settings → Check for updates** does the same.
 
 ## Status
 
