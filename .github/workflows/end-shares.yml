@@ -1,0 +1,75 @@
+# Notation: ends time-bound share links (from 0.43).
+# Each shared player carries shared/<name>/share.json with its end time ("until", UTC; null = keep always).
+# Once a day, for every share whose time is up, this removes its player, pages and recordings and leaves a
+# small "This link has ended" card at the same address (from .github/ended.html). The player itself already
+# shows that card from the exact minute; this makes sure nothing of the lesson stays on the live site.
+# Built from notation-dev/site/.github/workflows/end-shares.yml. Edit it there, not here.
+name: End time-bound shares
+on:
+  schedule:
+    - cron: '53 21 * * *'   # once a day, 21:53 UTC = 3:23 am in India
+  workflow_dispatch:        # "Run workflow" by hand from the Actions tab
+permissions:
+  contents: write
+  pages: write
+concurrency:
+  group: end-shares
+  cancel-in-progress: false
+jobs:
+  end:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 1
+      - name: Find shares whose time is up
+        id: sweep
+        run: |
+          python3 - <<'PY'
+          import json, os, html, datetime
+          now = datetime.datetime.now(datetime.timezone.utc)
+          card = open('.github/ended.html', encoding='utf-8').read()
+          ended = []
+          for slug in sorted(os.listdir('shared')) if os.path.isdir('shared') else []:
+              d = os.path.join('shared', slug); f = os.path.join(d, 'share.json')
+              if not os.path.isfile(f):
+                  continue                      # older shares, without an end, stay
+              try:
+                  info = json.load(open(f, encoding='utf-8'))
+                  if info.get('ended') or not info.get('until'):
+                      continue                  # already ended, or "Keep it always"
+                  end = datetime.datetime.fromisoformat(info['until'].replace('Z', '+00:00'))
+              except Exception as e:
+                  print('Skipping', slug, '-', e); continue
+              if end > now:
+                  continue
+              # the pages, recordings and player go; a small "This link has ended" card stays at the address
+              for name in os.listdir(d):
+                  p = os.path.join(d, name)
+                  if os.path.isfile(p): os.remove(p)
+              by = info.get('by') or 'Lakshmi'
+              open(os.path.join(d, 'index.html'), 'w', encoding='utf-8').write(card.replace('__TITLE__', html.escape(info.get('title') or ''))
+                  .replace('__HEAD__', 'This link has ended.').replace('__LINE__', 'Contact ' + html.escape(by) + " if you'd like it extended."))
+              json.dump({**info, 'ended': True}, open(f, 'w', encoding='utf-8'), ensure_ascii=False, indent=1)
+              ended.append(slug)
+          with open(os.environ['GITHUB_OUTPUT'], 'a') as out:
+              out.write('ended=' + ' '.join(ended) + '\n')
+          print('Ended:', ', '.join(ended) or 'none')
+          PY
+      - name: Remove them from the site
+        if: steps.sweep.outputs.ended != ''
+        run: |
+          git config user.name "Notation clean-up"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -A shared
+          git commit -m "Share ended: ${{ steps.sweep.outputs.ended }}"
+          for i in 1 2 3; do
+            git pull --rebase origin main && git push origin HEAD:main && exit 0
+            git rebase --abort 2>/dev/null || true; sleep 10
+          done
+          exit 1
+      - name: Refresh the site
+        if: steps.sweep.outputs.ended != ''
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: gh api -X POST "repos/${{ github.repository }}/pages/builds" || true

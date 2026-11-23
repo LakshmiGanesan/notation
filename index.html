@@ -220,6 +220,13 @@ body.tool-text .tbox,body.tool-lasso .tbox{pointer-events:auto;cursor:move;touch
 .takes.sorting{user-select:none;-webkit-user-select:none}.takes.sorting .grip{cursor:grabbing}
 .dlfmt .dlname{margin:0 0 12px;display:flex;flex-direction:column}.dlfmt .dlname small,.dlfmt label small{color:var(--muted);font-size:12.5px}
 .dlfmt label{display:flex;gap:10px;align-items:flex-start;border:1px solid var(--line);background:var(--card);border-radius:12px;padding:10px 12px;margin-bottom:8px;cursor:pointer;line-height:1.4}
+.sharefor{margin:4px 0 6px}.sharefor b{font-weight:600}
+.shareuntil{font-size:14px;margin:2px 0 8px}
+body.ended{display:flex;align-items:center;justify-content:center;min-height:100vh;background:var(--desk)}
+.endpage{max-width:440px;margin:24px;padding:40px 36px;background:var(--paper);border:1px solid var(--line);border-radius:18px;text-align:center;box-shadow:0 8px 30px rgba(20,24,46,.08)}
+.endpage h1{font-family:var(--serif);font-weight:500;font-size:28px;margin:6px 0 12px;color:var(--ink)}
+.endpage p{margin:0;font-size:16px;line-height:1.5;color:var(--ink)}
+.endpage .endt{color:var(--muted);font-size:14px;margin-bottom:4px}.endpage .endn{margin-top:26px;color:var(--saffron-2);font-family:var(--serif);font-size:15px;letter-spacing:.02em}
 .dlfmt label:has(input:checked){border-color:var(--saffron);box-shadow:0 0 0 3px var(--saffron-soft)}.dlfmt input{margin-top:3px;accent-color:var(--saffron-2)}
 .takeopts{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-top:12px;flex-wrap:wrap;font-size:14px}
 .takeopts input{width:18px;height:18px;vertical-align:-3px;accent-color:var(--saffron)}
@@ -379,6 +386,7 @@ body.viewer .edit-only{display:none!important}
 .sharelink{word-break:break-all;background:var(--paper,#f6f3ec);border-radius:10px;padding:10px 12px;font-size:15px;margin:6px 0 10px}
 .sharelink a{color:inherit}
 .sharerow{display:flex;gap:10px;align-items:center}.sharerow .sharelink{flex:1;margin:6px 0}
+.sharerow .shareuntil{flex:1}.sharerow .btn{white-space:nowrap}
 .viewer-only{display:none}
 body.viewer .viewer-only{display:inline-flex}
 .vtitle{font-family:var(--serif);font-weight:500;font-size:19px;padding:0 8px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
@@ -438,7 +446,7 @@ body.viewer .viewer-only{display:inline-flex}
       <p class="tagline">Write your notation, record the lesson, and let every mark sing back.</p>
     </div>
     <div class="lib-actions">
-      <button class="btn verchip" id="verChip" title="Notation version · tap to check for updates">v0.42</button>
+      <button class="btn verchip" id="verChip" title="Notation version · tap to check for updates">v0.43</button>
       <button class="btn drivechip" id="driveChip" title="Google Drive sync"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M7 18h10.5a4.5 4.5 0 0 0 .6-8.96A6 6 0 0 0 6.6 9.2 4.4 4.4 0 0 0 7 18z"/></svg><span>Google Drive</span></button>
       <button class="btn" id="btnLib" title="Notation templates and covers"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="7" height="16" rx="1.5"/><rect x="12" y="4" width="4" height="16" rx="1"/><path d="M18 5.5l3 .8-3.6 13.4-3-.8"/></svg>Templates</button>
       <button class="btn" id="btnImport" title="Open a shared .html note"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v12m0 0-4-4m4 4 4-4"/><path d="M4 17v2a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-2"/></svg>Open shared note</button>
@@ -2733,7 +2741,7 @@ function scheduleSave() { if (viewer || !note) return; Side.refreshSoon(); dirty
 async function flushSave() {
   clearTimeout(saveTimer); if (viewer || !note || !dirty) return; dirty = false;
   note.updated = Date.now();
-  const meta = { id: note.id, folder: note.folder || null, title: note.title, created: note.created, updated: note.updated, strokes: note.strokes, texts: note.texts || [], takes: note.takes || [], duration: (note.takes || []).reduce((a, t) => a + (t.duration || 0), 0), mime: '', hasAudio: hasAudio(), pageCount: note.pages.length, bm: groups.length, thumb: await makeThumb(), ...(note.share ? { share: note.share } : {}) };
+  const meta = { id: note.id, folder: note.folder || null, title: note.title, created: note.created, updated: note.updated, strokes: note.strokes, texts: note.texts || [], takes: note.takes || [], duration: (note.takes || []).reduce((a, t) => a + (t.duration || 0), 0), mime: '', hasAudio: hasAudio(), pageCount: note.pages.length, bm: groups.length, thumb: await makeThumb(), ...(note.share ? { share: note.share } : {}), ...(note.lastSlug && !note.share ? { lastSlug: note.lastSlug } : {}) };
   await DB.put('notes', note.id, meta);
   Drive.schedule();
 }
@@ -2947,6 +2955,7 @@ async function showLibrary(fromSync) {
   document.title = 'Notation';
   if (!FOLDERS.length) await loadFolders();
   LIB_METAS = (await DB.all('notes')).filter(Boolean).sort((a, b) => b.updated - a.updated);
+  await endExpiredShares(LIB_METAS);
   await Versions.refresh(LIB_METAS);
   if (curFolder !== 'all' && curFolder !== 'unfiled' && !folderById(curFolder)) curFolder = 'all';
   renderLibrary(LIB_METAS);
@@ -2988,8 +2997,8 @@ function renderLibrary(all) {
   for (const m of metas) {
     const c = document.createElement('div'); c.className = 'card';
     c.innerHTML = `<div class="thumb" style="background-image:url(${m.thumb || ''})"></div>
-      ${Versions.involved(m.id) ? `<button class="twobadge${m.share ? ' low' : ''}" title="Two versions · tap to choose one"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="6" width="12" height="15" rx="2"/><path d="M9 3h10a2 2 0 0 1 2 2v12"/></svg>2 versions</button>` : ''}
-      ${m.share ? `<button class="sharedbadge" title="Shared publicly · tap to copy the link"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M3 12h18M12 3c2.5 2.6 3.8 5.6 3.8 9s-1.3 6.4-3.8 9c-2.5-2.6-3.8-5.6-3.8-9S9.5 5.6 12 3z"/></svg>Shared</button>` : ''}
+      ${Versions.involved(m.id) ? `<button class="twobadge${shareOpen(m.share) ? ' low' : ''}" title="Two versions · tap to choose one"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="6" width="12" height="15" rx="2"/><path d="M9 3h10a2 2 0 0 1 2 2v12"/></svg>2 versions</button>` : ''}
+      ${shareOpen(m.share) ? `<button class="sharedbadge" title="Shared publicly${m.share.until ? ' until ' + esc(endDate(m.share.until)) : ''} · tap to copy the link"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M3 12h18M12 3c2.5 2.6 3.8 5.6 3.8 9s-1.3 6.4-3.8 9c-2.5-2.6-3.8-5.6-3.8-9S9.5 5.6 12 3z"/></svg>Shared${m.share.until ? ' · ' + (timeLeft(m.share.until) === 'today' ? 'ends today' : timeLeft(m.share.until)) : ''}</button>` : ''}
       <div class="meta"><p class="title">${esc(m.title || 'Untitled')}</p>
       <div class="sub"><span>${new Date(m.updated).toLocaleDateString(undefined, { day: 'numeric', month: 'short', year: 'numeric' })}</span>
       ${m.hasAudio ? `<span class="chip"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M9 18V6l10-2v12"/><circle cx="6.5" cy="18" r="2.5"/><circle cx="16.5" cy="16" r="2.5"/></svg>${fmt(m.duration)}</span>` : ''}
@@ -2998,7 +3007,7 @@ function renderLibrary(all) {
       <button class="more" title="Options"><svg viewBox="0 0 24 24" fill="currentColor"><circle cx="5" cy="12" r="1.8"/><circle cx="12" cy="12" r="1.8"/><circle cx="19" cy="12" r="1.8"/></svg></button>`;
     c.onclick = e => { if (e.target.closest('.more') || e.target.closest('.sharedbadge') || e.target.closest('.twobadge')) return; openNote(m.id); };
     if (Versions.involved(m.id)) c.querySelector('.twobadge').onclick = e => { e.stopPropagation(); Versions.askFor(m.id); };
-    if (m.share) c.querySelector('.sharedbadge').onclick = e => { e.stopPropagation(); copyLink(m.share.url); };
+    if (shareOpen(m.share)) c.querySelector('.sharedbadge').onclick = e => { e.stopPropagation(); copyLink(m.share.url); };
     c.querySelector('.more').onclick = async e => {
       e.stopPropagation();
       const v = await dialog({ title: m.title || 'Untitled', html: '<p>What would you like to do with this note?</p>', actions: [{ label: 'Cancel', value: null }, { label: 'Move to folder…', value: 'move' }, { label: 'Duplicate', value: 'dup' }, { label: 'Delete', value: 'del', danger: true }] });
@@ -3275,6 +3284,57 @@ function replaceScript(src, id, content) {
   const tag = `<script id="${id}" type="application/json">`; const a = src.indexOf(tag); if (a < 0) return src;
   const b = src.indexOf('</' + 'script>', a + tag.length); return src.slice(0, a + tag.length) + content + src.slice(b);
 }
+/* ---- time-bound links (0.43): "Keep it always" or "Share for N days" ---- */
+const SHARER = 'Lakshmi';   // named on the "This link has ended" page
+// The card left at an ended link's address once its pages and recordings are removed (same file as site/.github/ended.html, used by the daily clean-up)
+const ENDED_TPL = "<!doctype html>\n<html lang=\"en\"><head><meta charset=\"utf-8\"><meta name=\"viewport\" content=\"width=device-width,initial-scale=1\"><meta name=\"robots\" content=\"noindex, nofollow\">\n<title>This link has ended \u00b7 Notation<\/title>\n<style>\nhtml,body{margin:0;min-height:100%;background:#efe8db;color:#14182e;font-family:\"Inter\",system-ui,-apple-system,\"Segoe UI\",Roboto,sans-serif}\nbody{display:flex;align-items:center;justify-content:center;min-height:100vh}\nmain{max-width:440px;margin:24px;padding:40px 36px;background:#fbf8f2;border:1px solid #e3d9c8;border-radius:18px;text-align:center;box-shadow:0 8px 30px rgba(20,24,46,.08)}\nh1{font-family:\"Fraunces\",Georgia,\"Times New Roman\",serif;font-weight:500;font-size:28px;margin:6px 0 12px}\np{margin:0;font-size:16px;line-height:1.5}.t{color:#6f685b;font-size:14px;margin-bottom:4px}.n{margin-top:26px;color:#b85d10;font-family:\"Fraunces\",Georgia,serif;font-size:15px}\n<\/style><\/head>\n<body><main><p class=\"t\">__TITLE__<\/p><h1>__HEAD__<\/h1><p>__LINE__<\/p><p class=\"n\">Notation<\/p><\/main><\/body><\/html>\n";
+const endedCard = (title, by) => new Blob([ENDED_TPL.replace('__TITLE__', () => esc(title || '')).replace('__HEAD__', 'This link has ended.').replace('__LINE__', () => `Contact ${esc(by || SHARER)} if you'd like it extended.`)], { type: 'text/html' });
+const DAY = 864e5, SHARE_DAYS = 7;   // share for 7 days; extend 7 days at a time
+const shareOpen = sh => !!sh && !(sh.until && Date.now() >= sh.until);   // a timed link past its end counts as not shared
+const endDate = t => new Date(t).toLocaleString('en-GB', { weekday: 'short', day: 'numeric', month: 'short', year: 'numeric', hour: 'numeric', minute: '2-digit', hour12: true }).replace(/ (am|pm)$/i, (_, x) => ' ' + x.toLowerCase());
+function timeLeft(until) {   // "5 days", "1 day", or "today" when it ends before midnight
+  if (new Date(until).toDateString() === new Date().toDateString()) return 'today';
+  const d = Math.max(1, Math.ceil((until - Date.now()) / DAY)); return d + (d === 1 ? ' day' : ' days');
+}
+// The shared player: once its end has passed, a calm page in place of the note (checked on open, every half minute, and on return to the tab).
+function shareEnded(d) {
+  try { audioEl.pause(); } catch (e) { }
+  document.title = 'This link has ended · Notation';
+  document.body.className = 'ended';
+  document.body.innerHTML = `<main class="endpage"><p class="endt">${esc(d.title || '')}</p><h1>This link has ended.</h1><p>Contact ${esc(d.by || SHARER)} if you'd like it extended.</p><p class="endn">Notation</p></main>`;
+}
+// The end date written into the player is a fallback: share.json beside it is the live one (an Extend changes only that file).
+async function liveUntil(d) {
+  if (!/^https?:/.test(location.protocol)) return d.until;   // a downloaded player file: nothing to ask
+  try {
+    const r = await fetch('share.json?t=' + Date.now(), { cache: 'no-store' }); if (!r.ok) return d.until;
+    const j = await r.json(); return j.until ? Date.parse(j.until) : (j.until === null ? null : d.until);
+  } catch (e) { return d.until; }
+}
+async function watchShareEnd(d) {
+  if (!d.until) return false;
+  d.until = await liveUntil(d); if (!d.until) return false;
+  if (Date.now() >= d.until) { shareEnded(d); return true; }
+  let busy = false;
+  const chk = async () => {
+    if (busy || !d.until || Date.now() < d.until) return;
+    busy = true; d.until = await liveUntil(d); busy = false;   // extended meanwhile? ask before closing
+    if (d.until && Date.now() >= d.until) { clearInterval(iv); shareEnded(d); }
+  };
+  const iv = setInterval(chk, 30000); document.addEventListener('visibilitychange', chk);
+  return false;
+}
+// In the app: links whose time is up lose their badge here and now; their files are removed by the repository's clean-up,
+// or right away from a device that holds the GitHub token.
+async function endExpiredShares(metas) {
+  const gone = metas.filter(m => m.share && !shareOpen(m.share)); if (!gone.length) return;
+  for (const m of gone) {
+    const sh = m.share; delete m.share; m.lastSlug = sh.slug;
+    const cur = await DB.get('notes', m.id); if (cur) await DB.put('notes', m.id, { ...cur, share: undefined, lastSlug: sh.slug });
+    if (Publish.ready() && navigator.onLine !== false) Publish.unpublish(sh, m.title, 'Share ended').catch(() => { });
+  }
+  toast(gone.length === 1 ? `Sharing ended for “${gone[0].title || 'Untitled'}”: its time is up.` : `Sharing ended for ${gone.length} notes: their time is up.`, 4000);
+}
 /* ================= Sharing: a view-only player at a public link =================
    Notation commits the player into the public "notation" repository on GitHub, under shared/<name>/.
    GitHub Pages then serves it at https://lakshmiganesan.github.io/notation/shared/<name>/ :
@@ -3296,6 +3356,7 @@ const Publish = (() => {
     }
     return r.status === 204 ? null : r.json();
   }
+  const shareFile = (title, since, until, ended) => new Blob([JSON.stringify({ title, by: SHARER, shared: new Date(since).toISOString(), until: until ? new Date(until).toISOString() : null, ...(ended ? { ended: true } : {}) }, null, 1)], { type: 'application/json' });
   const b64 = async blob => (await blobToDataURL(blob)).split(',')[1];
   // Readable web addresses: "Sāmi ninne kōri" → sami-ninne-kori. Titles in other scripts keep a short code.
   function slugFor(m) {
@@ -3319,9 +3380,12 @@ const Publish = (() => {
       catch (e) { if (e.status !== 422 || attempt >= 2) throw e; }
     }
   }
-  async function publish(m, progress) {
-    let slug = (m.share && m.share.slug) || slugFor(m);
-    if (!m.share) {   // a new link: don't take over another note's address
+  // `until` (ms) only for a new link. An Update keeps the link's own end date: the clock is fixed when it is first shared.
+  // `reuse`: the address of this note's ended link, so sharing it again brings back the same link.
+  async function publish(m, progress, until, reuse) {
+    const ends = m.share ? (m.share.until || null) : (until || null);
+    let slug = (m.share && m.share.slug) || reuse || slugFor(m);
+    if (!m.share && !reuse) {   // a new link: don't take over another note's address
       for (let n = 2; ; n++) {
         const there = await listFolder('shared/' + slug); if (!there.length) break;
         slug = slugFor(m) + '-' + n;
@@ -3342,21 +3406,34 @@ const Publish = (() => {
     });
     const big = files.find(f => f.blob.size > 95 * 1048576);
     if (big) throw new Error(`${big.path.split('/').pop()} is ${(big.blob.size / 1048576).toFixed(0)} MB. GitHub accepts files up to 100 MB, so split or compress this recording first.`);
-    const data = { v: 1, title: m.title || 'Untitled', created: m.created, shared: Date.now(), lead, srcs: [...idx.values()], pages, strokes: m.strokes.map(({ id, page, tool, color, size, pts, t, take, shape }) => ({ id, page, tool, color, size, pts, t, take, ...(shape ? { shape } : {}) })), texts: m.texts || [], takes };
+    const data = { v: 1, title: m.title || 'Untitled', created: m.created, shared: Date.now(), ...(ends ? { until: ends, by: SHARER } : {}), lead, srcs: [...idx.values()], pages, strokes: m.strokes.map(({ id, page, tool, color, size, pts, t, take, shape }) => ({ id, page, tool, color, size, pts, t, take, ...(shape ? { shape } : {}) })), texts: m.texts || [], takes };
     let html = replaceScript(APP_SRC, 'builtin-templates', '[]');
     html = replaceScript(html, 'shared-note', JSON.stringify(data).replace(/</g, '\\u003c'));
     html = html.replace(/url\(fonts\//g, 'url(../../fonts/').replace('<link rel="manifest" href="manifest.webmanifest">', '<meta name="robots" content="noindex, nofollow">')
       .replace(/<title>[^<]*<\/title>/, `<title>${esc(data.title)} · Notation</title>`);
     files.unshift({ path: dir + 'index.html', blob: new Blob([html], { type: 'text/html' }) });
+    // share.json: read by the repository's daily clean-up (.github/workflows/end-shares.yml), which removes the folder once `until` has passed
+    const since = (m.share && m.share.since) || Date.now();
+    files.push({ path: dir + 'share.json', blob: shareFile(data.title, since, ends) });
     const old = (await listFolder('shared/' + slug)).filter(f => f.type === 'file').map(f => f.path);
     const mb = files.reduce((a, f) => a + f.blob.size, 0) / 1048576;
     progress(`Uploading ${mb.toFixed(1)} MB to GitHub…`);
-    await commit(`${m.share ? 'Update' : 'Share'}: ${data.title}`, files, old);
-    return { slug, url: urlFor(slug), at: Date.now() };
+    await commit(`${m.share ? 'Update' : 'Share'}: ${data.title}${ends ? ' (until ' + new Date(ends).toISOString().slice(0, 16).replace('T', ' ') + ' UTC)' : ''}`, files, old);
+    return { slug, url: urlFor(slug), at: Date.now(), since, ...(ends ? { until: ends } : {}) };
   }
-  async function unpublish(share) {
+  // Extend: only share.json changes (a tiny commit). The player reads it each time it opens, so the pages and recordings stay as they are.
+  async function extend(m, until) {
+    await commit(`Extend: ${m.title || 'Untitled'} (until ${new Date(until).toISOString().slice(0, 16).replace('T', ' ')} UTC)`,
+      [{ path: 'shared/' + m.share.slug + '/share.json', blob: shareFile(m.title || 'Untitled', m.share.since || m.share.at, until) }], []);
+  }
+  // Ending a link (Stop sharing, or its time is up): the pages, recordings and player go; a small "This link has ended" card stays at the address.
+  async function unpublish(share, title, why = 'Stop sharing') {
+    const dir = 'shared/' + share.slug + '/';
     const old = (await listFolder('shared/' + share.slug)).filter(f => f.type === 'file').map(f => f.path);
-    if (old.length) await commit(`Stop sharing: ${share.slug}`, [], old);
+    if (!old.length) return;
+    // a live player always has page images beside it; just index.html + share.json means the card is already there
+    if (old.length === 2 && old.includes(dir + 'share.json') && old.includes(dir + 'index.html')) return;
+    await commit(`${why}: ${share.slug}`, [{ path: dir + 'index.html', blob: endedCard(title) }, { path: dir + 'share.json', blob: shareFile(title || 'Untitled', share.since || share.at || Date.now(), share.until, true) }], old);
   }
   // GitHub Pages takes a minute or so to put a new commit online.
   async function waitLive(url, onTick, ms = 180000) {
@@ -3400,7 +3477,7 @@ const Publish = (() => {
       toast('Share links are ready.'); if (then) then(); return true;
     } catch (e) { LS.set('github', prev); await dialog({ title: 'That token didn’t work', html: `<p>${esc(e.message)}</p>` }); return false; }
   }
-  return { publish, unpublish, waitLive, setup, ready: () => !!token(), urlFor, slugFor };
+  return { publish, extend, unpublish, waitLive, setup, ready: () => !!token(), urlFor, slugFor };
 })();
 
 async function copyLink(url) {
@@ -3415,32 +3492,51 @@ async function shareNote() {
   if (how === 'player') return sharePlayer();
 }
 async function sharePlayer() {
+  if (note.share && !shareOpen(note.share)) {   // its time is up: tidy it away, then offer to share again
+    note.lastSlug = note.share.slug; delete note.share; dirty = true; await flushSave();
+  }
   const sh = note.share, stale = sh && note.updated - sh.at > 3000;   // edited since it was published
+  const pref = LS.get('shareFor', 'week');
   const box = document.createElement('div');
   box.innerHTML = sh
     ? `<p style="margin-top:0">This note is shared at:</p>
        <div class="sharerow"><p class="sharelink"><a href="${esc(sh.url)}" target="_blank" rel="noopener">${esc(sh.url)}</a></p><button class="btn" data-copy>Copy link</button></div>
-       <p style="color:var(--muted);font-size:14px">${stale ? 'You have changed the note since it was shared. <b>Update</b> to put the latest version at the same link.' : 'The link shows the latest version of this note.'} Anyone with the link can open it, see the pages with your ink, and tap a mark to hear that passage. It's view-only.</p>`
+       ${sh.until
+        ? `<div class="sharerow"><p class="shareuntil">Shared until <b>${esc(endDate(sh.until))}</b> (${timeLeft(sh.until) === 'today' ? 'ends today' : timeLeft(sh.until) + ' left'}). Then the link stops by itself.</p><button class="btn" data-ext>Extend ${SHARE_DAYS} days</button></div>`
+        : '<p class="shareuntil">Shared always, until you stop sharing.</p>'}
+       <p style="color:var(--muted);font-size:14px">${stale ? `You have changed the note since it was shared. <b>Update</b> to put the latest version at the same link${sh.until ? ' (the end date stays the same)' : ''}.` : 'The link shows the latest version of this note.'} Anyone with the link can open it, see the pages with your ink, and tap a mark to hear that passage. It's view-only.</p>`
     : `<p style="margin-top:0">Notation will publish a view-only player of this note (the pages with your ink, every recording and bookmark) and give you a link.</p>
+       <div class="dlfmt sharefor" role="radiogroup" aria-label="How long to share">
+         <label><input type="radio" name="shf" value="week" ${pref !== 'always' ? 'checked' : ''}><span><b>Share for ${SHARE_DAYS} days</b><br><small>Ends by itself on ${esc(endDate(Date.now() + SHARE_DAYS * DAY))}. You can extend it ${SHARE_DAYS} days at a time.</small></span></label>
+         <label><input type="radio" name="shf" value="always" ${pref === 'always' ? 'checked' : ''}><span><b>Keep it always</b><br><small>Until you stop sharing.</small></span></label>
+       </div>
        <p style="color:var(--muted);font-size:14px">Anyone with the link can open it. Listeners can play, loop and change the speed, but can't write, change or record anything.</p>`;
   const acts = sh
     ? [{ label: 'Stop sharing', value: 'stop', danger: true }, { label: 'Download file', value: 'file' }].concat(stale ? [{ label: 'Close', value: null }, { label: 'Update', value: 'pub', primary: true }] : [{ label: 'Done', value: null, primary: true }])
     : [{ label: 'Cancel', value: null }, { label: 'Download file', value: 'file' }, { label: 'Publish link', value: 'pub', primary: true }];
   const cp = box.querySelector('[data-copy]'); if (cp) cp.onclick = () => copyLink(sh.url);
+  const ex = box.querySelector('[data-ext]'); if (ex) ex.onclick = () => closeDialog('ext');
   const v = await dialog({ title: 'Share the player', node: box, actions: acts });
   if (v === 'file') return downloadPlayer();
   if (v === 'stop') return stopSharing();
+  if (v === 'ext') return extendSharing();
   if (v !== 'pub') return;
+  let until = null;
+  if (!sh) {   // a new link: 7 days, or always
+    const mode = (box.querySelector('input[name=shf]:checked') || {}).value || 'week';
+    if (mode === 'week') until = Date.now() + SHARE_DAYS * DAY;
+    LS.set('shareFor', mode);
+  }
   if (!Publish.ready() && !(await Publish.setup())) return;
   const id = note.id;
   let share;
-  try { share = await Publish.publish(note, msg => toast(msg, 60000)); }
+  try { share = await Publish.publish(note, msg => toast(msg, 60000), until, note.lastSlug); }
   catch (e) { $('#toast').classList.remove('show'); dialog({ title: 'Could not publish', html: `<p>${esc(e.message || e)}</p>` }); return; }
   if (!note || note.id !== id) return;
-  note.share = share; dirty = true; await flushSave();
+  note.share = share; delete note.lastSlug; dirty = true; await flushSave();
   toast('Published. GitHub is putting it online…', 4000);
   const done = document.createElement('div');
-  done.innerHTML = `<p style="margin-top:0">Your player is published at:</p><p class="sharelink"><a href="${esc(share.url)}" target="_blank" rel="noopener">${esc(share.url)}</a></p><p id="liveMsg" style="color:var(--muted);font-size:14px">GitHub usually takes about a minute to put it online. You can copy the link now.</p>`;
+  done.innerHTML = `<p style="margin-top:0">Your player is published at:</p><p class="sharelink"><a href="${esc(share.url)}" target="_blank" rel="noopener">${esc(share.url)}</a></p><p class="shareuntil">${share.until ? `Shared until <b>${esc(endDate(share.until))}</b>. Then the link stops by itself.` : 'Shared always, until you stop sharing.'}</p><p id="liveMsg" style="color:var(--muted);font-size:14px">GitHub usually takes about a minute to put it online. You can copy the link now.</p>`;
   const live = Publish.waitLive(share.url, s => { const el = done.querySelector('#liveMsg'); if (el) el.textContent = `Putting it online… ${s} s`; })
     .then(ok => { const el = done.querySelector('#liveMsg'); if (el) el.innerHTML = ok ? '<b>The link is live.</b> Anyone with it can open the player.' : 'GitHub is taking longer than usual. The link will work shortly.'; });
   const canShare = !!navigator.share;
@@ -3449,12 +3545,23 @@ async function sharePlayer() {
   else if (w === 'share') navigator.share({ title: note ? note.title : 'Notation', url: share.url }).catch(() => { });
   void live;
 }
+// Extend by 7 days from the current end (not from today), so extending early never loses time.
+async function extendSharing() {
+  const sh = note.share; if (!shareOpen(sh) || !sh.until) return;
+  if (!Publish.ready() && !(await Publish.setup())) return;
+  const id = note.id, until = sh.until + SHARE_DAYS * DAY, wasStale = note.updated - sh.at > 3000;
+  try { toast('Extending…', 30000); await Publish.extend(note, until); }
+  catch (e) { $('#toast').classList.remove('show'); dialog({ title: 'Could not extend', html: `<p>${esc(e.message || e)}</p>` }); return; }
+  if (!note || note.id !== id) return;
+  note.share = { ...sh, until, ...(wasStale ? {} : { at: Date.now() }) }; dirty = true; await flushSave();
+  toast(`Extended. Now shared until ${endDate(until)}.`, 5000);
+}
 async function stopSharing() {
   const sh = note.share;
-  const ok = await dialog({ title: 'Stop sharing?', html: `<p>The link <b>${esc(sh.url)}</b> stops working within a minute or two, and the player is removed from the <b>shared</b> folder on GitHub.</p><p style="color:var(--muted);font-size:14px">Your note isn't changed. GitHub keeps a record of past versions in the repository's history, as it does for every change.</p>`, actions: [{ label: 'Cancel', value: false }, { label: 'Stop sharing', value: true, danger: true }] });
+  const ok = await dialog({ title: 'Stop sharing?', html: `<p>The link <b>${esc(sh.url)}</b> stops working within a minute or two: the player, its pages and its recordings are removed from the <b>shared</b> folder on GitHub, and anyone who opens the link sees <i>This link has ended</i>. Share again later and the same link comes back.</p><p style="color:var(--muted);font-size:14px">Your note isn't changed. GitHub keeps a record of past versions in the repository's history, as it does for every change.</p>`, actions: [{ label: 'Cancel', value: false }, { label: 'Stop sharing', value: true, danger: true }] });
   if (!ok) return;
   if (!Publish.ready() && !(await Publish.setup())) return;
-  try { toast('Removing…', 30000); await Publish.unpublish(sh); }
+  try { toast('Removing…', 30000); await Publish.unpublish(sh, note.title); }
   catch (e) { $('#toast').classList.remove('show'); dialog({ title: 'Could not stop sharing', html: `<p>${esc(e.message || e)}</p>` }); return; }
   delete note.share; dirty = true; await flushSave(); toast('Sharing stopped.');
 }
@@ -4207,7 +4314,7 @@ const Versions = (() => {
    version.json on GitHub names the newest build. When it differs from this one, the
    version chip offers "Update to …". Updating clears only Notation's stored app files
    and reloads; notes, recordings, folders and the Drive connection are untouched. */
-const APP_VERSION = '0.42', APP_BUILD = '1a11150af0';
+const APP_VERSION = '0.43', APP_BUILD = 'e0f6214fc9';
 const Updates = (() => {
   let latest = null, last = 0;
   const chip = () => $('#verChip');
@@ -4297,7 +4404,9 @@ $('#btnLib').onclick = openTemplateLibrary;
   const shared = ($('#shared-note').textContent || '').trim();
   if (shared) {
     viewer = true; document.body.classList.add('viewer');
-    try { const d = JSON.parse(shared); if (d.lead != null) lead = d.lead; note = await dataToNote(d); showEditor(); booted = true; }
+    let d = null; try { d = JSON.parse(shared); } catch (e) { }
+    if (d && await watchShareEnd(d)) return;   // a time-bound link past its end
+    try { if (d.lead != null) lead = d.lead; note = await dataToNote(d); showEditor(); booted = true; }
     catch (e) { document.body.innerHTML = '<p style="padding:40px;font-family:sans-serif">This shared note could not be read.</p>'; }
     return;
   }

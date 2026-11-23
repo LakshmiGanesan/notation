@@ -118,8 +118,9 @@ https://lakshmiganesan.github.io/notation/shared/sami-ninne-kori/
 
 - **Anyone with the link can open it.** It plays the recordings and shows the pages with your ink and bookmarks. Nothing can be written, changed or recorded.
 - **The address comes from the title** (accents dropped; a short code for titles in other scripts), and stays the same when you **Update** the player after editing the note. Notes with the same title get `-2`, `-3`…
-- **Shared notes wear a saffron *Shared* badge** in your library. Tap the badge to copy the link.
-- **Stop sharing** removes the player, and the link stops working within a minute or two. Git keeps past versions in the repository history.
+- **How long:** when you publish, choose **Share for 7 days** or **Keep it always**. A 7-day link shows its end date, and **Extend 7 days** (in the note's Share dialog) adds another week to that end date, as often as you like. If you don't extend it, the link ends by itself: from that minute, anyone who opens it sees the note's title and *This link has ended. Contact Lakshmi if you'd like it extended.* Within a day the player, its pages and its recordings are removed from `shared/`, and that small card stays at the address, so an old link never shows an error page. **Update** after editing keeps the same end date. To share an ended note again, publish it afresh; it gets its old address back.
+- **Shared notes wear a saffron *Shared* badge** in your library, with the days left on a 7-day link (*Shared · 5 days*, *Shared · ends today*). Tap the badge to copy the link.
+- **Stop sharing** (any time, before the end) removes the player, its pages and its recordings within a minute or two, and leaves the same *This link has ended* card at the address. Sharing the note again brings back the same link. Git keeps past versions in the repository history.
 - Players ask search engines not to list them, but the repository is public, so treat anything you share as public.
 - GitHub takes about a minute to put a new or updated player online. Each recording can be up to 100 MB.
 
@@ -151,7 +152,9 @@ Notation is in active, personal development. Features and storage formats may st
 | `lib/lame/` | The MP3 encoder used when downloading a recording as MP3 ([LAME](https://lame.sourceforge.io/), via lamejs, LGPL; unmodified, loaded only when needed; licence in `lib/lame/LICENSE.txt`) |
 | `icons/`, `manifest.webmanifest` | App icon and install details |
 | `sw.js` | Offline support |
-| `shared/` | Players published from Notation with Share → Publish link, one folder per note |
+| `shared/` | Players published from Notation with Share → Publish link, one folder per note; each `share.json` holds the link's end date (or none, for *Keep it always*) |
+| `.github/workflows/end-shares.yml`, `.github/ended.html` | Runs once a day on GitHub (about 3:23 am India time): replaces each shared player whose time is up with the small *This link has ended* card |
+| `404.html` | The page shown for any address that isn't on the site, in Notation's style |
 
 ## Copyright
 
