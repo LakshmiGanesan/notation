@@ -283,7 +283,18 @@ body.fingers .page canvas.fx{touch-action:none}
 @keyframes shr{0%,100%{transform:rotate(0)}50%{transform:rotate(-4deg)}}
 .shrmore{height:46px;border-radius:0 23px 23px 0;border:1px solid var(--line);background:var(--card);display:inline-flex;align-items:center;gap:5px;padding:0 12px 0 10px;font-weight:600;font-variant-numeric:tabular-nums;white-space:nowrap;flex:none;color:inherit;cursor:pointer;margin-left:-10px}
 .shrmore svg{width:14px;height:14px;opacity:.6}.shrtun{font-size:12px;font-weight:600;color:var(--muted)}
-@media (max-width:1000px){#pShrLbl{display:none}.shrbtn{padding:0 8px 0 12px}#pAudio{font-size:0;gap:0}#pAudio svg{margin:0}.recbtn{padding:0 12px 0 10px}#pLoop{font-size:0;gap:0}.player{gap:7px}.skipbtn{width:36px;height:36px;margin:0 -3px}.skipbtn svg{width:24px;height:24px}.player .time{min-width:0}.track{min-width:60px}}
+@media (max-width:1000px){#pShrLbl{display:none}#pTalLbl{display:none}.tkof{display:none}.player .tot{display:none}.talbtn{padding:0 8px 0 10px}.talmore{padding:0 8px 0 6px}.shrbtn{padding:0 8px 0 12px}.recbtn{padding:0 12px 0 10px}#pLoop{font-size:0;gap:0}.player{gap:7px}.skipbtn{width:36px;height:36px;margin:0 -3px}.skipbtn svg{width:24px;height:24px}.player .time{min-width:0}.track{min-width:60px}.player .time{flex:none}.player{gap:6px}.player .track{min-width:64px}#pShrMore svg{display:none}#pShrMore{padding:0 10px 0 9px}.talmore{padding:0 7px 0 5px}.recbtn{gap:6px}}
+@media (min-width:1001px) and (max-width:1240px){.player{gap:8px}}
+#sTalB{accent-color:#4f8657}.shrpop.talpop input[type=range]{accent-color:#4f8657}.talpop .big b{font-size:20px}
+.talmore{height:46px;border-radius:0 23px 23px 0;border:1px solid var(--line);background:var(--card);display:inline-flex;align-items:center;padding:0 10px 0 8px;flex:none;color:inherit;cursor:pointer;margin-left:-10px}.talmore svg{width:14px;height:14px;opacity:.6}
+.talbtn{height:46px;border-radius:23px 0 0 23px;border:1px solid var(--line);border-right:0;background:var(--card);display:inline-flex;align-items:center;gap:6px;padding:0 13px 0 11px;font-weight:600;white-space:nowrap;flex:none;color:inherit;cursor:pointer}
+.talbtn svg{width:24px;height:24px;color:#4f8657;overflow:visible}.talbtn .hand{transform-box:fill-box;transform-origin:0% 50%}
+.talbtn.on{background:#4f8657;color:#fff;border-color:#4f8657}.talbtn.on svg{color:#fff}.talbtn:not(.on) .mo{opacity:.35}
+.talbtn svg.tk .hand{animation:talTk .22s ease-out}.talbtn svg.sam .hand{animation:talSam .3s ease-out}.talbtn svg.sam .mo{animation:talMo .3s ease-out}
+@keyframes talTk{0%{transform:translateY(0)}35%{transform:translateY(2px)}100%{transform:translateY(0)}}
+@keyframes talSam{0%{transform:translateY(0) rotate(0)}35%{transform:translateY(3.2px) rotate(3deg)}100%{transform:translateY(0) rotate(0)}}
+@keyframes talMo{0%{opacity:.6}30%{opacity:1}100%{opacity:.6}}
+@media (prefers-reduced-motion:reduce){.talbtn svg.tk .hand,.talbtn svg.sam .hand,.talbtn svg.sam .mo{animation:none}}
 .shrpop{width:268px}.shrpop .big{display:flex;align-items:center;justify-content:space-between;margin:2px 0 12px}.shrpop .big b{font-size:26px;font-variant-numeric:tabular-nums}.shrpop .big small{color:var(--muted);font-size:13px;display:block}
 .shrpop .row{display:flex;align-items:center;gap:10px;margin:10px 0 2px}.shrpop .row>span:first-child{width:62px;font-size:13px;color:var(--muted)}.shrpop input[type=range]{flex:1;accent-color:#8a5a2b}
 .shrpop .seg button{min-width:58px}.shrpop .note{font-size:12px;color:var(--muted);margin-top:10px;line-height:1.4}
@@ -446,7 +457,7 @@ body.viewer .viewer-only{display:inline-flex}
       <p class="tagline">Write your notation, record the lesson, and let every mark sing back.</p>
     </div>
     <div class="lib-actions">
-      <button class="btn verchip" id="verChip" title="Notation version · tap to check for updates">v0.43</button>
+      <button class="btn verchip" id="verChip" title="Notation version · tap to check for updates">v0.44</button>
       <button class="btn drivechip" id="driveChip" title="Google Drive sync"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M7 18h10.5a4.5 4.5 0 0 0 .6-8.96A6 6 0 0 0 6.6 9.2 4.4 4.4 0 0 0 7 18z"/></svg><span>Google Drive</span></button>
       <button class="btn" id="btnLib" title="Notation templates and covers"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="7" height="16" rx="1.5"/><rect x="12" y="4" width="4" height="16" rx="1"/><path d="M18 5.5l3 .8-3.6 13.4-3-.8"/></svg>Templates</button>
       <button class="btn" id="btnImport" title="Open a shared .html note"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v12m0 0-4-4m4 4 4-4"/><path d="M4 17v2a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-2"/></svg>Open shared note</button>
@@ -500,16 +511,17 @@ body.viewer .viewer-only{display:inline-flex}
     <button class="recbtn edit-only" id="pRec" title="Record"><svg class="mic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="3" width="6" height="11" rx="3"/><path d="M5.5 11a6.5 6.5 0 0 0 13 0M12 17.5V21M8.5 21h7"/></svg><span class="rd"></span><span id="pRecLbl">REC</span></button>
     <button class="shrbtn edit-only" id="pShruti" title="Shruti: tap to play or stop the tambura"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2.5v9.2"/><path d="M10.6 2.5h2.8"/><path d="M10.4 5.2h3.2M10.4 7.6h3.2" opacity=".55"/><path d="M10.3 11.7h3.4l.7 1.6"/><ellipse cx="12" cy="17.2" rx="5.6" ry="4.4"/><path d="M10.2 15.4l.2 3.8M12 15.2v4.1M13.8 15.4l-.2 3.8" opacity=".6"/></svg><span id="pShrLbl">Śruti</span></button>
     <button class="shrmore edit-only" id="pShrMore" title="Shruti: Pa or Ma, and volume"><span id="pShrPitch">4</span><span class="shrtun" id="pShrTun">Pa</span><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M7 14l5-5 5 5"/></svg></button>
+    <button class="talbtn edit-only" id="pTalam" aria-pressed="false" title="Tāḷam: tap to play or stop"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><g class="hand"><path d="M2.5 10.2c3.4-.6 6.6-2 10.6-1.7l6.6.9c1.9.3 2.4 3 .7 4l-5.2 2c-2.6 1-5.6 1.2-8.2.4l-4.5-.5"/><path d="M13.6 11.6l6.6.6M13.2 13.9l5.2.1" opacity=".7"/><path d="M8.6 15.9c.5 1.4 2.1 2 3.7 1.5"/></g><path class="mo" d="M7 5.2L6.2 3.6M11 4.4V2.6M15 5.2l.8-1.6" opacity=".6"/><path d="M2.5 21h19"/></svg><span id="pTalLbl">Tāḷam</span></button>
+    <button class="talmore edit-only" id="pTalMore" title="Tāḷam: volume" aria-label="Tāḷam volume"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M7 14l5-5 5 5"/></svg></button>
     <button class="skipbtn" id="pBack" disabled title="Back 10 seconds (←)" aria-label="Back 10 seconds"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M2.5 4.5v5h5"/><path d="M4.4 14.5a8.2 8.2 0 1 0 1.9-8.6L2.5 9.5"/><text x="12.6" y="15.4" text-anchor="middle">10</text></svg></button>
     <button class="playbtn" id="pPlay" disabled title="Play / pause"></button>
     <button class="skipbtn" id="pFwd" disabled title="Forward 10 seconds (→)" aria-label="Forward 10 seconds"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M21.5 4.5v5h-5"/><path d="M19.6 14.5a8.2 8.2 0 1 1-1.9-8.6L21.5 9.5"/><text x="11.4" y="15.4" text-anchor="middle">10</text></svg></button>
-    <div class="time" id="pTime"><b>0:00</b> / 0:00</div>
+    <div class="time" id="pTime"><b>0:00</b><span class="tot"> / 0:00</span></div>
     <div class="track" id="pTrack"><div class="rail"></div><div class="fill"></div><div id="pTicks"></div><div class="knob"></div></div>
     <button class="pill hidden" id="pTakes" title="Recordings: choose, order and name them"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M4 6h11M4 12h11M4 18h7"/><path d="M18 9v9" /><circle cx="16.5" cy="18" r="1.8"/></svg><span id="pTakesLbl">01</span></button>
     <button class="pill" id="pSpeed" title="Playback speed">1×</button>
     <button class="pill" id="pLoop" title="Loop the current bookmarked passage"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 2l3 3-3 3"/><path d="M4 11V9a4 4 0 0 1 4-4h12"/><path d="M7 22l-3-3 3-3"/><path d="M20 13v2a4 4 0 0 1-4 4H4"/></svg><span class="hide-sm">Loop</span></button>
     <button class="pill on hide-sm" id="pFollow" title="Scroll to follow the playing passage">Follow</button>
-    <button class="pill edit-only" id="pAudio" title="Import an audio file"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v12m0 0-4-4m4 4 4-4"/><path d="M4 19h16"/></svg><span class="hide-sm">Audio</span></button>
   </footer>
 </section>
 
@@ -996,7 +1008,7 @@ function updateTime() {
   let ct, d;
   if (rec) { ct = (performance.now() - rec.start) / 1000; d = ct; $('#pTime').innerHTML = `<b style="color:var(--rec)">● ${fmt(ct)}</b>`; setKnob(1); return; }
   ct = audioEl.currentTime || 0; d = audioDur();
-  $('#pTime').innerHTML = `<b>${fmt(ct)}</b> / ${fmt(d)}`;
+  $('#pTime').innerHTML = `<b>${fmt(ct)}</b><span class="tot"> / ${fmt(d)}</span>`;
   setKnob(d ? ct / d : 0);
 }
 function setKnob(f) { f = clamp(f, 0, 1); $('#pTrack .fill').style.width = (f * 100) + '%'; $('#pTrack .knob').style.left = (f * 100) + '%'; }
@@ -1011,10 +1023,10 @@ function updatePlayer() {
   const pb = $('#pPlay'); pb.disabled = !has || !!rec; pb.innerHTML = (!audioEl.paused && has) ? ICON_PAUSE : ICON_PLAY;
   $('#pSpeed').disabled = !has; $('#pLoop').disabled = !has; $('#pBack').disabled = $('#pFwd').disabled = !has || !!rec;
   const rb = $('#pRec'); rb.classList.toggle('live', !!rec); $('#pRecLbl').textContent = rec ? 'STOP' : (has ? 'REC +' : 'REC'); rb.title = rec ? 'Stop recording' : (has ? 'Record more' : 'Record');
-  $('#pAudio').disabled = !!rec;
   const tk = $('#pTakes'), n = note && note.takes ? note.takes.length : 0;
-  tk.classList.toggle('hidden', !n || (n < 2 && viewer)); tk.disabled = !!rec;
-  if (n) $('#pTakesLbl').textContent = rec ? `${takeNo(n)} · new` : `${takeNo(Math.max(0, takeIdx(curTake)))} of ${takeNo(n - 1)}`;
+  tk.classList.toggle('hidden', viewer ? n < 2 : !note); tk.disabled = !!rec;   // 0.44: shown from the start in your own notes; audio files come in through it
+  if (!n) $('#pTakesLbl').innerHTML = rec ? '01<span class="tkof"> · new</span>' : '00';
+  else $('#pTakesLbl').innerHTML = rec ? `${takeNo(n)}<span class="tkof"> · new</span>` : `${takeNo(Math.max(0, takeIdx(curTake)))}<span class="tkof"> of ${takeNo(n - 1)}</span>`;   // portrait shows just the number (0.44)
   renderTicks(); updateTime();
 }
 // scrubbing
@@ -1067,7 +1079,7 @@ const RecQ = {
     return /built-?in|internal|\b(ipad|iphone|macbook|imac|mac mini|mac studio|mac pro)\b/i.test(l);
   },
   lift: (mic, db) => { const m = LS.get('rec.lift', {}) || {}; if (db === undefined) return m[mic || '-'] || 0; m[mic || '-'] = db; LS.set('rec.lift', m); },
-  describe(q) { return q ? [q.sr ? `${Math.round(q.sr / 100) / 10} kHz` : '', q.ch === 2 ? 'stereo' : q.ch === 1 ? 'mono' : '', q.kbps ? `${q.kbps} kbps` : '', q.mic, q.lift ? `level +${q.lift} dB` : '', q.shruti ? 'with śruti' : ''].filter(Boolean).join(' · ') : ''; },
+  describe(q) { return q ? [q.sr ? `${Math.round(q.sr / 100) / 10} kHz` : '', q.ch === 2 ? 'stereo' : q.ch === 1 ? 'mono' : '', q.kbps ? `${q.kbps} kbps` : '', q.mic, q.lift ? `level +${q.lift} dB` : '', q.shruti ? 'with śruti' : '', q.talam ? `tāḷam ${q.talam}` : ''].filter(Boolean).join(' · ') : ''; },
   async mics() { try { return (await navigator.mediaDevices.enumerateDevices()).filter(d => d.kind === 'audioinput'); } catch (e) { return []; } },
 };
 /* ---------------- Śruti: a tambura beside the record button ----------------
@@ -1085,7 +1097,7 @@ const Shruti = (() => {
     { id: '6', k: '6', note: 'A3', midi: 57 }, { id: '65', k: '6½', note: 'A♯3', midi: 58 }, { id: '7', k: '7', note: 'B3', midi: 59 },
   ];
   const TUN = { pa: { name: 'Pa', ratio: 3 / 4 }, ma: { name: 'Ma', ratio: 2 / 3 } };
-  const DRONE_UNDER = { off: 0, soft: 0.1, medium: 0.18 };   // built-in mics: śruti relative to the voice (−20 / −15 dB, 0.36)
+  const DRONE_UNDER = { off: 0, soft: 0.07, medium: 0.13 };  // built-in mics: śruti relative to the voice (−23 / −18 dB; 0.44, beneath the tāḷam)
   const REC_FIXED = { off: 0, soft: 0.35, medium: 0.6 };     // external mics: share of the playing volume, as in 0.31–0.33 (0.37)
   const DEF = { kattai: '4', tuning: 'pa', vol: 0.55, inRec: 'soft', cents: 0, cycle: 4.2, jivari: 0.45 };
   const st = { ...DEF, ...LS.get('shruti', {}) };
@@ -1209,11 +1221,12 @@ const Shruti = (() => {
     // Mellow (0.36): her ear found the tambura sharp. Two gentle stages after the engine, which stays as it
     // is: a soft low-pass that rounds off the jivāri's top and the fingertip tick of each pluck, and a shelf
     // that lowers the 2.5 kHz-and-up region the ear hears as harsh. The body of Sa and Pa is untouched.
-    const soft1 = ctx.createBiquadFilter(); soft1.type = 'lowpass'; soft1.frequency.value = 3200; soft1.Q.value = 0.5;
-    const soft2 = ctx.createBiquadFilter(); soft2.type = 'highshelf'; soft2.frequency.value = 1800; soft2.gain.value = -6;
+    const soft1 = ctx.createBiquadFilter(); soft1.type = 'lowpass'; soft1.frequency.value = 2600; soft1.Q.value = 0.5;   // 0.44: 3200 → 2600 Hz
+    const soft2 = ctx.createBiquadFilter(); soft2.type = 'highshelf'; soft2.frequency.value = 1500; soft2.gain.value = -9;   // 0.44: gentler still
     master.connect(hp); hp.connect(warm); warm.connect(air); air.connect(soft1); soft1.connect(soft2);
     soft2.connect(dry); soft2.connect(conv); conv.connect(wet);
-    out = ctx.createGain(); dry.connect(comp); wet.connect(comp); comp.connect(out); out.connect(ctx.destination);
+    out = ctx.createGain(); out.gain.value = 0.7; dry.connect(comp);   // 0.44: about 3 dB softer, so the tāḷam sits above it
+     wet.connect(comp); comp.connect(out); out.connect(ctx.destination);
     return ctx;
   }
   // iPad and iPhone: play even with the silent switch on, and wake the audio inside the tap
@@ -1225,7 +1238,7 @@ const Shruti = (() => {
     v.setUint32(24, sr, true); v.setUint32(28, sr * 2, true); v.setUint16(32, 2, true); v.setUint16(34, 16, true); w(36, 'data'); v.setUint32(40, n * 2, true);
     return URL.createObjectURL(new Blob([buf], { type: 'audio/wav' }));
   }
-  function session() { try { if (navigator.audioSession && !rec) navigator.audioSession.type = playing ? 'playback' : 'auto'; } catch (e) { } }
+  function session() { try { if (navigator.audioSession && !rec) navigator.audioSession.type = (playing || (typeof Talam !== 'undefined' && Talam.isPlaying())) ? 'playback' : 'auto'; } catch (e) { } }
   function unlock() {
     ensureCtx(); session();
     try { if (!silentEl) { silentEl = new Audio(silentWavURL()); silentEl.loop = true; silentEl.setAttribute('playsinline', ''); } const pr = silentEl.play(); if (pr && pr.catch) pr.catch(() => { }); } catch (e) { }
@@ -1238,25 +1251,54 @@ const Shruti = (() => {
   }
   function pluck(i, when) {
     const src = ctx.createBufferSource(); src.buffer = buffers[i]; src.playbackRate.value = 1 + (Math.random() - 0.5) * 0.0006;
-    const g = ctx.createGain(); g.gain.setValueAtTime([0.6, 0.52, 0.5, 0.7][i] * (0.92 + Math.random() * 0.08), when);
+    // 0.44: each string swells in over 20 ms instead of striking at once, so the pluck is a soft stroke, not a snap
+    const g = ctx.createGain(); g.gain.setValueAtTime(0, when); g.gain.linearRampToValueAtTime([0.6, 0.52, 0.5, 0.7][i] * (0.92 + Math.random() * 0.08), when + 0.02);
     const pan = ctx.createStereoPanner ? ctx.createStereoPanner() : null;
     if (pan) { pan.pan.value = [-0.22, -0.07, 0.07, 0.22][i]; src.connect(g); g.connect(pan); pan.connect(master); } else { src.connect(g); g.connect(master); }
     const prev = last[i]; if (prev) { try { prev.g.gain.setTargetAtTime(0, when, 0.03); prev.src.stop(when + 0.3); } catch (e) { } }
-    src.start(when); last[i] = { src, g };
+    src.start(when); last[i] = { src, g }; if (window.__nlog) window.__nlog.push(['s', i, when]);   // timing log, for tests only
+  }
+  // With the Tāḷam playing (0.44), the tambura keeps time with it: its round of four strings divides the
+  // āvartanam evenly (as close to your cycle setting as it can), so Pa, the first string, falls on samam,
+  // and each string is placed on the half-count grid, so a pluck never lands just beside a count of the
+  // tāḷam. On its own the tambura keeps its free cycle, as before.
+  let syncKey = null, rLen = st.cycle, offs = PATTERN.map(p => p * st.cycle), fresh = false;
+  function planFor(ck) {
+    let k = Math.max(1, Math.round(ck.A / st.cycle)); while (k > 1 && ck.A / k < 2.4) k--;
+    const R = ck.A / k, g = ck.spc / 2, o = PATTERN.map(p => Math.round(p * R / g) * g);
+    for (let i = 1; i < 4; i++) if (o[i] <= o[i - 1]) o[i] = o[i - 1] + g;
+    return o[3] < R - g * 0.5 ? { R, o } : { R, o: PATTERN.map(p => p * R) };
   }
   function scheduler() {
     if (!buffers || !playing) return;
+    const ck = typeof Talam !== 'undefined' ? Talam.clock() : null;
+    if (ck) {
+      const key = ck.gen + '|' + st.cycle;
+      if (key !== syncKey) {
+        syncKey = key; ({ R: rLen, o: offs } = planFor(ck));
+        const now = ctx.currentTime + 0.005;   // a samam just ahead still gets its Pa
+        cycleStart = ck.sam + Math.floor((now - ck.sam) / rLen) * rLen; step = 0;
+        while (cycleStart + offs[step] < now) { step++; if (step === 4) { step = 0; cycleStart += rLen; } }
+        // just switched on: if the next round is about to begin, start the strumming with it, on Pa
+        if (fresh && step !== 0 && cycleStart + rLen - now < 1.5) { cycleStart += rLen; step = 0; }
+        nextTime = cycleStart + offs[step];
+      }
+    } else {
+      if (syncKey !== null) { syncKey = null; nextTime = Math.max(ctx.currentTime + 0.05, cycleStart + offs[step]); }
+      rLen = st.cycle; offs = PATTERN.map(p => p * st.cycle);
+    }
+    fresh = false;
     while (nextTime < ctx.currentTime + 0.15) {
-      pluck(step, nextTime + (Math.random() - 0.5) * 0.012); step++;
-      if (step === 4) { step = 0; cycleStart += st.cycle; }
-      nextTime = cycleStart + PATTERN[step] * st.cycle;
+      pluck(step, nextTime + (ck ? (step ? (Math.random() - 0.5) * 0.006 : 0) : (Math.random() - 0.5) * 0.012)); step++;
+      if (step === 4) { step = 0; cycleStart += rLen; }
+      nextTime = cycleStart + offs[step];
     }
   }
   async function start() {
     unlock(); playing = true; ui();
     try { if (ctx.state !== 'running') await ctx.resume(); } catch (e) { }
     if (!buffers) await rebuild(); if (!playing) return;
-    cycleStart = ctx.currentTime + 0.08; step = 0; nextTime = cycleStart;
+    cycleStart = ctx.currentTime + 0.08; step = 0; nextTime = cycleStart; syncKey = null; fresh = true;
     clearInterval(timer); timer = setInterval(scheduler, 25); scheduler(); if (recTap) heard = true;
   }
   function stop() {
@@ -1275,12 +1317,13 @@ const Shruti = (() => {
   // and far away, so they get the automatic lift and the śruti follows the voice. An external mic (her Blue
   // Yeti) is set up close and at a good gain, so it is recorded as it is, the 0.32–0.33 chain she found
   // "crystal clear": nothing lifts its hiss or the room, and the śruti is a fixed, gentle bed beneath.
-  function mixInto(mic, chIn, micName, builtIn) {
+  function mixInto(mic, chIn, micName, builtIn, inLat) {
     try {
       ensureCtx(); if (ctx.state !== 'running') ctx.resume();
       const drone = st.inRec !== 'off', music = RecQ.mode() !== 'voice', boost = music && builtIn, follow = drone && builtIn;
       const dest = ctx.createMediaStreamDestination(), src = ctx.createMediaStreamSource(mic), nodes = [src];
-      dest.channelCount = drone ? 2 : Math.max(1, Math.min(2, chIn || 1));
+      const tal = Talam.recInto(dest, builtIn, inLat);   // the tāḷam, the other half of the bed (0.44)
+      dest.channelCount = drone || tal ? 2 : Math.max(1, Math.min(2, chIn || 1));
       const meter = ctx.createAnalyser(); meter.fftSize = 1024; src.connect(meter); nodes.push(meter);
       let tail = src;
       if (music) {
@@ -1319,7 +1362,7 @@ const Shruti = (() => {
       const pb = new Float32Array(pre.fftSize), db = dAn ? new Float32Array(dAn.fftSize) : null;
       const hist = new Float32Array(200), dHist = new Float32Array(20), t0 = performance.now(); let hi = 0, di = 0, last = t0;
       const pkOf = (an, b) => { an.getFloatTimeDomainData(b); let pk = 0; for (let i = 0; i < b.length; i++) { const a = Math.abs(b[i]); if (a > pk) pk = a; } return pk; };
-      const rider = (boost || follow) && setInterval(() => {
+      const rider = (boost || follow || tal) && setInterval(() => {
         const now = performance.now(), dt = (now - last) / 1000; last = now;
         hist[hi++ % hist.length] = pkOf(pre, pb);
         const act = []; for (let i = 0; i < hist.length; i++) if (hist[i] > 0.0015) act.push(hist[i]);
@@ -1344,16 +1387,18 @@ const Shruti = (() => {
           const tg = dl > 1e-4 ? Math.min(2, voice * ratio / dl) : 0;
           tap.gain.setTargetAtTime(tg, ctx.currentTime, 0.4);
         }
+        if (tal) tal.follow(lvl ? Math.min(0.8, lvl * g) : 0.15);
       }, 50);
       const buf = new Float32Array(meter.fftSize), pbuf = new Float32Array(post.fftSize), peak = pkOf;
       const dB = () => Math.max(0, Math.round(20 * Math.log10(g)));
-      return { stream: dest.stream, ch: dest.channelCount, drone, get heard() { return drone && heard; },
+      return { stream: dest.stream, ch: dest.channelCount, drone, get heard() { return drone && heard; }, tal,
         level() { return peak(meter, buf); },          // the microphone itself (for the clipping warning)
         shown() { return peak(post, pbuf); },          // what is being recorded (for the level light)
         get lift() { return dB(); },
         end() {
           if (rider) clearInterval(rider); if (boost) RecQ.lift(micName, dB());
           if (dAn) { try { out.disconnect(dAn); } catch (e) { } }
+          if (tal) tal.end();
           nodes.forEach(n => { try { n.disconnect(); } catch (e) { } }); if (tap) { try { out.disconnect(tap); tap.disconnect(); } catch (e) { } if (recTap === tap) recTap = null; } } };
     } catch (e) { return null; }
   }
@@ -1379,13 +1424,13 @@ const Shruti = (() => {
     return `<h6 class="sgrp">Śruti</h6>
     <div class="field"><span>Pitch<br><small style="color:var(--muted)">Your śruti; the tambura always starts here</small></span><select class="tinput gsel" id="sShrK">${KATTAI.map(x => `<option value="${x.id}"${x.id === st.kattai ? ' selected' : ''}>${x.k} · ${x.note}</option>`).join('')}</select></div>
     <div class="field"><span>Tuning</span><span class="seg" id="sShrT">${Object.entries(TUN).map(([k, t]) => `<button data-v="${k}" class="${st.tuning === k ? 'on' : ''}">${t.name === 'Pa' ? 'Panchama' : 'Madhyama'}</button>`).join('')}</span></div>
-    <div class="field"><span>In recordings<br><small style="color:var(--muted)">Mixed under your voice, never above it</small></span><span class="seg" id="sShrR">${[['off', 'Off'], ['soft', 'Soft'], ['medium', 'Medium']].map(([v, l]) => `<button data-v="${v}" class="${st.inRec === v ? 'on' : ''}">${l}</button>`).join('')}</span></div>
-    <details class="adv"><summary>Advanced tuning</summary>
+    <div class="field"><span>In recordings<br><small style="color:var(--muted)">Off: you still hear it, but it isn't recorded</small></span><span class="seg" id="sShrR">${[['off', 'Off'], ['soft', 'Soft'], ['medium', 'Medium']].map(([v, l]) => `<button data-v="${v}" class="${st.inRec === v ? 'on' : ''}">${l}</button>`).join('')}</span></div>
+    <details class="adv"><summary>Advanced śruti settings</summary>
       <div class="field"><span>Fine tune<br><small style="color:var(--muted)" id="sShrCo">${st.cents > 0 ? '+' : ''}${st.cents} cents</small></span><input type="range" min="-50" max="50" step="1" value="${st.cents}" id="sShrC"></div>
       <div class="field"><span>Cycle<br><small style="color:var(--muted)" id="sShrYo">${(+st.cycle).toFixed(1)} s per round of four strings</small></span><input type="range" min="2.6" max="7" step="0.1" value="${st.cycle}" id="sShrY"></div>
       <div class="field"><span>Jivāri<br><small style="color:var(--muted)" id="sShrJo">${Math.round(st.jivari * 100)}% buzz from the bridge</small></span><input type="range" min="0" max="1" step="0.01" value="${st.jivari}" id="sShrJ"></div>
       <div class="field"><span>Volume<br><small style="color:var(--muted)" id="sShrVo">${Math.round(st.vol * 100)}%</small></span><input type="range" min="0" max="1" step="0.01" value="${st.vol}" id="sShrV"></div>
-      <div style="padding:8px 0"><button class="btn" id="sShrReset">Reset advanced tuning</button></div>
+      <div style="padding:8px 0"><button class="btn" id="sShrReset">Reset advanced śruti settings</button></div>
     </details>`;
   }
   function wireSettings(box) {
@@ -1407,7 +1452,205 @@ const Shruti = (() => {
   $('#pShrMore').onclick = e => { e.stopPropagation(); if (!$('#popover').classList.contains('hidden') && $('#popover .shrpop')) { closePopover(); return; } openPanel(); };
   document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'visible' && ctx && playing && ctx.state !== 'running') { try { ctx.resume(); } catch (e) { } } });
   ui();
-  return { start, stop, mixInto, session, settingsHtml, wireSettings, isPlaying: () => playing, state: st, KATTAI };
+  return { start, stop, mixInto, session, settingsHtml, wireSettings, isPlaying: () => playing, state: st, KATTAI, ctx: () => ensureCtx(), unlock };
+})();
+/* ---------------- Tāḷam: hands keeping the beat, beside the Śruti (0.44) ----------------
+   The sound is Lakshmi's Samam (lakshmiganesan.github.io/viswiz/samam) in its "Hands" voice: the clap,
+   the finger counts, the wave, the beats of the Chāpu tāḷas, the mridangam "tham" on samam, and the soft
+   nadai pulses. The sound functions are copied from samam.html unchanged; only their output goes into
+   Notation's own audio context (the Śruti's), so the tāḷam and the śruti together become the bed under
+   a recording. In the player it is one button, on or off; the tāḷa, laya and the rest live in Settings.
+   Eight tāḷas to begin with, the eight of the template library; more can be added to TALAS. */
+const Talam = (() => {
+  const TALAS = [
+    { id: 'adi', name: 'Ādi Tāḷam', short: 'Ādi', sub: 'Chaturaśra jāti Triputa · 4 + 2 + 2 = 8', angas: 'LDD', jati: 4 },
+    { id: 'rupaka', name: 'Rūpaka Tāḷam', short: 'Rūpaka', sub: 'Chaturaśra jāti Rūpaka · 2 + 4 = 6', angas: 'DL', jati: 4 },
+    { id: 'misra-chapu', name: 'Miśra Chāpu', short: 'Miśra Chāpu', sub: '3 + 4 (ta-ki-ta · ta-ka-di-mi) = 7', beats: [3, 2, 2] },
+    { id: 'khanda-chapu', name: 'Khaṇḍa Chāpu', short: 'Khaṇḍa Chāpu', sub: '2 + 3 (ta-ka · ta-ki-ta) = 5', beats: [2, 3] },
+    { id: 'viloma-chapu', name: 'Viloma Chāpu', short: 'Viloma Chāpu', sub: '4 + 3 (ta-ka-di-mi · ta-ki-ta) = 7', beats: [2, 2, 3] },
+    { id: 'tisra-triputa', name: 'Tisra Triputa', short: 'Tisra Triputa', sub: 'Tisra jāti Triputa · 3 + 2 + 2 = 7', angas: 'LDD', jati: 3 },
+    { id: 'khanda-triputa', name: 'Khaṇḍa Triputa', short: 'Khaṇḍa Triputa', sub: 'Khaṇḍa jāti Triputa · 5 + 2 + 2 = 9', angas: 'LDD', jati: 5 },
+    { id: 'misra-jhampa', name: 'Miśra Jhampa', short: 'Miśra Jhampa', sub: 'Miśra jāti Jhampa · 7 + 1 + 2 = 10', angas: 'LUD', jati: 7 },
+  ];
+  const NADAI = [{ n: 3, name: 'Tisra' }, { n: 4, name: 'Chaturaśra' }, { n: 5, name: 'Khaṇḍa' }, { n: 7, name: 'Miśra' }, { n: 9, name: 'Saṅkīrṇa' }];
+  const FINGERS = ['Little finger', 'Ring finger', 'Middle finger', 'Index finger', 'Thumb', 'Little finger', 'Ring finger', 'Middle finger'];
+  const UNDER = { off: 0, soft: 0.3, medium: 0.5 };       // built-in mics: tāḷam peaks relative to the voice's typical peaks (about −10 / −6 dB)
+  const REC_FIXED = { off: 0, soft: 0.45, medium: 0.7 };  // external mics: share of the playing volume, a little more than the śruti's (0.35 / 0.6), so the beat is heard over the drone
+  const DEF = { tala: 'adi', bpm: 60, pulses: false, nadai: 4, vol: 0.75, inRec: 'soft' };
+  const st = { ...DEF, ...LS.get('talam', {}) };
+  if (!TALAS.some(t => t.id === st.tala)) st.tala = DEF.tala;
+  if (!NADAI.some(x => x.n === st.nadai)) st.nadai = DEF.nadai;
+  st.bpm = Math.max(30, Math.min(140, +st.bpm || DEF.bpm));
+  const save = () => LS.set('talam', { tala: st.tala, bpm: st.bpm, pulses: st.pulses, nadai: st.nadai, vol: st.vol, inRec: st.inRec });
+  const cur = () => TALAS.find(t => t.id === st.tala);
+
+  // the cycle, as Samam's build() makes it in its Hands voice
+  function cycleOf(t) {
+    const c = [];
+    if (t.beats) t.beats.forEach(len => { for (let i = 0; i < len; i++) c.push({ kind: i ? 'hold' : 'beat', g: i ? 'Hold' : 'Beat' }); });
+    else [...t.angas].forEach(a => {
+      if (a === 'L') for (let i = 0; i < t.jati; i++) c.push({ kind: i ? 'finger' : 'clap', g: i ? FINGERS[i - 1] : 'Clap' });
+      else if (a === 'D') { c.push({ kind: 'clap', g: 'Clap' }); c.push({ kind: 'wave', g: 'Wave' }); }
+      else c.push({ kind: 'clap', g: 'Clap' });
+    });
+    return c;
+  }
+  let cycle = cycleOf(cur());
+
+  // ---- sounds: samam.html's noise(), tone(), mridangam() and SND, unchanged but for the output ----
+  let ac = null, nb = null, OUT = null, bus = null, out = null;
+  function ensure() {
+    if (ac) return ac;
+    ac = Shruti.ctx();
+    nb = ac.createBuffer(1, ac.sampleRate * .5, ac.sampleRate); const d = nb.getChannelData(0); for (let i = 0; i < d.length; i++) d[i] = Math.random() * 2 - 1;
+    bus = ac.createGain(); bus.gain.value = st.vol; out = ac.createGain(); bus.connect(out); out.connect(ac.destination); OUT = bus;
+    return ac;
+  }
+  function noise(t, f, q, dur, g) { const s = ac.createBufferSource(); s.buffer = nb; const bp = ac.createBiquadFilter(); bp.type = 'bandpass'; bp.frequency.value = f; bp.Q.value = q;
+    const G = ac.createGain(); G.gain.setValueAtTime(g, t); G.gain.exponentialRampToValueAtTime(.001, t + dur); s.connect(bp).connect(G).connect(OUT); s.start(t); s.stop(t + dur + .02); }
+  function tone(t, f, dur, g, type = 'sine', f2) { const o = ac.createOscillator(); o.type = type; o.frequency.setValueAtTime(f, t); if (f2) o.frequency.exponentialRampToValueAtTime(f2, t + dur);
+    const G = ac.createGain(); G.gain.setValueAtTime(g, t); G.gain.exponentialRampToValueAtTime(.001, t + dur); o.connect(G).connect(OUT); o.start(t); o.stop(t + dur + .02); }
+  // Samam: a synthesised mridangam "tham", the open right-head ring struck together with the deep left-head "thom"
+  function mridangam(t) {
+    const f0 = 196, b2 = ac.createGain(); b2.gain.value = .65; b2.connect(OUT);
+    [[1, .42, 1.1], [2, .26, .75], [3, .17, .5], [4, .10, .32], [5, .06, .22]].forEach(([h, g, d]) => {
+      const o = ac.createOscillator(); o.type = 'sine';
+      o.frequency.setValueAtTime(f0 * h * 1.012, t); o.frequency.exponentialRampToValueAtTime(f0 * h, t + .04);
+      const G = ac.createGain(); G.gain.setValueAtTime(0, t); G.gain.linearRampToValueAtTime(g, t + .004);
+      G.gain.exponentialRampToValueAtTime(.0008, t + d); o.connect(G).connect(b2); o.start(t); o.stop(t + d + .03);
+    });
+    const b = ac.createOscillator(); b.type = 'sine';
+    b.frequency.setValueAtTime(118, t); b.frequency.exponentialRampToValueAtTime(76, t + .28);
+    const bg = ac.createGain(); bg.gain.setValueAtTime(0, t); bg.gain.linearRampToValueAtTime(.55, t + .006);
+    bg.gain.exponentialRampToValueAtTime(.0008, t + .42); b.connect(bg).connect(b2); b.start(t); b.stop(t + .45);
+    const s = ac.createBufferSource(); s.buffer = nb; const hp = ac.createBiquadFilter(); hp.type = 'bandpass'; hp.frequency.value = 2600; hp.Q.value = .9;
+    const sg = ac.createGain(); sg.gain.setValueAtTime(.32, t); sg.gain.exponentialRampToValueAtTime(.001, t + .025);
+    s.connect(hp).connect(sg).connect(b2); s.start(t); s.stop(t + .04);
+  }
+  const SND = {
+    clap: t => { noise(t, 1300, 1.2, .09, .9); noise(t + .008, 900, 1.5, .07, .5); },
+    beat: t => noise(t, 1300, 1.2, .09, .9),
+    finger: t => tone(t, 1150, .05, .33, 'triangle'),
+    hold: t => tone(t, 1150, .04, .16, 'triangle'),
+    wave: t => noise(t, 520, .8, .16, .35),
+    samam: t => mridangam(t),
+    pulse: t => tone(t, 2400, .025, .1),
+  };
+
+  // ---- the metronome, as in Samam: a 25 ms scheduler with 0.12 s of look-ahead ----
+  let playing = false, timer = null, nextT = 0, pIdx = 0, raf = 0, queue = [], tap = null, gen = 0;
+  // for the Śruti: when the next samam falls, how long an āvartanam is, and a number that changes whenever
+  // the time is reset (start, a new tāḷa or nadai, a new laya)
+  const clock = () => { if (!playing || !ac) return null; const P = cycle.length * st.nadai; return { sam: nextT + ((P - pIdx) % P) * spp(), A: cycle.length * 60 / st.bpm, spc: 60 / st.bpm, gen }; };
+  const spp = () => 60 / st.bpm / st.nadai;
+  function sched() {
+    while (nextT < ac.currentTime + .12) {
+      const nd = st.nadai, ci = Math.floor(pIdx / nd), di = pIdx % nd;
+      if (di === 0) { SND[cycle[ci].kind](nextT); if (ci === 0) SND.samam(nextT); queue.push({ t: nextT, ci }); if (window.__nlog) window.__nlog.push(['t', ci, nextT]); }
+      else if (st.pulses) SND.pulse(nextT);
+      nextT += spp(); pIdx = (pIdx + 1) % (cycle.length * nd);
+    }
+  }
+  // the hand on the button pats with each count, a little deeper on samam
+  function draw() {
+    if (!playing) return;
+    const now = ac.currentTime, ic = $('#pTalam svg');
+    while (queue.length && queue[0].t <= now) {
+      const q = queue.shift();
+      if (ic) { ic.classList.remove('tk', 'sam'); void ic.getBoundingClientRect(); ic.classList.add(q.ci === 0 ? 'sam' : 'tk'); }
+    }
+    raf = requestAnimationFrame(draw);
+  }
+  function start() {
+    Shruti.unlock(); ensure(); playing = true; ui(); Shruti.session();
+    if (ac.state !== 'running') { try { ac.resume(); } catch (e) { } }
+    queue = []; pIdx = 0; nextT = ac.currentTime + .15; gen++;
+    clearInterval(timer); sched(); timer = setInterval(sched, 25); raf = requestAnimationFrame(draw);
+    if (tap) tap.heard = true;
+  }
+  function stop() {
+    if (!playing) return; playing = false; clearInterval(timer); timer = null; cancelAnimationFrame(raf); queue = [];
+    // let a stroke already scheduled ring out, but nothing new
+    ui(); Shruti.session();
+  }
+  // a new tāḷa (or nadai) starts again from samam, as in Samam
+  function restart() { cycle = cycleOf(cur()); gen++; if (playing) { queue = []; pIdx = 0; nextT = ac.currentTime + .06; } ui(); }
+  function setVol(v) { st.vol = v; if (bus) bus.gain.setTargetAtTime(v, ac.currentTime, 0.05); save(); }
+  function setBpm(v) { st.bpm = Math.max(30, Math.min(140, +v)); gen++; save(); ui(); }
+
+  // ---- in recordings: the tāḷam joins the recording beside the śruti ----
+  // Called by the recording chain. Built-in mics: the tāḷam follows the voice (a fixed step below its
+  // typical peaks). External mics: a fixed share of what you hear. The tap is delayed by the round trip
+  // of the audio (out to your ears, in through the mic), so the beat in the recording lands where you
+  // sang to it rather than a few milliseconds ahead of your voice.
+  function recInto(dest, builtIn, inLat) {
+    if (st.inRec === 'off') return null;
+    ensure();
+    const lat = Math.max(0, Math.min(0.5, (ac.baseLatency || 0) + (ac.outputLatency || 0) + (inLat || 0)));
+    const dl = ac.createDelay(1); dl.delayTime.value = lat;
+    const g = ac.createGain(), follow = !!builtIn; g.gain.value = follow ? 0 : REC_FIXED[st.inRec];
+    const an = follow ? ac.createAnalyser() : null, buf = an ? new Float32Array(2048) : null, hist = new Float32Array(200); let hi = 0;
+    if (an) { an.fftSize = 2048; out.connect(an); }
+    out.connect(dl); dl.connect(g); g.connect(dest);
+    const me = tap = { heard: playing, lat, tala: cur().short, bpm: st.bpm,
+      setInRec(v) { if (!follow) g.gain.value = REC_FIXED[v] || 0; },
+      // called every 50 ms with the voice's typical peak level (after the lift)
+      follow(voice) {
+        if (!an) return;
+        an.getFloatTimeDomainData(buf); let pk = 0; for (let i = 0; i < buf.length; i++) { const a = Math.abs(buf[i]); if (a > pk) pk = a; }
+        hist[hi++ % hist.length] = pk; let tl = 0; for (let i = 0; i < hist.length; i++) if (hist[i] > tl) tl = hist[i];   // loudest stroke of the last 10 s
+        const tg = tl > 1e-4 ? Math.min(2, voice * (UNDER[st.inRec] || 0) / tl) : 0;
+        g.gain.setTargetAtTime(tg, ac.currentTime, 0.4);
+      },
+      end() { [dl, g, an].forEach(n => { if (n) try { out.disconnect(n); } catch (e) { } }); try { dl.disconnect(); g.disconnect(); } catch (e) { } if (tap === me) tap = null; } };
+    if (playing) { me.tala = cur().short; me.bpm = st.bpm; }
+    return me;
+  }
+
+  function ui() {
+    const b = $('#pTalam'); if (!b) return;
+    b.classList.toggle('on', playing); b.setAttribute('aria-pressed', playing ? 'true' : 'false');
+    $('#pTalLbl').textContent = playing ? 'Stop' : 'Tāḷam';
+    b.title = `${playing ? 'Stop the tāḷam' : 'Play the tāḷam'}: ${cur().name}, ${st.bpm} a minute (change in Settings)`;
+    if (!playing) { const ic = b.querySelector('svg'); if (ic) ic.classList.remove('tk', 'sam'); }
+    const pp = $('#popover .talpop [data-play]'); if (pp) pp.textContent = playing ? 'Stop' : 'Play';
+  }
+  const layaTxt = () => `${st.bpm} counts a minute · ${(cycle.length * 60 / st.bpm).toFixed(1)} s a cycle`;
+  function settingsHtml() {
+    const sm = 'style="color:var(--muted)"';
+    return `<h6 class="sgrp">Tāḷam</h6>
+    <div class="field"><span>Tāḷam<br><small ${sm} id="sTalSub">${cur().sub}</small></span><select class="tinput gsel" id="sTal">${TALAS.map(t => `<option value="${t.id}"${t.id === st.tala ? ' selected' : ''}>${t.name}</option>`).join('')}</select></div>
+    <div class="field"><span>Nadai pulses<br><small ${sm}>Soft ticks inside each count</small></span><span class="seg" id="sTalP"><button data-v="0" class="${!st.pulses ? 'on' : ''}">Off</button><button data-v="1" class="${st.pulses ? 'on' : ''}">On</button></span></div>
+    <div class="field"><span>In recordings<br><small ${sm}>Off: you still hear it, but it isn't recorded</small></span><span class="seg" id="sTalR">${[['off', 'Off'], ['soft', 'Soft'], ['medium', 'Medium']].map(([v, l]) => `<button data-v="${v}" class="${st.inRec === v ? 'on' : ''}">${l}</button>`).join('')}</span></div>
+    <details class="adv"><summary>Advanced tāḷam settings</summary>
+      <div class="field"><span>Laya<br><small ${sm} id="sTalBo">${layaTxt()}</small></span><input type="range" min="30" max="140" step="2" value="${st.bpm}" id="sTalB"></div>
+      <div class="field"><span>Nadai<br><small ${sm} id="sTalNo">${st.nadai} pulses in each count</small></span><select class="tinput gsel" id="sTalN">${NADAI.map(x => `<option value="${x.n}"${x.n === st.nadai ? ' selected' : ''}>${x.name} · ${x.n}</option>`).join('')}</select></div>
+    </details>`;
+  }
+  function wireSettings(box) {
+    const q = id => box.querySelector(id); if (!q('#sTal')) return;
+    q('#sTal').onchange = e => { st.tala = e.target.value; save(); restart(); q('#sTalSub').textContent = cur().sub; q('#sTalBo').textContent = layaTxt(); };
+    q('#sTalB').oninput = e => { setBpm(e.target.value); q('#sTalBo').textContent = layaTxt(); };
+    const seg = (id, fn) => q(id).onclick = e => { const b = e.target.closest('button'); if (!b) return; q(id).querySelectorAll('button').forEach(x => x.classList.toggle('on', x === b)); fn(b.dataset.v); };
+    seg('#sTalP', v => { st.pulses = v === '1'; save(); });
+    seg('#sTalR', v => { st.inRec = v; save(); if (tap) tap.setInRec(v); });
+    q('#sTalN').onchange = e => { st.nadai = +e.target.value; save(); restart(); q('#sTalNo').textContent = `${st.nadai} pulses in each count`; };
+  }
+  // the pill beside the button: volume, and play / stop (0.44); the tāḷa and laya are set in Settings
+  function openPanel() {
+    showPopover($('#pTalMore'), `<div class="shrpop talpop"><h5>Tāḷam</h5>
+      <div class="big"><div><b>${cur().name}</b><small>${st.bpm} counts a minute</small></div><button class="btn" data-play>${playing ? 'Stop' : 'Play'}</button></div>
+      <div class="row"><span>Volume</span><input type="range" min="0" max="1" step="0.01" value="${st.vol}" data-vol></div>
+      <div class="note">${st.inRec === 'off' ? 'Not included in recordings.' : 'Recordings include it under your voice, above the śruti.'} Tāḷam and laya in Settings.</div></div>`, pop => {
+      pop.querySelector('[data-play]').onclick = e => { playing ? stop() : start(); e.currentTarget.textContent = playing ? 'Stop' : 'Play'; };
+      pop.querySelector('[data-vol]').oninput = e => setVol(+e.target.value);
+    });
+  }
+  $('#pTalMore').onclick = e => { e.stopPropagation(); if (!$('#popover').classList.contains('hidden') && $('#popover .talpop')) { closePopover(); return; } openPanel(); };
+  $('#pTalam').onclick = () => playing ? stop() : start();
+  document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'visible' && ac && playing && ac.state !== 'running') { try { ac.resume(); } catch (e) { } } });
+  ui();
+  return { start, stop, recInto, settingsHtml, wireSettings, isPlaying: () => playing, state: st, TALAS, cycleOf, restart, clock, setBpm };
 })();
 /* A small level light inside the REC button while recording: it grows with your voice and turns amber
    when the microphone itself is at its limit (then turn the mic's gain knob down a little). */
@@ -1429,7 +1672,7 @@ async function startRecording() {
     stream = await RecQ.stream();
   } catch (e) {
     RecQ.release();
-    dialog({ title: 'Microphone not available', html: `<p>Notation couldn't reach the microphone here (${esc(e.name || 'blocked')}). Check that microphone access is allowed for this site in Settings → Safari, or record with Voice Memos and use <b>Audio</b> to import the file.</p>` });
+    dialog({ title: 'Microphone not available', html: `<p>Notation couldn't reach the microphone here (${esc(e.name || 'blocked')}). Check that microphone access is allowed for this site in Settings → Safari, or record with Voice Memos and bring the file in from the recordings pill (<b>Add an audio file</b>).</p>` });
     return;
   }
   const types = ['audio/mp4;codecs=mp4a.40.2', 'audio/mp4', 'audio/webm;codecs=opus', 'audio/webm', 'audio/ogg;codecs=opus'];
@@ -1437,7 +1680,7 @@ async function startRecording() {
   const tr = stream.getAudioTracks()[0], st = (tr && tr.getSettings && tr.getSettings()) || {};
   const micName = tr && tr.label && !/^default$/i.test(tr.label) ? tr.label.replace(/\s*\(.*?\)\s*$/, '').slice(0, 40) : '';
   const builtIn = RecQ.builtIn(tr && tr.label);
-  const micStream = stream, mix = Shruti.mixInto(stream, st.channelCount, micName || tr && tr.label, builtIn);   // clean-up chain, plus the śruti softly under your voice
+  const micStream = stream, mix = Shruti.mixInto(stream, st.channelCount, micName || tr && tr.label, builtIn, st.latency);   // clean-up chain, plus the śruti softly under your voice
   if (mix) stream = mix.stream;
   const ch = mix ? mix.ch : (st.channelCount || 1), opus = /opus|webm|ogg/.test(mime);
   const bps = opus ? (ch > 1 ? 192000 : 160000) : (ch > 1 ? 256000 : 192000);   // generous: music, not a phone call
@@ -1467,6 +1710,7 @@ function stopRecording() {
       const blob = new Blob(r.chunks, { type: r.mime.split(';')[0] });
       rec = null;
       if (r.q && r.mix && r.mix.heard) r.q.shruti = true;
+      if (r.q && r.mix && r.mix.tal && r.mix.tal.heard) r.q.talam = `${r.mix.tal.tala}, ${r.mix.tal.bpm}/min`;
       if (r.q && r.mix && r.mix.lift) r.q.lift = r.mix.lift;
       if (r.q && elapsed > 1) r.q.kbps = Math.round(blob.size * 8 / elapsed / 1000);   // what was actually written
       const t = { id: r.take, label: '', mime: blob.type, duration: elapsed, created: Date.now(), size: blob.size, ...(r.q ? { q: r.q } : {}) };
@@ -2401,7 +2645,6 @@ $('#pSpeed').onclick = e => {
 };
 $('#pLoop').onclick = () => { loop = !loop; $('#pLoop').classList.toggle('on', loop); if (loop) { setLoopFromTime(audioEl.currentTime || 0); toast('Looping the current passage, up to the next bookmark.'); } else loopRange = null; };
 $('#pFollow').onclick = () => { follow = !follow; $('#pFollow').classList.toggle('on', follow); };
-$('#pAudio').onclick = () => { $('#fAudio').value = ''; $('#fAudio').click(); };
 $('#fAudio').onchange = async e => {
   const f = e.target.files[0]; if (!f) return;
   const blob = f.type ? f : new Blob([f], { type: 'audio/mp4' });
@@ -2413,7 +2656,7 @@ $('#fAudio').onchange = async e => {
 $('#tTitle').addEventListener('input', () => { note.title = $('#tTitle').value; scheduleSave(); });
 $('#tBack').onclick = async () => {
   if (rec) { const ok = await dialog({ title: 'Stop recording?', html: '<p>Recording is still running. Stop and save it before leaving?</p>', actions: [{ label: 'Keep recording', value: false }, { label: 'Stop & save', value: true, primary: true }] }); if (!ok) return; await stopRecording(); }
-  Texts.commit(); audioEl.pause(); Shruti.stop(); await flushSave(); Drive.schedule(2500); showLibrary();
+  Texts.commit(); audioEl.pause(); Shruti.stop(); Talam.stop(); await flushSave(); Drive.schedule(2500); showLibrary();
 };
 $('#tMore').onclick = () => openSettings();
 $('#tShare').onclick = () => shareNote();
@@ -4259,7 +4502,7 @@ const Versions = (() => {
       const v = await question(m.title, local(m), r, `This ${here}`, there ? `From your ${there}` : 'From your other device');
       if (!v) { later.add(lkey(it)); return null; }
       const open = note && note.id === it.id;
-      if (v === 'b' && open) { clearTimeout(saveTimer); dirty = false; audioEl.pause(); Shruti.stop(); await showLibrary(true); }
+      if (v === 'b' && open) { clearTimeout(saveTimer); dirty = false; audioEl.pause(); Shruti.stop(); Talam.stop(); await showLibrary(true); }
       await DB.put('sync', 'c:' + it.id, { ...it.c, choice: v === 'a' ? 'local' : 'remote' });
       items = items.filter(x => x !== it); if (!note) renderLibrary(LIB_METAS);
       toast('Keeping one version…', 6000);
@@ -4314,7 +4557,7 @@ const Versions = (() => {
    version.json on GitHub names the newest build. When it differs from this one, the
    version chip offers "Update to …". Updating clears only Notation's stored app files
    and reloads; notes, recordings, folders and the Drive connection are untouched. */
-const APP_VERSION = '0.43', APP_BUILD = 'e0f6214fc9';
+const APP_VERSION = '0.44', APP_BUILD = '1e2fe91094';
 const Updates = (() => {
   let latest = null, last = 0;
   const chip = () => $('#verChip');
@@ -4368,6 +4611,7 @@ function openSettings() {
     <div class="field"><span>Microphone<br><small style="color:var(--muted)">An external mic is used whenever it's connected</small></span><select class="tinput" id="sMic" style="max-width:220px;font-size:14px;padding:6px 8px"><option value="">Built-in / default</option></select></div>
     <div class="field"><span>Recording mode<br><small style="color:var(--muted)">Music: for singing<br>Voice: for speaking</small></span><span class="seg" id="sRecMode"><button data-v="music" class="${RecQ.mode() !== 'voice' ? 'on' : ''}">Music</button><button data-v="voice" class="${RecQ.mode() === 'voice' ? 'on' : ''}">Voice</button></span></div>`}
     ${viewer ? '' : Shruti.settingsHtml()}
+    ${viewer ? '' : Talam.settingsHtml()}
     ${viewer ? '' : `<h6 class="sgrp">Sharing</h6>
     <div class="field"><span>Share links<br><small style="color:var(--muted)">${Publish.ready() ? 'Set up on this device' : 'Publish players to your notation repository on GitHub'}</small></span><button class="btn" id="sGh">${Publish.ready() ? 'View' : 'Set up'}</button></div>`}
     ${viewer ? '' : `<h6 class="sgrp">Notation</h6>
@@ -4387,7 +4631,7 @@ function openSettings() {
     mic.onchange = () => { LS.set('rec.dev', mic.value); toast(mic.value ? 'Notation will record with this microphone.' : 'Notation will use the default microphone.'); };
   }
   box.querySelectorAll('select[data-gest]').forEach(el => el.onchange = () => { Gest.set(el.dataset.gest, +el.value); box.querySelectorAll('select[data-gest]').forEach(o => o.value = Gest.get()[o.dataset.gest]); });
-  Shruti.wireSettings(box);
+  Shruti.wireSettings(box); Talam.wireSettings(box);
   const sn = box.querySelector('#sNudge'); if (sn) sn.onclick = e => { const b = e.target.closest('button'); if (!b) return; Nudge.set(!!+b.dataset.v); $$('#sNudge button').forEach(x => x.classList.toggle('on', x === b)); };
   const gh = box.querySelector('#sGh'); if (gh) gh.onclick = () => { closeDialog(null); Publish.setup(); };
   box.querySelector('#sUpdate').onclick = () => { closeDialog(null); Updates.check(true); };
