@@ -283,10 +283,14 @@ body.fingers .page canvas.fx{touch-action:none}
 @keyframes shr{0%,100%{transform:rotate(0)}50%{transform:rotate(-4deg)}}
 .shrmore{height:46px;border-radius:0 23px 23px 0;border:1px solid var(--line);background:var(--card);display:inline-flex;align-items:center;gap:5px;padding:0 12px 0 10px;font-weight:600;font-variant-numeric:tabular-nums;white-space:nowrap;flex:none;color:inherit;cursor:pointer;margin-left:-10px}
 .shrmore svg{width:14px;height:14px;opacity:.6}.shrtun{font-size:12px;font-weight:600;color:var(--muted)}
-@media (max-width:1000px){#pShrLbl{display:none}#pTalLbl{display:none}.tkof{display:none}.player .tot{display:none}.talbtn{padding:0 8px 0 10px}.talmore{padding:0 8px 0 6px}.shrbtn{padding:0 8px 0 12px}.recbtn{padding:0 12px 0 10px}#pLoop{font-size:0;gap:0}.player{gap:7px}.skipbtn{width:36px;height:36px;margin:0 -3px}.skipbtn svg{width:24px;height:24px}.player .time{min-width:0}.track{min-width:60px}.player .time{flex:none}.player{gap:6px}.player .track{min-width:64px}#pShrMore svg{display:none}#pShrMore{padding:0 10px 0 9px}.talmore{padding:0 7px 0 5px}.recbtn{gap:6px}}
+@media (max-width:1000px){#pShrLbl{display:none}#pTalLbl{display:none}.tkof{display:none}.talbtn{padding:0 8px 0 10px}.talmore{padding:0 8px 0 6px}.shrbtn{padding:0 8px 0 12px}.recbtn{padding:0 12px 0 10px}#pLoop{font-size:0;gap:0}.player{gap:7px}.skipbtn{width:36px;height:36px;margin:0 -3px}.skipbtn svg{width:24px;height:24px}.player .time{min-width:0}.track{min-width:60px}.player .time{flex:none}.player{gap:6px}.player .track{min-width:64px;margin-left:8px}#pShrMore svg{display:none}#pShrMore{padding:0 10px 0 9px}.talmore{padding:0 7px 0 5px}.recbtn{gap:6px}}
 @media (min-width:1001px) and (max-width:1240px){.player{gap:8px}}
 #sTalB{accent-color:#4f8657}.shrpop.talpop input[type=range]{accent-color:#4f8657}.talpop .big b{font-size:20px}
 .talmore{height:46px;border-radius:0 23px 23px 0;border:1px solid var(--line);background:var(--card);display:inline-flex;align-items:center;padding:0 10px 0 8px;flex:none;color:inherit;cursor:pointer;margin-left:-10px}.talmore svg{width:14px;height:14px;opacity:.6}
+.vh{position:absolute!important;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);clip-path:inset(50%);white-space:nowrap;border:0;padding:0;margin:-1px}
+/* 0.44: the strip is icons only (REC, Śruti, Tāḷam, recordings, Loop); the words stay for tooltips and screen readers */
+#pRec{padding:0 14px;gap:0}#pRec .rd{margin:0 2px}.shrbtn{padding:0 10px 0 13px}#pLoop{padding:0 11px;gap:0}
+#pTakes{position:relative;padding:0 11px;gap:0}.tkbadge{position:absolute;top:-5px;right:-5px;min-width:18px;height:18px;padding:0 4px;border-radius:9px;background:var(--saffron,#c8641e);color:#fff;font-size:11px;font-weight:700;line-height:18px;text-align:center;font-variant-numeric:tabular-nums;box-shadow:0 0 0 2px var(--paper)}.tkbadge:empty{display:none}
 .talbtn{height:46px;border-radius:23px 0 0 23px;border:1px solid var(--line);border-right:0;background:var(--card);display:inline-flex;align-items:center;gap:6px;padding:0 13px 0 11px;font-weight:600;white-space:nowrap;flex:none;color:inherit;cursor:pointer}
 .talbtn svg{width:24px;height:24px;color:#4f8657;overflow:visible}.talbtn .hand{transform-box:fill-box;transform-origin:0% 50%}
 .talbtn.on{background:#4f8657;color:#fff;border-color:#4f8657}.talbtn.on svg{color:#fff}.talbtn:not(.on) .mo{opacity:.35}
@@ -457,7 +461,7 @@ body.viewer .viewer-only{display:inline-flex}
       <p class="tagline">Write your notation, record the lesson, and let every mark sing back.</p>
     </div>
     <div class="lib-actions">
-      <button class="btn verchip" id="verChip" title="Notation version · tap to check for updates">v0.44</button>
+      <button class="btn verchip" id="verChip" title="Notation version · tap to check for updates">v0.45</button>
       <button class="btn drivechip" id="driveChip" title="Google Drive sync"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M7 18h10.5a4.5 4.5 0 0 0 .6-8.96A6 6 0 0 0 6.6 9.2 4.4 4.4 0 0 0 7 18z"/></svg><span>Google Drive</span></button>
       <button class="btn" id="btnLib" title="Notation templates and covers"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="7" height="16" rx="1.5"/><rect x="12" y="4" width="4" height="16" rx="1"/><path d="M18 5.5l3 .8-3.6 13.4-3-.8"/></svg>Templates</button>
       <button class="btn" id="btnImport" title="Open a shared .html note"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v12m0 0-4-4m4 4 4-4"/><path d="M4 17v2a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-2"/></svg>Open shared note</button>
@@ -508,19 +512,19 @@ body.viewer .viewer-only{display:inline-flex}
   <button id="pagePill" class="hidden" title="Go to page">1 / 1</button>
 
   <footer class="player">
-    <button class="recbtn edit-only" id="pRec" title="Record"><svg class="mic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="3" width="6" height="11" rx="3"/><path d="M5.5 11a6.5 6.5 0 0 0 13 0M12 17.5V21M8.5 21h7"/></svg><span class="rd"></span><span id="pRecLbl">REC</span></button>
-    <button class="shrbtn edit-only" id="pShruti" title="Shruti: tap to play or stop the tambura"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2.5v9.2"/><path d="M10.6 2.5h2.8"/><path d="M10.4 5.2h3.2M10.4 7.6h3.2" opacity=".55"/><path d="M10.3 11.7h3.4l.7 1.6"/><ellipse cx="12" cy="17.2" rx="5.6" ry="4.4"/><path d="M10.2 15.4l.2 3.8M12 15.2v4.1M13.8 15.4l-.2 3.8" opacity=".6"/></svg><span id="pShrLbl">Śruti</span></button>
+    <button class="recbtn edit-only" id="pRec" title="Record"><svg class="mic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="3" width="6" height="11" rx="3"/><path d="M5.5 11a6.5 6.5 0 0 0 13 0M12 17.5V21M8.5 21h7"/></svg><span class="rd"></span><span id="pRecLbl" class="vh">REC</span></button>
+    <button class="shrbtn edit-only" id="pShruti" title="Shruti: tap to play or stop the tambura"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2.5v9.2"/><path d="M10.6 2.5h2.8"/><path d="M10.4 5.2h3.2M10.4 7.6h3.2" opacity=".55"/><path d="M10.3 11.7h3.4l.7 1.6"/><ellipse cx="12" cy="17.2" rx="5.6" ry="4.4"/><path d="M10.2 15.4l.2 3.8M12 15.2v4.1M13.8 15.4l-.2 3.8" opacity=".6"/></svg><span id="pShrLbl" class="vh">Śruti</span></button>
     <button class="shrmore edit-only" id="pShrMore" title="Shruti: Pa or Ma, and volume"><span id="pShrPitch">4</span><span class="shrtun" id="pShrTun">Pa</span><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M7 14l5-5 5 5"/></svg></button>
-    <button class="talbtn edit-only" id="pTalam" aria-pressed="false" title="Tāḷam: tap to play or stop"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><g class="hand"><path d="M2.5 10.2c3.4-.6 6.6-2 10.6-1.7l6.6.9c1.9.3 2.4 3 .7 4l-5.2 2c-2.6 1-5.6 1.2-8.2.4l-4.5-.5"/><path d="M13.6 11.6l6.6.6M13.2 13.9l5.2.1" opacity=".7"/><path d="M8.6 15.9c.5 1.4 2.1 2 3.7 1.5"/></g><path class="mo" d="M7 5.2L6.2 3.6M11 4.4V2.6M15 5.2l.8-1.6" opacity=".6"/><path d="M2.5 21h19"/></svg><span id="pTalLbl">Tāḷam</span></button>
+    <button class="talbtn edit-only" id="pTalam" aria-pressed="false" title="Tāḷam: tap to play or stop"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><g class="hand"><path d="M2.5 10.2c3.4-.6 6.6-2 10.6-1.7l6.6.9c1.9.3 2.4 3 .7 4l-5.2 2c-2.6 1-5.6 1.2-8.2.4l-4.5-.5"/><path d="M13.6 11.6l6.6.6M13.2 13.9l5.2.1" opacity=".7"/><path d="M8.6 15.9c.5 1.4 2.1 2 3.7 1.5"/></g><path class="mo" d="M7 5.2L6.2 3.6M11 4.4V2.6M15 5.2l.8-1.6" opacity=".6"/><path d="M2.5 21h19"/></svg><span id="pTalLbl" class="vh">Tāḷam</span></button>
     <button class="talmore edit-only" id="pTalMore" title="Tāḷam: volume" aria-label="Tāḷam volume"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M7 14l5-5 5 5"/></svg></button>
     <button class="skipbtn" id="pBack" disabled title="Back 10 seconds (←)" aria-label="Back 10 seconds"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M2.5 4.5v5h5"/><path d="M4.4 14.5a8.2 8.2 0 1 0 1.9-8.6L2.5 9.5"/><text x="12.6" y="15.4" text-anchor="middle">10</text></svg></button>
     <button class="playbtn" id="pPlay" disabled title="Play / pause"></button>
     <button class="skipbtn" id="pFwd" disabled title="Forward 10 seconds (→)" aria-label="Forward 10 seconds"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M21.5 4.5v5h-5"/><path d="M19.6 14.5a8.2 8.2 0 1 1-1.9-8.6L21.5 9.5"/><text x="11.4" y="15.4" text-anchor="middle">10</text></svg></button>
     <div class="time" id="pTime"><b>0:00</b><span class="tot"> / 0:00</span></div>
     <div class="track" id="pTrack"><div class="rail"></div><div class="fill"></div><div id="pTicks"></div><div class="knob"></div></div>
-    <button class="pill hidden" id="pTakes" title="Recordings: choose, order and name them"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M4 6h11M4 12h11M4 18h7"/><path d="M18 9v9" /><circle cx="16.5" cy="18" r="1.8"/></svg><span id="pTakesLbl">01</span></button>
+    <button class="pill hidden" id="pTakes" title="Recordings: choose, order and name them"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M4 6h11M4 12h11M4 18h7"/><path d="M18 9v9" /><circle cx="16.5" cy="18" r="1.8"/></svg><span id="pTakesLbl" class="tkbadge"></span></button>
     <button class="pill" id="pSpeed" title="Playback speed">1×</button>
-    <button class="pill" id="pLoop" title="Loop the current bookmarked passage"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 2l3 3-3 3"/><path d="M4 11V9a4 4 0 0 1 4-4h12"/><path d="M7 22l-3-3 3-3"/><path d="M20 13v2a4 4 0 0 1-4 4H4"/></svg><span class="hide-sm">Loop</span></button>
+    <button class="pill" id="pLoop" title="Loop the current bookmarked passage"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 2l3 3-3 3"/><path d="M4 11V9a4 4 0 0 1 4-4h12"/><path d="M7 22l-3-3 3-3"/><path d="M20 13v2a4 4 0 0 1-4 4H4"/></svg><span class="vh">Loop</span></button>
     <button class="pill on hide-sm" id="pFollow" title="Scroll to follow the playing passage">Follow</button>
   </footer>
 </section>
@@ -1025,8 +1029,11 @@ function updatePlayer() {
   const rb = $('#pRec'); rb.classList.toggle('live', !!rec); $('#pRecLbl').textContent = rec ? 'STOP' : (has ? 'REC +' : 'REC'); rb.title = rec ? 'Stop recording' : (has ? 'Record more' : 'Record');
   const tk = $('#pTakes'), n = note && note.takes ? note.takes.length : 0;
   tk.classList.toggle('hidden', viewer ? n < 2 : !note); tk.disabled = !!rec;   // 0.44: shown from the start in your own notes; audio files come in through it
-  if (!n) $('#pTakesLbl').innerHTML = rec ? '01<span class="tkof"> · new</span>' : '00';
-  else $('#pTakesLbl').innerHTML = rec ? `${takeNo(n)}<span class="tkof"> · new</span>` : `${takeNo(Math.max(0, takeIdx(curTake)))}<span class="tkof"> of ${takeNo(n - 1)}</span>`;   // portrait shows just the number (0.44)
+  // 0.44: icon only; a small number shows which recording is loaded when there are two or more
+  const ci = Math.max(0, takeIdx(curTake));
+  $('#pTakesLbl').textContent = n >= 2 && !rec ? String(ci + 1) : '';
+  tk.title = rec ? `Recording ${takeNo(n)} in progress` : n ? `Recordings: ${takeNo(ci)} of ${takeNo(n - 1)}. Choose, add, order and name them` : 'Recordings: none yet. Record, or add an audio file';
+  tk.setAttribute('aria-label', tk.title);
   renderTicks(); updateTime();
 }
 // scrubbing
@@ -4557,7 +4564,7 @@ const Versions = (() => {
    version.json on GitHub names the newest build. When it differs from this one, the
    version chip offers "Update to …". Updating clears only Notation's stored app files
    and reloads; notes, recordings, folders and the Drive connection are untouched. */
-const APP_VERSION = '0.44', APP_BUILD = '1e2fe91094';
+const APP_VERSION = '0.45', APP_BUILD = 'b487b947e2';
 const Updates = (() => {
   let latest = null, last = 0;
   const chip = () => $('#verChip');
