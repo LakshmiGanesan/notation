@@ -116,7 +116,11 @@ input[type=text]{font:inherit;color:inherit;-webkit-user-select:text;user-select
 .nudge-txt ol{margin:6px 0 0;padding-left:20px}.nudge-acts{display:flex;flex-wrap:wrap;gap:8px}.nudge-acts a.btn{text-decoration:none;color:inherit}
 #backPill{position:absolute;left:20px;bottom:calc(var(--plh,72px) + 14px);z-index:15;display:inline-flex;align-items:center;gap:8px;border:0;border-radius:999px;padding:10px 18px 10px 14px;background:#14182e;color:#fff;font-weight:600;font-size:14px;line-height:1;font-family:inherit;box-shadow:0 6px 20px rgba(20,24,46,.25);cursor:pointer}
 #backPill svg{width:18px;height:18px}
-.linkflash{position:absolute;background:rgba(200,100,30,.28);border-radius:4px;pointer-events:none;animation:lf .7s ease-out forwards}
+.linkflash{position:absolute;background:rgba(255,236,0,.5);box-shadow:0 0 10px 3px rgba(255,230,0,.75);border-radius:4px;pointer-events:none;animation:lf .7s ease-out forwards}
+.linkglow{position:absolute;background:rgba(255,240,0,.34);box-shadow:0 0 9px 3px rgba(255,232,0,.6);border-radius:4px;pointer-events:none;z-index:3;animation:lg 2.2s ease-in-out forwards}
+@keyframes lg{0%{opacity:0}18%{opacity:1}55%{opacity:1}100%{opacity:0}}
+@media (prefers-reduced-motion:reduce){.linkglow{animation:lgr 2.2s step-end forwards}}
+@keyframes lgr{to{opacity:0}}
 @keyframes lf{from{opacity:1}to{opacity:0}}
 .zrow{display:flex;align-items:center;justify-content:space-between;gap:10px;margin:2px 0 10px}
 .zb{width:52px;height:44px;border:1px solid var(--line);background:#fff;border-radius:12px;font-weight:500;font-size:24px;line-height:1;font-family:inherit;color:inherit;cursor:pointer}
@@ -467,7 +471,7 @@ body.viewer .viewer-only{display:inline-flex}
       <p class="tagline">Write your notation, record the lesson, and let every mark sing back.</p>
     </div>
     <div class="lib-actions">
-      <button class="btn verchip" id="verChip" title="Notation version · tap to check for updates">v0.47</button>
+      <button class="btn verchip" id="verChip" title="Notation version · tap to check for updates">v0.48</button>
       <button class="btn drivechip" id="driveChip" title="Google Drive sync"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M7 18h10.5a4.5 4.5 0 0 0 .6-8.96A6 6 0 0 0 6.6 9.2 4.4 4.4 0 0 0 7 18z"/></svg><span>Google Drive</span></button>
       <button class="btn" id="btnLib" title="Notation templates and covers"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="7" height="16" rx="1.5"/><rect x="12" y="4" width="4" height="16" rx="1"/><path d="M18 5.5l3 .8-3.6 13.4-3-.8"/></svg>Templates</button>
       <button class="btn" id="btnImport" title="Open a shared .html note"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v12m0 0-4-4m4 4 4-4"/><path d="M4 17v2a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-2"/></svg>Open shared note</button>
@@ -1976,15 +1980,23 @@ function attachInput(v, pi) {
       const color = kind === 'hl' ? hlColor : kind === 'calli' ? calliColor : penColor;
       const base = kind === 'hl' ? hlSize : kind === 'calli' ? calliSize : penSize;
       live = { id: uid(), page: pi, tool: kind, color, size: r1(base * pageScale(v.pg)), pts: [[r1(x), r1(y), pr(e)]], t: null };
-      act = { id: e.pointerId, pi, anchor: [x, y], hold: 0 };
+      act = { id: e.pointerId, pi, anchor: [x, y], hold: 0, t0: performance.now(), cx: e.clientX, cy: e.clientY, far: 0, x0: x, y0: y };
       renderFx(pi);
     } else {
       tap = { id: e.pointerId, x: e.clientX, y: e.clientY, at: performance.now(), pi };
     }
   });
   cv.addEventListener('pointermove', e => {
-    if (!act || act.id !== e.pointerId) { if (tap && tap.id === e.pointerId && Math.hypot(e.clientX - tap.x, e.clientY - tap.y) > 14) tap = null; return; }
+    if (!act || act.id !== e.pointerId) {
+      if (tap && tap.id === e.pointerId && Math.hypot(e.clientX - tap.x, e.clientY - tap.y) > 14) tap = null;
+      if (!act && e.pointerType === 'mouse' && note.pages[pi].links) {   // a pointing hand over a link (Mac)
+        const on = (viewer || tool === 'play' || inkTool()) && !!linkAt(pi, ...pagePt(e, v));
+        if (on !== !!cv.dataset.overLink) { cv.style.cursor = on ? 'pointer' : ''; on ? cv.dataset.overLink = 1 : delete cv.dataset.overLink; }
+      }
+      return;
+    }
     e.preventDefault();
+    if (act.t0 != null) act.far = Math.max(act.far, Math.hypot(e.clientX - act.cx, e.clientY - act.cy));
     const evs = e.getCoalescedEvents ? e.getCoalescedEvents() : [e];
     for (const ev of (evs.length ? evs : [e])) {
       const [x, y] = pagePt(ev, v);
@@ -2018,6 +2030,8 @@ function attachInput(v, pi) {
         act = null; redrawInk(pi); renderFx(pi); showSelBar(); return;
       } else if (act.lasso) {
         const pts = act.pts; act = null; finishLasso(pi, pts); return;
+      } else if (live && !cancel && act.t0 != null && !act.snapped && act.far < 8 && performance.now() - act.t0 < 450 && linkAt(pi, act.x0, act.y0)) {
+        const ln = linkAt(pi, act.x0, act.y0); live = null; act = null; renderFx(pi); followLink(pi, ln); return;
       } else if (live && !cancel) {
         const s = live; live = null; const mt = markTime(); s.t = mt ? mt.t : null; if (mt) s.take = mt.take;
         note.strokes.push(s); pushUndo({ type: 'add', strokes: [s] });
@@ -2041,6 +2055,12 @@ function eraseAt(pi, x, y) {
   for (let i = note.strokes.length - 1; i >= 0; i--) { const s = note.strokes[i]; if (s.page === pi && strokeHit(s, x, y, r)) { note.strokes.splice(i, 1); act.removed.push(s); hit = true; } }
   if (hit) redrawInk(pi);
 }
+// A PDF link under a point on a page (page pixels), with a little slack for fingers
+function linkAt(pi, x, y) {
+  const pg = note.pages[pi]; if (!pg || !pg.links) return null; const pad = 6 * pageScale(pg);
+  return pg.links.find(l => x >= l.r[0] - pad && x <= l.r[0] + l.r[2] + pad && y >= l.r[1] - pad && y <= l.r[1] + l.r[3] + pad) || null;
+}
+const inkTool = () => tool === 'pen' || tool === 'calli' || tool === 'hl';
 function handleTap(pi, x, y) {
   let best = null, bd = 1e9;
   for (const g of groups) {
@@ -2050,8 +2070,7 @@ function handleTap(pi, x, y) {
     }
   }
   if (best) { jumpToGroup(best, false); return; }
-  const pg = note.pages[pi], pad = 6 * pageScale(pg);
-  const ln = (pg.links || []).find(l => x >= l.r[0] - pad && x <= l.r[0] + l.r[2] + pad && y >= l.r[1] - pad && y <= l.r[1] + l.r[3] + pad);
+  const ln = linkAt(pi, x, y);
   if (ln) { followLink(pi, ln); return; }
   if (tool !== 'play' || viewer) return;
   if (!hasAudio()) { toast('Record or import audio first. Marks made while it records or plays become bookmarks.'); return; }
@@ -2733,12 +2752,27 @@ async function drawCrop(cv, g) {
    get their image and drawing canvases. This keeps 100+ page books light on iPad. */
 let io = null;
 const ICON_DOTS = '<svg viewBox="0 0 24 24" fill="currentColor"><circle cx="5" cy="12" r="1.8"/><circle cx="12" cy="12" r="1.8"/><circle cx="19" cy="12" r="1.8"/></svg>';
+// 0.48: a page's PDF links glow yellow for a moment as the page comes into view, so they can be seen
+let glowIO = null;
+function glowLinks(i) {
+  const v = views[i], pg = note && note.pages[i]; if (!v || !pg || !pg.links || !pg.links.length) return;
+  const now = Date.now(); if (v.glowAt && now - v.glowAt < 12000) return; v.glowAt = now;
+  v.wrap.querySelectorAll('.linkglow').forEach(d => d.remove());
+  for (const l of pg.links) {
+    const d = document.createElement('div'); d.className = 'linkglow';
+    Object.assign(d.style, { left: l.r[0] / pg.w * 100 + '%', top: l.r[1] / pg.h * 100 + '%', width: l.r[2] / pg.w * 100 + '%', height: l.r[3] / pg.h * 100 + '%' });
+    v.wrap.appendChild(d);
+  }
+  setTimeout(() => v.wrap.querySelectorAll('.linkglow').forEach(d => d.remove()), 2400);
+}
 function buildPages() {
   const host = $('#pages');
   if (io) io.disconnect();
   views.forEach((_, i) => unmountPage(i, true));
   host.innerHTML = ''; views = [];
   io = new IntersectionObserver(ents => { for (const en of ents) { const i = +en.target.dataset.i; en.isIntersecting ? mountPage(i) : unmountPage(i); } }, { root: host, rootMargin: '100% 0px' });
+  if (glowIO) glowIO.disconnect();
+  glowIO = new IntersectionObserver(ents => { for (const en of ents) if (en.isIntersecting) glowLinks(+en.target.dataset.i); }, { root: host, threshold: 0.45 });
   note.pages.forEach((pg, i) => {
     const wrap = document.createElement('div'); wrap.className = 'page'; wrap.dataset.i = i;
     wrap.style.aspectRatio = `${pg.w}/${pg.h}`;
@@ -2750,7 +2784,7 @@ function buildPages() {
       m.onclick = e => { e.stopPropagation(); pageMenu(i); }; wrap.appendChild(m);
     }
     host.appendChild(wrap);
-    views[i] = { wrap, pg, ink: null, fx: null, img: null }; io.observe(wrap);
+    views[i] = { wrap, pg, ink: null, fx: null, img: null }; io.observe(wrap); if (pg.links && pg.links.length) glowIO.observe(wrap);
   });
   Side.render();
   if (!viewer) {
@@ -3644,8 +3678,8 @@ $('#fPdf').onchange = async e => {
     for (const im of imgs) { const key = `${id}:${uid()}`; await putImg(key, im.blob); pages.push({ key, w: im.w, h: im.h, ...(im.links ? { pid: im.pid, links: im.links } : im.pid && imgs.links ? { pid: im.pid } : {}) }); }
     if (creating) {
       createNote(files[0].name.replace(/\.[^.]+$/, '').replace(/[-_]+/g, ' '), pages, id);
-      setTimeout(() => toast(`${pages.length} page${pages.length === 1 ? '' : 's'} ready to write on${imgs.links ? `, with ${imgs.links} link${imgs.links === 1 ? '' : 's'} kept: tap one with your finger to follow it` : ''}.`, 4200), 400);
-    } else { insertPages(after, pages); if (imgs.links) setTimeout(() => toast(`${imgs.links} link${imgs.links === 1 ? '' : 's'} kept. Tap one with your finger to follow it.`, 3600), 400); }
+      setTimeout(() => toast(`${pages.length} page${pages.length === 1 ? '' : 's'} ready to write on${imgs.links ? `, with ${imgs.links} link${imgs.links === 1 ? '' : 's'} kept: tap one (finger, or a quick tap of the Pencil) to follow it` : ''}.`, 4200), 400);
+    } else { insertPages(after, pages); if (imgs.links) setTimeout(() => toast(`${imgs.links} link${imgs.links === 1 ? '' : 's'} kept. Tap one (finger, or a quick tap of the Pencil) to follow it.`, 3600), 400); }
   } catch (err) { prog.close(); dialog({ title: 'Could not open that file', html: `<p>${esc(err.message || err)}</p>` }); }
 };
 function loadImgOnce(src) { return new Promise((res, rej) => { const i = new Image(); i.onload = () => res(i); i.onerror = () => rej(new Error('That image format could not be read here. Try a JPEG or PNG.')); i.src = src; }); }
@@ -4323,7 +4357,7 @@ const Drive = (() => {
   /* Sync record (0.47): the last 400 things sync did to notes, on this device only, so anything that ever
      looks wrong can be traced. Settings → Google Drive → Save sync record. */
   function jlog(act, m, x = {}) {
-    try { const log = LS.get('sync.log', []); log.push({ at: Date.now(), v: '0.47', act, id: m.id, title: m.title || '', ...x }); LS.set('sync.log', log.slice(-400)); } catch (e) { }
+    try { const log = LS.get('sync.log', []); log.push({ at: Date.now(), v: '0.48', act, id: m.id, title: m.title || '', ...x }); LS.set('sync.log', log.slice(-400)); } catch (e) { }
   }
   // a copy holding everything this note has is already in Trash (put there by the other device)
   async function alreadyKept(cur) {
@@ -4578,7 +4612,7 @@ const Drive = (() => {
     acts.push(tokenValid() ? { label: 'Sync now', value: 'sync', primary: true } : { label: 'Reconnect', value: 'again', primary: true });
     const v = await dialog({ title: 'Google Drive', node: box, actions: acts });
     if (v === 'sync') sync();
-    else if (v === 'log') { const a = document.createElement('a'); a.href = URL.createObjectURL(new Blob([JSON.stringify({ device: Versions.device(), version: '0.47', saved: new Date().toISOString(), log: LS.get('sync.log', []) }, null, 1)], { type: 'application/json' })); a.download = `notation-sync-record-${Versions.device().replace(/\W+/g, '-')}.json`; document.body.appendChild(a); a.click(); setTimeout(() => { URL.revokeObjectURL(a.href); a.remove(); }, 1000); }
+    else if (v === 'log') { const a = document.createElement('a'); a.href = URL.createObjectURL(new Blob([JSON.stringify({ device: Versions.device(), version: '0.48', saved: new Date().toISOString(), log: LS.get('sync.log', []) }, null, 1)], { type: 'application/json' })); a.download = `notation-sync-record-${Versions.device().replace(/\W+/g, '-')}.json`; document.body.appendChild(a); a.click(); setTimeout(() => { URL.revokeObjectURL(a.href); a.remove(); }, 1000); }
     else if (v === 'again') { await flushSave(); signIn('again'); }
     else if (v === 'off') {
       const ok = await dialog({ title: 'Disconnect Google Drive?', html: '<p>Syncing stops. Your notes stay on this device and in your Drive; nothing is deleted.</p>', actions: [{ label: 'Cancel', value: false }, { label: 'Disconnect', value: true, danger: true }] });
@@ -4732,7 +4766,7 @@ const Versions = (() => {
    version.json on GitHub names the newest build. When it differs from this one, the
    version chip offers "Update to …". Updating clears only Notation's stored app files
    and reloads; notes, recordings, folders and the Drive connection are untouched. */
-const APP_VERSION = '0.47', APP_BUILD = 'ec91376e15';
+const APP_VERSION = '0.48', APP_BUILD = 'b04df889c8';
 const Updates = (() => {
   let latest = null, last = 0;
   const chip = () => $('#verChip');
