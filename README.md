@@ -86,6 +86,12 @@ Changes sync a few seconds after you make them, in both directions, so the iPad 
 
 **Trash.** Deleting a note moves it to **Trash** (at the foot of the folders list), along with any version you let go. Everything there can be restored for 30 days, on every device, and is then removed for good by itself. Restoring a version brings it back into its note, and the version it replaces goes to Trash in turn. **Delete forever** and **Empty Trash** remove things at once. In Google Drive, items in Trash sit in a *Trash* folder inside *Notation*.
 
+**Nothing taken away by a sync.** If a sync would bring in a version of a note with fewer pages, or one in which strokes, text boxes or recordings on this device would disappear, this device's copy goes to Trash first (*… version · replaced by a sync*), so it can be restored for 30 days.
+
+**Restore from a file.** A note's ⋯ menu has **Restore from a file…**: choose a saved copy of the note, such as a *note.json* from its folder in Google Drive or from Drive's version history (*File information → Manage versions*). The note keeps its name, folder and share link, and what it held before goes to Trash. Pages need their page designs on the device, and recordings their sound files; anything missing is named and left out.
+
+**Sync record.** Settings → Google Drive → **Save sync record** downloads what sync last did to your notes on that device, to trace anything that ever looks wrong.
+
 **Notation leads; Drive is a mirror.** Everything flows from Notation to Drive, never the other way. Name and organise things in Notation and Drive follows at the next sync:
 
 - The note's title names its Drive folder and its PDF.

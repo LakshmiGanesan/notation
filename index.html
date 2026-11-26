@@ -467,7 +467,7 @@ body.viewer .viewer-only{display:inline-flex}
       <p class="tagline">Write your notation, record the lesson, and let every mark sing back.</p>
     </div>
     <div class="lib-actions">
-      <button class="btn verchip" id="verChip" title="Notation version · tap to check for updates">v0.46</button>
+      <button class="btn verchip" id="verChip" title="Notation version · tap to check for updates">v0.47</button>
       <button class="btn drivechip" id="driveChip" title="Google Drive sync"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M7 18h10.5a4.5 4.5 0 0 0 .6-8.96A6 6 0 0 0 6.6 9.2 4.4 4.4 0 0 0 7 18z"/></svg><span>Google Drive</span></button>
       <button class="btn" id="btnLib" title="Notation templates and covers"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="7" height="16" rx="1.5"/><rect x="12" y="4" width="4" height="16" rx="1"/><path d="M18 5.5l3 .8-3.6 13.4-3-.8"/></svg>Templates</button>
       <button class="btn" id="btnImport" title="Open a shared .html note"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v12m0 0-4-4m4 4 4-4"/><path d="M4 17v2a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-2"/></svg>Open shared note</button>
@@ -3228,6 +3228,39 @@ async function restoreFromTrash(t) {
   const m = unTrash(t); m.updated = Date.now(); if (m.folder && !folderById(m.folder)) m.folder = null;
   await DB.put('notes', t.id, m); return t.id;
 }
+/* Restore from a file (0.47): put a saved copy of a note back, e.g. a note.json from the note's folder in
+   Google Drive or from its version history (File information → Manage versions). The note keeps its name,
+   folder and share link; what it holds now goes to Trash for 30 days, so this too can be undone. Pages need
+   their page designs on this device, and recordings their sound files, as Drive's copies do for this note. */
+function pickJsonFile() {
+  return new Promise(res => { const i = document.createElement('input'); i.type = 'file'; i.accept = '.json,application/json'; i.onchange = () => res(i.files[0] || null); i.addEventListener('cancel', () => res(null)); i.click(); });
+}
+async function restoreFromFile(m) {
+  const f = await pickJsonFile(); if (!f) return;
+  let d = null; try { d = JSON.parse(await f.text()); } catch (e) { }
+  if (!d || !Array.isArray(d.pages) || !Array.isArray(d.strokes)) { dialog({ title: 'That isn’t a Notation note', html: '<p>Choose a <b>note.json</b> from the note’s folder in Google Drive, or from its version history.</p>' }); return; }
+  const from = d.id || m.id, rekey = k => k && k.startsWith(from + ':') ? m.id + k.slice(from.length) : k;
+  const pages = d.pages.map(p => p.key ? { ...p, key: rekey(p.key) } : p);
+  let missing = 0;
+  for (const p of d.pages) if (p.key && !(await DB.get('imgs', rekey(p.key))) && !(await DB.get('imgs', p.key))) missing++;
+  if (missing) { dialog({ title: 'Some pages aren’t on this device', html: `<p>${missing} of ${pages.length} pages in that file use page designs this device doesn’t have, so it can’t be restored here. Try on the device where the note was made.</p>` }); return; }
+  const takes = [];
+  for (const t of d.takes || []) { const a = (await DB.get('audio', m.id + ':' + t.id)) || (from !== m.id ? await DB.get('audio', from + ':' + t.id) : null); if (a) takes.push(t); }
+  const keepT = new Set(takes.map(t => t.id)), strokes = d.strokes.filter(x => !x.take || keepT.has(x.take)), noRec = (d.takes || []).length - takes.length;
+  const when = new Date(d.updated || f.lastModified).toLocaleString(undefined, { day: 'numeric', month: 'short', hour: 'numeric', minute: '2-digit' });
+  const ok = await dialog({ title: `Restore “${m.title || 'Untitled'}” from this file?`, html: `<p>${pages.length} page${pages.length === 1 ? '' : 's'} · ${strokes.length} stroke${strokes.length === 1 ? '' : 's'} · ${takes.length} recording${takes.length === 1 ? '' : 's'}, edited ${esc(when)}.${noRec ? ` ${noRec} recording${noRec === 1 ? ' isn’t' : 's aren’t'} on this device and will be left out.` : ''} What the note holds now goes to Trash for ${TRASH_DAYS} days.</p>`, actions: [{ label: 'Cancel', value: false }, { label: 'Restore', value: true, primary: true }] });
+  if (!ok) return;
+  const cur = await DB.get('notes', m.id); if (!isLive(cur)) return;
+  await setAside(cur, { why: 'ver', of: m.id, dev: Versions.device(), upd: cur.updated, restore: true });
+  for (const p of d.pages) { const k = rekey(p.key); if (p.key && k !== p.key && !(await DB.get('imgs', k))) await DB.put('imgs', k, await DB.get('imgs', p.key)); }
+  for (const t of takes) if (!(await DB.get('audio', m.id + ':' + t.id))) await DB.put('audio', m.id + ':' + t.id, await DB.get('audio', from + ':' + t.id));
+  for (const k of await DB.keysPrefix('audio', m.id + ':')) if (!keepT.has(k.slice(m.id.length + 1))) await DB.del('audio', k);
+  await DB.put('pages', m.id, { v: 2, pages });
+  const meta = { id: m.id, folder: cur.folder || null, title: cur.title, created: cur.created, updated: Date.now(), strokes, texts: d.texts || [], takes, duration: takes.reduce((a, t) => a + (t.duration || 0), 0), mime: '', hasAudio: takes.length > 0, pageCount: pages.length, bm: d.bm || 0, thumb: d.thumb || cur.thumb || '' };
+  if (cur.share) meta.share = cur.share; if (cur.lastSlug) meta.lastSlug = cur.lastSlug;
+  await DB.put('notes', m.id, meta);
+  Drive.schedule(1500); toast('Restored. What it held before is in Trash for 30 days.', 3400); showLibrary();
+}
 async function purgeTrash() {   // after 30 days, gone for good
   let n = 0; for (const t of TRASH) if (Date.now() - t.trashed > TRASH_DAYS * DAY) { await forgetNote(t.id); n++; }
   if (n) { TRASH = TRASH.filter(t => Date.now() - t.trashed <= TRASH_DAYS * DAY); Drive.schedule(3000); }
@@ -3236,7 +3269,7 @@ const ICON_TRASH = '<svg class="fi" viewBox="0 0 24 24" fill="none" stroke="curr
 function trashWhy(t) {
   const g = t.gone || {}, d = new Date(g.at || t.trashed).toLocaleDateString(undefined, { day: 'numeric', month: 'short' });
   if (g.why !== 'ver') return `Deleted ${d}`;
-  return `${g.dev ? g.dev + ' version' : 'Earlier version'} · ${g.pending ? 'not chosen yet' : 'let go ' + d}`;
+  return `${g.dev ? g.dev + ' version' : 'Earlier version'} · ${g.pending ? 'not chosen yet' : g.auto ? 'replaced by a sync ' + d : g.restore ? 'replaced by a restore ' + d : 'let go ' + d}`;
 }
 function renderTrash() {
   $('#subs').innerHTML = '';
@@ -3364,7 +3397,8 @@ function renderLibrary(all) {
     if (shareOpen(m.share)) c.querySelector('.sharedbadge').onclick = e => { e.stopPropagation(); copyLink(m.share.url); };
     c.querySelector('.more').onclick = async e => {
       e.stopPropagation();
-      const v = await dialog({ title: m.title || 'Untitled', html: '<p>What would you like to do with this note?</p>', actions: [{ label: 'Cancel', value: null }, { label: 'Move to folder…', value: 'move' }, { label: 'Duplicate', value: 'dup' }, { label: 'Delete', value: 'del', danger: true }] });
+      const v = await dialog({ title: m.title || 'Untitled', html: '<p>What would you like to do with this note?</p>', actions: [{ label: 'Cancel', value: null }, { label: 'Move to folder…', value: 'move' }, { label: 'Duplicate', value: 'dup' }, { label: 'Restore from a file…', value: 'rest' }, { label: 'Delete', value: 'del', danger: true }] });
+      if (v === 'rest') return restoreFromFile(m);
       if (v === 'move') { const f = await pickFolder(`Move “${m.title || 'Untitled'}”`, m.folder || null); if (f !== undefined) { const cur = await DB.get('notes', m.id); await DB.put('notes', m.id, { ...cur, folder: f, updated: Date.now() }); Drive.schedule(3000); toast(f ? `Moved to ${folderPath(f)}.` : 'Moved out of folders.'); showLibrary(); } return; }
       if (v === 'del') {
         const ok = await dialog({ title: 'Move to Trash?', html: `<p>You can restore it from Trash for ${TRASH_DAYS} days.${shareOpen(m.share) ? ' Its public link keeps working until you stop sharing.' : ''}</p>`, actions: [{ label: 'Cancel', value: false }, { label: 'Move to Trash', value: true, danger: true }] });
@@ -4286,6 +4320,23 @@ const Drive = (() => {
   setInterval(renderChip, 30000);
 
   /* ---- tombstones: deletions to carry to the other device ---- */
+  /* Sync record (0.47): the last 400 things sync did to notes, on this device only, so anything that ever
+     looks wrong can be traced. Settings → Google Drive → Save sync record. */
+  function jlog(act, m, x = {}) {
+    try { const log = LS.get('sync.log', []); log.push({ at: Date.now(), v: '0.47', act, id: m.id, title: m.title || '', ...x }); LS.set('sync.log', log.slice(-400)); } catch (e) { }
+  }
+  // a copy holding everything this note has is already in Trash (put there by the other device)
+  async function alreadyKept(cur) {
+    const has = (a, b) => { const s = new Set((b || []).map(x => x.id)); return (a || []).every(x => s.has(x.id)); };
+    return ((await DB.all('notes')) || []).some(t => t && t.trashed && t.gone && t.gone.of === cur.id && (t.pageCount || 0) >= (cur.pageCount || 0) && has(cur.strokes, t.strokes) && has(cur.texts, t.texts) && has(cur.takes, t.takes));
+  }
+  // what a note on this device would lose if `data` replaced it ('' if nothing)
+  function losses(cur, pr, data) {
+    const ids = o => new Set((o || []).map(x => x.id)), inS = ids(data.strokes), inT = ids(data.texts), inA = ids(data.takes);
+    const s = (cur.strokes || []).filter(x => !inS.has(x.id)).length, t = (cur.texts || []).filter(x => !inT.has(x.id)).length, a = (cur.takes || []).filter(x => !inA.has(x.id)).length;
+    const p = Math.max(0, ((pr.pages || []).length || cur.pageCount || 0) - (data.pages || []).length);
+    return [p && p + ' page(s)', s && s + ' stroke(s)', t && t + ' text box(es)', a && a + ' recording(s)'].filter(Boolean).join(', ');
+  }
   function tombstone(kind, id) { const t = LS.get('drive.deleted', { notes: [], folders: [] }); if (!t[kind].includes(id)) t[kind].push(id); LS.set('drive.deleted', t); }
 
   /* ---- sync ---- */
@@ -4363,7 +4414,7 @@ const Drive = (() => {
     const parentFor = fid => (fid && folderDrive[fid]) ? folderDrive[fid].id : root.id;
     let tdir = live.find(f => props(f).kind === 'trashdir');   // notes in Trash live in Notation › Trash (0.46)
     const parentOf = async m => { if (!m.trashed) return parentFor(m.folder); if (!tdir) tdir = await createFolder('Trash', root.id, { kind: 'trashdir' }); return tdir.id; };
-    const ids = [...new Set([...L.keys(), ...R.keys()])], held = new Set(); let i = 0, changed = false;
+    const ids = [...new Set([...L.keys(), ...R.keys()])].sort((a, b) => L.has(a) - L.has(b)), held = new Set(); let i = 0, changed = false;   // new arrivals first (e.g. a copy another device put in Trash), so the safety net can see them
     for (const id of ids) {
       setState('syncing', `Syncing ${++i} of ${ids.length}`);
       const m = L.get(id), r = R.get(id), st = await DB.get('sync', 'n:' + id);
@@ -4385,7 +4436,8 @@ const Drive = (() => {
           /* Two versions (0.46): this device's version goes to Trash, marked "not chosen yet"; the version in
              Drive comes into the library. The Trash item syncs, so every device knows and asks which to keep. */
           const a = await setAside(m, { why: 'ver', of: id, dev: Versions.device(), upd: m.updated, pending: true });
-          const data = await pull(r, kids(id));
+          jlog('aside', m, { r: rUpd, aside: a.id });
+          const data = await pull(r, kids(id), false, true);
           a.gone.vs = (data && data.device) || ''; await DB.put('notes', a.id, a);
           await push(a, null, [], await parentOf(a)); changed = true;
         }
@@ -4449,11 +4501,21 @@ const Drive = (() => {
     if (jf) await upload(jb, {}, jf.id); else remember({ ...(await upload(jb, { name: 'note.json', parents: [folder.id], appProperties: { notation: '1', kind: 'json', nid: m.id } })), appProperties: { kind: 'json', nid: m.id } });
     await patch(folder.id, { appProperties: { updated: String(m.updated), tr: m.trashed ? '1' : '0' } });   // written last: marks the note as complete
     await DB.put('sync', 'n:' + m.id, { synced: m.updated, pdfSig: sig, pdfAt, pdfIndex: index });
+    jlog('push', m, { l: m.updated, r: r ? +(props(r).updated || 0) : 0, pages: pages.length, strokes: (m.strokes || []).length, ...(m.trashed ? { trashed: 1 } : {}) });
   }
-  async function pull(r, kids, asCopy) {
+  async function pull(r, kids, asCopy, noGuard) {
     const jf = kids.find(k => props(k).kind === 'json'); if (!jf) return;   // still uploading from the other device
     const data = JSON.parse(await (await download(jf.id)).text());
     let id = data.id, rekey = k => k;
+    if (!asCopy) {
+      /* Safety net (0.47): a sync never takes writing away without keeping a copy. If the incoming version
+         has fewer pages, or would make strokes, text boxes or recordings on this device disappear, this
+         device's copy goes to Trash first (30 days), labelled "replaced by a sync". */
+      const cur = await DB.get('notes', id), lost = cur && !noGuard && isLive(cur) ? losses(cur, (await DB.get('pages', id)) || {}, data) : '';
+      if (lost && await alreadyKept(cur)) { jlog('kept', cur, { lost, already: 1, r: data.updated }); }
+      else if (lost) { const a = await setAside(cur, { why: 'ver', of: id, dev: Versions.device(), upd: cur.updated, auto: true }); again = true; jlog('kept', cur, { lost, aside: a.id, r: data.updated, by: data.device || '' }); }
+      jlog('pull', { id, title: data.title }, { r: data.updated, by: data.device || '', l: cur ? cur.updated : 0, pages: (data.pages || []).length, strokes: (data.strokes || []).length });
+    }
     if (asCopy) { id = uid(); rekey = k => id + k.slice(data.id.length); data.title = (data.title || 'Untitled') + ' (other device)'; }
     const rp = kids.find(k => props(k).kind === 'pdf');
     if (data.pdf && rp) {   // lift any page images this device lacks out of the PDF
@@ -4512,10 +4574,11 @@ const Drive = (() => {
     }
     box.innerHTML = `<p style="margin-top:0">Connected${c.email ? ` as <b>${esc(c.email)}</b>` : ''}. Your library is mirrored in <b>Notation</b> in Google Drive.</p>
       <p style="color:var(--muted);font-size:14px">${state === 'error' ? 'Last attempt: ' + esc(detail) : lastSync ? 'Last synced ' + ago(lastSync) + '.' : 'Not synced yet.'} Changes sync automatically a few seconds after you make them.</p>`;
-    const acts = [{ label: 'Close', value: null }, { label: 'Disconnect', value: 'off', danger: true }];
+    const acts = [{ label: 'Close', value: null }, { label: 'Disconnect', value: 'off', danger: true }, { label: 'Save sync record', value: 'log' }];
     acts.push(tokenValid() ? { label: 'Sync now', value: 'sync', primary: true } : { label: 'Reconnect', value: 'again', primary: true });
     const v = await dialog({ title: 'Google Drive', node: box, actions: acts });
     if (v === 'sync') sync();
+    else if (v === 'log') { const a = document.createElement('a'); a.href = URL.createObjectURL(new Blob([JSON.stringify({ device: Versions.device(), version: '0.47', saved: new Date().toISOString(), log: LS.get('sync.log', []) }, null, 1)], { type: 'application/json' })); a.download = `notation-sync-record-${Versions.device().replace(/\W+/g, '-')}.json`; document.body.appendChild(a); a.click(); setTimeout(() => { URL.revokeObjectURL(a.href); a.remove(); }, 1000); }
     else if (v === 'again') { await flushSave(); signIn('again'); }
     else if (v === 'off') {
       const ok = await dialog({ title: 'Disconnect Google Drive?', html: '<p>Syncing stops. Your notes stay on this device and in your Drive; nothing is deleted.</p>', actions: [{ label: 'Cancel', value: false }, { label: 'Disconnect', value: true, danger: true }] });
@@ -4669,7 +4732,7 @@ const Versions = (() => {
    version.json on GitHub names the newest build. When it differs from this one, the
    version chip offers "Update to …". Updating clears only Notation's stored app files
    and reloads; notes, recordings, folders and the Drive connection are untouched. */
-const APP_VERSION = '0.46', APP_BUILD = 'b80fbb4717';
+const APP_VERSION = '0.47', APP_BUILD = 'ec91376e15';
 const Updates = (() => {
   let latest = null, last = 0;
   const chip = () => $('#verChip');
