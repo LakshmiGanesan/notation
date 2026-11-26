@@ -361,6 +361,12 @@ body.fingers .page canvas.fx{touch-action:none}
 .vcard .vsub{color:var(--muted)}.vcard .vonly{color:var(--saffron-2);font-weight:500}
 .vcard .btn{justify-content:center;width:100%}.vcard .vsp{flex:1;min-height:10px}
 .vcap{color:var(--muted);font-size:13px;margin:12px 2px 0}
+/* Trash (0.46) */
+.fitem.trashi{margin-top:10px}.fitem.trashi svg.fi{color:var(--muted)}
+.crumb .tempty{margin-left:auto;min-height:38px;padding:0 14px;font-size:14px}
+.card.intrash .thumb{opacity:.62;filter:saturate(.7)}
+.card.intrash .chip.left{color:var(--muted);font-variant-numeric:tabular-nums}
+.tline{margin:0;color:var(--muted)}
 @media (max-width:560px){.vers{grid-template-columns:1fr}}
 .tabs{margin:0 0 14px}
 .tgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(190px,1fr));gap:12px}
@@ -461,7 +467,7 @@ body.viewer .viewer-only{display:inline-flex}
       <p class="tagline">Write your notation, record the lesson, and let every mark sing back.</p>
     </div>
     <div class="lib-actions">
-      <button class="btn verchip" id="verChip" title="Notation version · tap to check for updates">v0.45</button>
+      <button class="btn verchip" id="verChip" title="Notation version · tap to check for updates">v0.46</button>
       <button class="btn drivechip" id="driveChip" title="Google Drive sync"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M7 18h10.5a4.5 4.5 0 0 0 .6-8.96A6 6 0 0 0 6.6 9.2 4.4 4.4 0 0 0 7 18z"/></svg><span>Google Drive</span></button>
       <button class="btn" id="btnLib" title="Notation templates and covers"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="7" height="16" rx="1.5"/><rect x="12" y="4" width="4" height="16" rx="1"/><path d="M18 5.5l3 .8-3.6 13.4-3-.8"/></svg>Templates</button>
       <button class="btn" id="btnImport" title="Open a shared .html note"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v12m0 0-4-4m4 4 4-4"/><path d="M4 17v2a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-2"/></svg>Open shared note</button>
@@ -3133,6 +3139,7 @@ function renderSide(metas) {
   const nf = document.createElement('button'); nf.className = 'fitem newf';
   nf.innerHTML = `<svg class="fi" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg><span class="nm">New folder</span>`;
   nf.onclick = () => newFolder(null); side.appendChild(nf);
+  item(side, 'trash', 'Trash', TRASH.length, ICON_TRASH, 'trashi');
 }
 /* the moving element: a top folder's whole block, or a subfolder's row */
 const sideMover = row => row.classList.contains('sub') ? row : row.closest('.fblock');
@@ -3175,6 +3182,100 @@ const sideMover = row => row.classList.contains('sub') ? row : row.closest('.fbl
   });
 })();
 let LIB_METAS = [];
+/* ================= Trash (0.46) =================
+   Nothing goes by mistake. A deleted note, and the version let go when two versions of a note are settled,
+   wait in Trash for 30 days on every device and can be restored; after that they are removed for good.
+   A note in Trash is an ordinary note with `trashed` (when) and `gone`: { why: 'del' } for a deleted note, or
+   for a version { why: 'ver', of: <the note's id>, dev: <whose version>, upd: <its last edit>,
+   vs: <the device of the version kept in the library>, pending: <still to be chosen> }.
+   It syncs like any note, into a Trash folder inside Notation in Google Drive. */
+const TRASH_DAYS = 30;   // DAY (one day in ms) is declared with the share links
+let TRASH = [];
+const isLive = m => !!m && !m.trashed;
+const daysLeft = t => Math.max(0, Math.ceil((t.trashed + TRASH_DAYS * DAY - Date.now()) / DAY));
+const unTrash = m => { const o = { ...m }; delete o.trashed; delete o.gone; return o; };
+async function copyNoteData(from, to) {   // pages, page images and recordings, under another id
+  const pr = await DB.get('pages', from), rekey = k => to + k.slice(from.length);
+  for (const k of await DB.keysPrefix('imgs', from + ':')) await DB.put('imgs', rekey(k), await DB.get('imgs', k));
+  for (const k of await DB.keysPrefix('audio', from + ':')) await DB.put('audio', rekey(k), await DB.get('audio', k));
+  const a = await DB.get('audio', from); if (a) await DB.put('audio', to, a);
+  await DB.put('pages', to, { v: 2, pages: ((pr && pr.pages) || []).map(p => p.key && p.key.startsWith(from + ':') ? { ...p, key: rekey(p.key) } : p) });
+}
+async function clearNoteData(id) { await DB.del('pages', id); await DB.del('audio', id); await DB.delPrefix('audio', id + ':'); await DB.delPrefix('imgs', id + ':'); }
+async function forgetNote(id) { await clearNoteData(id); await DB.del('notes', id); await DB.del('sync', 'n:' + id); Drive.tombstone('notes', id); }   // for good, on every device
+// keep a copy of a note's present content in Trash, as a version; returns the Trash item
+async function setAside(m, gone) {
+  const id = uid(), now = Date.now(); await copyNoteData(m.id, id);
+  const t = { ...unTrash(m), id, trashed: now, gone: { ...gone, at: now }, updated: now }; delete t.share; delete t.lastSlug;
+  await DB.put('notes', id, t); return t;
+}
+async function moveToTrash(id) {
+  const m = await DB.get('notes', id); if (!isLive(m)) return;
+  const now = Date.now(); await DB.put('notes', id, { ...m, trashed: now, gone: { why: 'del', at: now }, updated: now });
+}
+// src's content becomes the note (same id, name, folder, share link); the note's present content goes to Trash
+async function swapIn(main, src, mainDev) {
+  await setAside(main, { why: 'ver', of: main.id, dev: mainDev || '', upd: main.updated });
+  await clearNoteData(main.id); await copyNoteData(src.id, main.id);
+  const m = { ...unTrash(src), id: main.id, title: main.title, folder: main.folder || null, created: main.created, updated: Date.now() };
+  delete m.share; delete m.lastSlug; if (main.share) m.share = main.share; if (main.lastSlug) m.lastSlug = main.lastSlug;
+  await DB.put('notes', main.id, m); await forgetNote(src.id);
+}
+// returns the id of the note it brought back
+async function restoreFromTrash(t) {
+  const g = t.gone || {}, main = g.why === 'ver' ? await DB.get('notes', g.of) : null;
+  if (isLive(main)) { await swapIn(main, t, g.vs || ''); return main.id; }
+  const m = unTrash(t); m.updated = Date.now(); if (m.folder && !folderById(m.folder)) m.folder = null;
+  await DB.put('notes', t.id, m); return t.id;
+}
+async function purgeTrash() {   // after 30 days, gone for good
+  let n = 0; for (const t of TRASH) if (Date.now() - t.trashed > TRASH_DAYS * DAY) { await forgetNote(t.id); n++; }
+  if (n) { TRASH = TRASH.filter(t => Date.now() - t.trashed <= TRASH_DAYS * DAY); Drive.schedule(3000); }
+}
+const ICON_TRASH = '<svg class="fi" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 7h16M9 7V4.5h6V7M6 7l1 13h10l1-13M10 11v6M14 11v6"/></svg>';
+function trashWhy(t) {
+  const g = t.gone || {}, d = new Date(g.at || t.trashed).toLocaleDateString(undefined, { day: 'numeric', month: 'short' });
+  if (g.why !== 'ver') return `Deleted ${d}`;
+  return `${g.dev ? g.dev + ' version' : 'Earlier version'} · ${g.pending ? 'not chosen yet' : 'let go ' + d}`;
+}
+function renderTrash() {
+  $('#subs').innerHTML = '';
+  const list = [...TRASH].sort((a, b) => b.trashed - a.trashed), crumb = $('#crumb');
+  crumb.innerHTML = `<h2>Trash</h2><span class="cnt">${list.length} item${list.length === 1 ? '' : 's'} · removed for good after ${TRASH_DAYS} days</span>${list.length ? '<button class="btn tempty">Empty Trash</button>' : ''}`;
+  if (list.length) crumb.querySelector('.tempty').onclick = async () => {
+    const ok = await dialog({ title: 'Empty Trash?', html: `<p>${list.length} item${list.length === 1 ? '' : 's'} will be removed for good from all your devices and Google Drive.</p>`, actions: [{ label: 'Cancel', value: false }, { label: 'Empty Trash', value: true, danger: true }] });
+    if (!ok) return;
+    for (const t of list) await forgetNote(t.id);
+    Drive.schedule(1500); toast('Trash emptied.'); showLibrary();
+  };
+  const grid = $('#grid'); grid.innerHTML = '';
+  if (!list.length) { grid.style.display = 'block'; grid.innerHTML = `<div class="empty" style="padding:34px 24px"><p style="margin:0">Trash is empty.</p></div>`; return; }
+  grid.style.display = '';
+  for (const t of list) {
+    const g = t.gone || {}, pending = g.why === 'ver' && g.pending && LIB_METAS.some(m => m.id === g.of), left = daysLeft(t);
+    const c = document.createElement('div'); c.className = 'card intrash'; c.dataset.id = t.id;
+    c.innerHTML = `<div class="thumb" style="background-image:url(${t.thumb || ''})"></div>
+      ${pending ? `<button class="twobadge" title="Two versions · tap to choose one"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="6" width="12" height="15" rx="2"/><path d="M9 3h10a2 2 0 0 1 2 2v12"/></svg>Choose</button>` : ''}
+      <div class="meta"><p class="title">${esc(t.title || 'Untitled')}</p>
+      <div class="sub"><span>${esc(trashWhy(t))}</span><span class="chip left">${left === 0 ? 'last day' : left + (left === 1 ? ' day' : ' days') + ' left'}</span></div></div>`;
+    c.onclick = () => pending ? Versions.askFor(g.of) : trashMenu(t);
+    grid.appendChild(c);
+  }
+}
+async function trashMenu(t) {
+  const g = t.gone || {}, main = g.why === 'ver' ? LIB_METAS.find(m => m.id === g.of) : null;
+  const v = await dialog({ title: t.title || 'Untitled', html: `<p class="tline">${esc(trashWhy(t))}${main ? '. Restoring brings this version back; the one in your library now goes to Trash.' : ''}</p>`, x: true,
+    actions: [{ label: 'Delete forever', value: 'del', danger: true }, { label: 'Restore', value: 'res', primary: true }] });
+  if (v === 'res') {
+    const id = await restoreFromTrash(t); Drive.schedule(1500);
+    const m = await DB.get('notes', id);
+    toast(main ? 'Restored. The version it replaced is in Trash.' : `Restored${m && m.folder && folderById(m.folder) ? ' to ' + folderPath(m.folder) : ''}.`);
+    showLibrary(true);
+  } else if (v === 'del') {
+    const ok = await dialog({ title: 'Delete forever?', html: '<p>This can’t be undone.</p>', actions: [{ label: 'Cancel', value: false }, { label: 'Delete forever', value: true, danger: true }] });
+    if (ok) { await forgetNote(t.id); Drive.schedule(1500); toast('Deleted.'); showLibrary(true); }
+  }
+}
 /* ---------------- quarterly tidy-up reminder ----------------
    On the first visit of each quarter (from January 2027) the library opens with a short, warm note.
    Nothing is automated: backing up and clearing out stay in your hands. */
@@ -3204,15 +3305,18 @@ async function showLibrary(fromSync) {
   $('#editor').classList.add('hidden'); $('#drawer').classList.remove('open'); $('#library').classList.remove('hidden');
   document.title = 'Notation';
   if (!FOLDERS.length) await loadFolders();
-  LIB_METAS = (await DB.all('notes')).filter(Boolean).sort((a, b) => b.updated - a.updated);
+  const every = (await DB.all('notes')).filter(Boolean);
+  LIB_METAS = every.filter(isLive).sort((a, b) => b.updated - a.updated); TRASH = every.filter(m => m.trashed);
+  await purgeTrash();
   await endExpiredShares(LIB_METAS);
-  await Versions.refresh(LIB_METAS);
-  if (curFolder !== 'all' && curFolder !== 'unfiled' && !folderById(curFolder)) curFolder = 'all';
+  await Versions.refresh([...LIB_METAS, ...TRASH]);
+  if (curFolder !== 'all' && curFolder !== 'unfiled' && curFolder !== 'trash' && !folderById(curFolder)) curFolder = 'all';
   renderLibrary(LIB_METAS);
-  if (!fromSync) { Drive.maybeSync(); setTimeout(() => Versions.nudge(), 600); }
+  if (!fromSync) { if (Drive.deferred()) Drive.schedule(800); else Drive.maybeSync(); setTimeout(() => Versions.nudge(), 600); }
 }
 function renderLibrary(all) {
   renderSide(all);
+  if (curFolder === 'trash') return renderTrash();
   const f = folderById(curFolder), parent = f && f.parent ? folderById(f.parent) : null;
   const metas = curFolder === 'all' ? all : curFolder === 'unfiled' ? all.filter(m => !m.folder || !folderById(m.folder)) : all.filter(m => m.folder === curFolder);
   const crumb = $('#crumb');
@@ -3263,8 +3367,8 @@ function renderLibrary(all) {
       const v = await dialog({ title: m.title || 'Untitled', html: '<p>What would you like to do with this note?</p>', actions: [{ label: 'Cancel', value: null }, { label: 'Move to folder…', value: 'move' }, { label: 'Duplicate', value: 'dup' }, { label: 'Delete', value: 'del', danger: true }] });
       if (v === 'move') { const f = await pickFolder(`Move “${m.title || 'Untitled'}”`, m.folder || null); if (f !== undefined) { const cur = await DB.get('notes', m.id); await DB.put('notes', m.id, { ...cur, folder: f, updated: Date.now() }); Drive.schedule(3000); toast(f ? `Moved to ${folderPath(f)}.` : 'Moved out of folders.'); showLibrary(); } return; }
       if (v === 'del') {
-        const ok = await dialog({ title: 'Delete this note?', html: '<p>The notation, recording and bookmarks will be removed from this device. This cannot be undone.</p>', actions: [{ label: 'Cancel', value: false }, { label: 'Delete', value: true, danger: true }] });
-        if (ok) { await DB.del('notes', m.id); await DB.del('pages', m.id); await DB.del('audio', m.id); await DB.delPrefix('audio', m.id + ':'); await DB.delPrefix('imgs', m.id + ':'); await DB.del('sync', 'n:' + m.id); Drive.tombstone('notes', m.id); Drive.schedule(3000); showLibrary(); }
+        const ok = await dialog({ title: 'Move to Trash?', html: `<p>You can restore it from Trash for ${TRASH_DAYS} days.${shareOpen(m.share) ? ' Its public link keeps working until you stop sharing.' : ''}</p>`, actions: [{ label: 'Cancel', value: false }, { label: 'Move to Trash', value: true, danger: true }] });
+        if (ok) { await moveToTrash(m.id); Drive.schedule(3000); toast('Moved to Trash.'); showLibrary(); }
       } else if (v === 'dup') {
         const id = uid(); const pages = await DB.get('pages', m.id);
         if (pages && pages.pages) {   // copy each page image under the new note's id
@@ -3391,6 +3495,7 @@ async function openNote(id, asked) {
   if (!asked && Versions.involved(id)) { const r = await Versions.askFor(id); if (r) id = r; }
   const m = await DB.get('notes', id), p = await DB.get('pages', id);
   if (!m || !p) { toast('That note could not be opened.'); return; }
+  if (m.trashed) { toast('That note is in Trash. Restore it to open it.'); return; }
   releaseImages();
   let pages = p.pages;
   if (p.srcs) {   // notes from prototype 0.1 kept page images inline: move them into the image store
@@ -4060,7 +4165,7 @@ const Pdf = (() => {
 const Drive = (() => {
   const API = 'https://www.googleapis.com/drive/v3', UP = 'https://www.googleapis.com/upload/drive/v3';
   const SCOPE = 'https://www.googleapis.com/auth/drive.file', FOLDER = 'application/vnd.google-apps.folder';
-  let state = 'off', detail = '', busy = false, timer = 0, again = false, lastSync = LS.get('drive.last', 0);
+  let state = 'off', detail = '', busy = false, waiting = new Set(), timer = 0, again = false, lastSync = LS.get('drive.last', 0);
   let folderDrive = {}, staleFolders = [];
   const cfg = () => LS.get('drive', null) || {};
   const tok = () => LS.get('drive.token', null);
@@ -4103,7 +4208,7 @@ const Drive = (() => {
   const FIELDS = 'id,name,mimeType,parents,appProperties,trashed,createdTime,modifiedTime';
   /* Drive's search can lag a few seconds behind a fresh upload. Notation remembers the ID of every
      file it has made or seen, and asks for any missing one directly, so it never makes a second copy. */
-  const memKey = f => { const p = props(f); return p.kind === 'root' ? 'root' : p.kind === 'library' ? 'lib' : p.kind === 'folder' ? 'f:' + p.fid : p.kind === 'note' ? 'n:' + p.nid : p.kind === 'json' ? 'j:' + p.nid : p.kind === 'pdf' ? 'p:' + p.nid : p.kind === 'audio' && p.take ? 'a:' + p.nid + ':' + p.take : null; };
+  const memKey = f => { const p = props(f); return p.kind === 'root' ? 'root' : p.kind === 'library' ? 'lib' : p.kind === 'trashdir' ? 'trash' : p.kind === 'folder' ? 'f:' + p.fid : p.kind === 'note' ? 'n:' + p.nid : p.kind === 'json' ? 'j:' + p.nid : p.kind === 'pdf' ? 'p:' + p.nid : p.kind === 'audio' && p.take ? 'a:' + p.nid + ':' + p.take : null; };
   async function listKnown() {
     const files = await listAll(), seen = new Set(files.map(f => f.id)), mem = LS.get('drive.ids', {}), next = {};
     for (const [k, id] of Object.entries(mem)) {
@@ -4256,6 +4361,8 @@ const Drive = (() => {
     for (const id of R.keys()) gone.delete(id);
     const kids = id => live.filter(f => props(f).nid === id && props(f).kind !== 'note');
     const parentFor = fid => (fid && folderDrive[fid]) ? folderDrive[fid].id : root.id;
+    let tdir = live.find(f => props(f).kind === 'trashdir');   // notes in Trash live in Notation › Trash (0.46)
+    const parentOf = async m => { if (!m.trashed) return parentFor(m.folder); if (!tdir) tdir = await createFolder('Trash', root.id, { kind: 'trashdir' }); return tdir.id; };
     const ids = [...new Set([...L.keys(), ...R.keys()])], held = new Set(); let i = 0, changed = false;
     for (const id of ids) {
       setState('syncing', `Syncing ${++i} of ${ids.length}`);
@@ -4263,31 +4370,35 @@ const Drive = (() => {
       if (t.notes.includes(id)) { if (r) await trash(r.id); await DB.del('sync', 'n:' + id); continue; }
       if (m && !r) {
         if (st && gone.has(id) && m.updated <= st.synced) { if (!(note && note.id === id)) { await removeLocal(id); changed = true; } continue; }   // deleted on the other device
-        await push(m, null, kids(id), parentFor(m.folder)); continue;
+        await push(m, null, kids(id), await parentOf(m)); continue;
       }
       if (!m && r) { await pull(r, kids(id)); changed = true; continue; }
       const rUpd = +(props(r).updated || 0), localDirty = !st || m.updated > st.synced, remoteDirty = !st || rUpd > st.synced;
       const open = note && note.id === id;
-      if (st && localDirty && remoteDirty && rUpd !== m.updated) {   // edited on both devices: hold both, and ask which to keep (0.39)
-        const c = await DB.get('sync', 'c:' + id);
-        if (c && c.choice === 'local') { await push(m, r, kids(id), parentFor(m.folder)); await DB.del('sync', 'c:' + id); changed = true; }
-        else if (c && c.choice === 'remote' && !open) { await pull(r, kids(id)); await DB.del('sync', 'c:' + id); changed = true; }
-        else {
-          held.add(id);
-          if (!c || c.rUpd !== rUpd) {   // note the other version's details, for the question
-            const jf = kids(id).find(k => props(k).kind === 'json');
-            if (jf) { try { const d = JSON.parse(await (await download(jf.id)).text()); await DB.put('sync', 'c:' + id, { id, rUpd, at: Date.now(), ...(c && c.choice ? { choice: c.choice } : {}), remote: { title: d.title, updated: d.updated, device: d.device || '', pages: (d.pages || []).length, takes: (d.takes || []).map(t => ({ id: t.id, duration: t.duration || 0 })), bm: d.bm || 0, thumb: d.thumb || '' } }); changed = true; } catch (e) { if (e.auth) throw e; } }
-          }
+      if (st && localDirty && remoteDirty && rUpd !== m.updated) {   // changed on both devices
+        const rTr = props(r).tr === '1';
+        if (m.trashed || rTr) {   // in Trash on one side only: the side still in use wins; in Trash on both: the newer
+          if (m.trashed && rTr ? m.updated > rUpd : !m.trashed) await push(m, r, kids(id), await parentOf(m));
+          else if (!open) { await pull(r, kids(id)); changed = true; }
+        } else if (open) held.add(id);   // settled once the note is closed
+        else if (kids(id).some(k => props(k).kind === 'json')) {
+          /* Two versions (0.46): this device's version goes to Trash, marked "not chosen yet"; the version in
+             Drive comes into the library. The Trash item syncs, so every device knows and asks which to keep. */
+          const a = await setAside(m, { why: 'ver', of: id, dev: Versions.device(), upd: m.updated, pending: true });
+          const data = await pull(r, kids(id));
+          a.gone.vs = (data && data.device) || ''; await DB.put('notes', a.id, a);
+          await push(a, null, [], await parentOf(a)); changed = true;
         }
       } else if (!st && rUpd > m.updated) { if (!open) { await pull(r, kids(id)); changed = true; } }
-      else if (localDirty) await push(m, r, kids(id), parentFor(m.folder));
+      else if (localDirty) await push(m, r, kids(id), await parentOf(m));
       else if (remoteDirty) { if (!open) { await pull(r, kids(id)); changed = true; } }
-      else if (!open && (st.pdfAt !== m.updated || !kids(id).some(k => props(k).kind === 'pdf'))) await push(m, r, kids(id), parentFor(m.folder));
-      else if (untidy(m, r, kids(id))) await push(m, r, kids(id), parentFor(m.folder));   // names in Drive out of step (e.g. recording.m4a from an early version)
-      else { const p = parentFor(m.folder); if (!(r.parents || []).includes(p)) await patch(r.id, {}, (r.parents || [])[0], p); }
+      else if (!open && (st.pdfAt !== m.updated || !kids(id).some(k => props(k).kind === 'pdf'))) await push(m, r, kids(id), await parentOf(m));
+      else if (untidy(m, r, kids(id))) await push(m, r, kids(id), await parentOf(m));   // names in Drive out of step (e.g. recording.m4a from an early version)
+      else { const p = await parentOf(m); if (!(r.parents || []).includes(p)) await patch(r.id, {}, (r.parents || [])[0], p); }
     }
     t.notes = []; LS.set('drive.deleted', t);
-    for (const k of await DB.keysPrefix('sync', 'c:')) if (!held.has(k.slice(2))) { await DB.del('sync', k); changed = true; }   // settled
+    waiting = held;
+    for (const k of await DB.keysPrefix('sync', 'c:')) { await DB.del('sync', k); changed = true; }   // questions held by 0.39–0.45 are now asked through Trash
     return changed;
   }
   const extOf = mime => /webm/.test(mime) ? 'webm' : /ogg/.test(mime) ? 'ogg' : /mpeg|mp3/.test(mime) ? 'mp3' : /wav/.test(mime) ? 'wav' : 'm4a';
@@ -4333,10 +4444,10 @@ const Drive = (() => {
     }
     for (const k of remoteA) if (!keep.has(k.id)) await trash(k.id);
     // ---- ink, bookmarks and details (small; always current)
-    const data = { v: 3, id: m.id, title: m.title, folder: m.folder || null, created: m.created, updated: m.updated, pages, strokes: m.strokes || [], texts: m.texts || [], takes: m.takes || [], duration: m.duration || 0, bm: m.bm || 0, thumb: m.thumb || '', pdf: index, pdfAt, share: m.share || null, device: Versions.device() };
+    const data = { v: 3, id: m.id, title: m.title, folder: m.folder || null, created: m.created, updated: m.updated, pages, strokes: m.strokes || [], texts: m.texts || [], takes: m.takes || [], duration: m.duration || 0, bm: m.bm || 0, thumb: m.thumb || '', pdf: index, pdfAt, share: m.share || null, device: Versions.device(), ...(m.trashed ? { trashed: m.trashed, gone: m.gone || { why: 'del' } } : {}) };
     const jb = new Blob([JSON.stringify(data)], { type: 'application/json' }), jf = kids.find(k => props(k).kind === 'json');
     if (jf) await upload(jb, {}, jf.id); else remember({ ...(await upload(jb, { name: 'note.json', parents: [folder.id], appProperties: { notation: '1', kind: 'json', nid: m.id } })), appProperties: { kind: 'json', nid: m.id } });
-    await patch(folder.id, { appProperties: { updated: String(m.updated) } });   // written last: marks the note as complete
+    await patch(folder.id, { appProperties: { updated: String(m.updated), tr: m.trashed ? '1' : '0' } });   // written last: marks the note as complete
     await DB.put('sync', 'n:' + m.id, { synced: m.updated, pdfSig: sig, pdfAt, pdfIndex: index });
   }
   async function pull(r, kids, asCopy) {
@@ -4377,9 +4488,10 @@ const Drive = (() => {
     for (const k of await DB.keysPrefix('audio', id + ':')) if (!have.has(k.slice(id.length + 1))) await DB.del('audio', k);
     await DB.del('audio', id);
     await DB.put('pages', id, { v: 2, pages });
-    const meta = { id, folder: data.folder || null, title: data.title, created: data.created, updated: asCopy ? Date.now() : data.updated, strokes: data.strokes || [], texts: data.texts || [], takes, duration: takes.reduce((a, t) => a + (t.duration || 0), 0), mime: '', hasAudio: takes.length > 0, pageCount: pages.length, bm: data.bm || 0, thumb: data.thumb || '', ...(data.share && !asCopy ? { share: data.share } : {}) };
+    const meta = { id, folder: data.folder || null, title: data.title, created: data.created, updated: asCopy ? Date.now() : data.updated, strokes: data.strokes || [], texts: data.texts || [], takes, duration: takes.reduce((a, t) => a + (t.duration || 0), 0), mime: '', hasAudio: takes.length > 0, pageCount: pages.length, bm: data.bm || 0, thumb: data.thumb || '', ...(data.share && !asCopy ? { share: data.share } : {}), ...(data.trashed && !asCopy ? { trashed: data.trashed, gone: data.gone || { why: 'del' } } : {}) };
     await DB.put('notes', id, meta);
     if (!asCopy) await DB.put('sync', 'n:' + id, { synced: data.updated, pdfSig: data.pages.map(p => p.key).join(','), pdfAt: data.pdfAt, pdfIndex: data.pdf || null });
+    return data;
   }
   async function removeLocal(id) { await DB.del('notes', id); await DB.del('pages', id); await DB.del('audio', id); await DB.delPrefix('audio', id + ':'); await DB.delPrefix('imgs', id + ':'); await DB.del('sync', 'n:' + id); }
 
@@ -4434,16 +4546,16 @@ const Drive = (() => {
   }
   addEventListener('online', () => { renderChip(); schedule(1500); });
   addEventListener('offline', () => { if (connected()) setState('offline'); });
-  return { init, sync, syncNow, schedule, tombstone, openPanel, renderChip, connected, maybeSync() { if (connected() && Date.now() - lastSync > 30000) sync(); else renderChip(); } };
+  return { init, sync, syncNow, schedule, tombstone, openPanel, renderChip, connected, deferred: () => waiting.size > 0, maybeSync() { if (connected() && Date.now() - lastSync > 30000) sync(); else renderChip(); } };
 })();
 
 
-/* ================= two versions of one note (0.39) =================
-   When the same note was changed on two devices before they could sync, Notation keeps both
-   aside, changes nothing in Drive for that note, and asks which version to keep: on whichever
-   device sees both first, when a sync finishes, when you open the note, or from the purple
-   "2 versions" badge on its card. Closing the question decides later. Copies named
-   "… (other device)" made by versions before 0.39 are offered the same way, paired with their original. */
+/* ================= two versions of one note (0.39; asked on every device from 0.46) =================
+   When the same note was changed on two devices before they could sync, the device that finds both puts its
+   own version in Trash, marked "not chosen yet", and takes the version in Drive into the library (0.46). That
+   Trash item syncs, so every device asks which to keep: when a sync finishes, when the library shows, when the
+   note is opened, or from the purple "2 versions" badge. Keeping one sends the other to Trash for 30 days.
+   Closing the question decides later. Copies named "… (other device)" made before 0.39 are offered the same way. */
 const Versions = (() => {
   const SUFFIX = ' (other device)', later = new Set();
   let items = [], asking = false;
@@ -4456,22 +4568,21 @@ const Versions = (() => {
     if (/Windows/.test(u)) return 'Windows PC';
     return 'computer';
   }
-  // what needs a decision: notes held by sync, and old "(other device)" copies beside their original
-  async function refresh(metas) {
-    const out = [], byId = new Map(metas.map(m => [m.id, m]));
-    for (const k of await DB.keysPrefix('sync', 'c:')) { const c = await DB.get('sync', k); if (c && !c.choice && byId.has(c.id)) out.push({ kind: 'sync', id: c.id, c }); }
-    const used = new Set(out.map(x => x.id));
-    for (const m of metas) {
+  // what needs a decision: versions waiting in Trash, and old "(other device)" copies beside their original
+  async function refresh(all) {
+    const out = [], live = all.filter(isLive), byId = new Map(live.map(m => [m.id, m])), used = new Set();
+    for (const t of all) { const g = t.gone; if (t.trashed && g && g.why === 'ver' && g.pending && byId.has(g.of) && !used.has(g.of)) { out.push({ kind: 'aside', id: g.of, aside: t.id }); used.add(g.of); } }
+    for (const m of live) {
       const t = m.title || ''; if (!t.endsWith(SUFFIX) || used.has(m.id)) continue;
       const base = t.slice(0, -SUFFIX.length) || 'Untitled';
-      const cands = metas.filter(o => o.id !== m.id && !used.has(o.id) && (o.title || 'Untitled') === base); if (!cands.length) continue;
+      const cands = live.filter(o => o.id !== m.id && !used.has(o.id) && (o.title || 'Untitled') === base); if (!cands.length) continue;
       const o = cands.find(x => (x.folder || null) === (m.folder || null)) || cands[0];
       out.push({ kind: 'copy', id: o.id, copy: m.id }); used.add(o.id); used.add(m.id);
     }
     items = out; return out;
   }
   const involved = id => items.some(x => x.id === id || x.copy === id);
-  const lkey = it => it.kind === 'sync' ? it.id + '@' + it.c.rUpd : it.id;   // "later" lasts until the other version changes again
+  const lkey = it => it.kind === 'aside' ? it.aside : it.id;   // "later" lasts until there is a new pair
   const when = t => new Date(t).toLocaleString(undefined, { day: 'numeric', month: 'short', hour: 'numeric', minute: '2-digit' });
   const plural = (n, w) => `${n} ${w}${n === 1 ? '' : 's'}`;
   function side(label, s, newer, only) {
@@ -4484,55 +4595,49 @@ const Versions = (() => {
       <div class="vsp"></div><button class="btn primary">Keep this</button></div></div>`;
   }
   const local = m => ({ title: m.title, updated: m.updated, pages: m.pageCount || 0, takes: (m.takes || []).map(t => ({ id: t.id, duration: t.duration || 0 })), bm: m.bm || 0, thumb: m.thumb || '' });
-  // returns 'a' | 'b' | null (decide later)
+  // returns 'a' | 'b' | null (decide later). Nothing is lost either way: the other goes to Trash.
   async function question(title, A, B, la, lb) {
     const ia = new Set(A.takes.map(t => t.id)), ib = new Set(B.takes.map(t => t.id));
     const onlyA = A.takes.filter(t => !ib.has(t.id)).length, onlyB = B.takes.filter(t => !ia.has(t.id)).length;
     const box = document.createElement('div');
-    box.innerHTML = `<div class="vers">${side(la, A, A.updated > B.updated, onlyA)}${side(lb, B, B.updated > A.updated, onlyB)}</div><p class="vcap">The one you keep replaces the other on all your devices and in Google Drive.</p>`;
+    box.innerHTML = `<div class="vers">${side(la, A, A.updated > B.updated, onlyA)}${side(lb, B, B.updated > A.updated, onlyB)}</div><p class="vcap">The one you keep stays on all your devices. The other goes to Trash for ${TRASH_DAYS} days.</p>`;
     const p = dialog({ title: `Two versions of “${title || 'Untitled'}”`, node: box, actions: [], x: true, dismiss: null, wide: true });
     const bs = box.querySelectorAll('.vcard .btn'); bs[0].onclick = () => closeDialog('a'); bs[1].onclick = () => closeDialog('b');
-    const v = await p; if (!v) return null;
-    const lost = v === 'a' ? onlyB : onlyA;
-    if (lost) {
-      const ok = await dialog({ title: 'Remove a recording?', html: `<p>The version you are letting go has ${plural(lost, 'recording')} that the other doesn’t. ${lost === 1 ? 'It' : 'They'} will be removed.</p>`, actions: [{ label: 'Go back', value: false }, { label: 'Keep my choice', value: true, danger: true }] });
-      if (!ok) return question(title, A, B, la, lb);
-    }
-    return v;
+    return (await p) || null;
   }
-  async function dropLocal(id) { await DB.del('notes', id); await DB.del('pages', id); await DB.del('audio', id); await DB.delPrefix('audio', id + ':'); await DB.delPrefix('imgs', id + ':'); await DB.del('sync', 'n:' + id); Drive.tombstone('notes', id); }
+  // leave the editor (saved) if this note is open; returns whether it was
+  async function leave(id) {
+    if (!(note && note.id === id)) return false;
+    await flushSave(); clearTimeout(saveTimer); dirty = false; audioEl.pause(); Shruti.stop(); Talam.stop(); await showLibrary(true); return true;
+  }
   // answer one item; returns the id to open afterwards, or null if postponed
   async function ask(it) {
-    if (it.kind === 'sync') {
-      const m = await DB.get('notes', it.id); if (!m) return null;
-      const r = it.c.remote, here = device(), there = r.device && r.device !== here ? r.device : '';
-      const v = await question(m.title, local(m), r, `This ${here}`, there ? `From your ${there}` : 'From your other device');
+    const here = device();
+    if (it.kind === 'aside') {
+      const m = await DB.get('notes', it.id), a = await DB.get('notes', it.aside);
+      if (!isLive(m) || !a || !a.gone || !a.gone.pending) return null;
+      const g = a.gone, lab = d => !d ? 'From your other device' : d === here ? `This ${here}` : `From your ${d}`;
+      let la = lab(g.vs), lb = lab(g.dev); if (la === lb) { la = 'In your library'; lb = 'Set aside'; }
+      const v = await question(m.title, local(m), { ...local(a), updated: g.upd || a.updated }, la, lb);
       if (!v) { later.add(lkey(it)); return null; }
-      const open = note && note.id === it.id;
-      if (v === 'b' && open) { clearTimeout(saveTimer); dirty = false; audioEl.pause(); Shruti.stop(); Talam.stop(); await showLibrary(true); }
-      await DB.put('sync', 'c:' + it.id, { ...it.c, choice: v === 'a' ? 'local' : 'remote' });
-      items = items.filter(x => x !== it); if (!note) renderLibrary(LIB_METAS);
-      toast('Keeping one version…', 6000);
-      await Drive.syncNow();
-      const done = !(await DB.get('sync', 'c:' + it.id));
-      toast(done ? 'Done. One version of this note now.' : 'Saved your choice. It will finish at the next sync.');
-      if (v === 'b' && open) await openNote(it.id, true);
+      if (v === 'a') await DB.put('notes', a.id, { ...a, gone: { ...g, pending: false }, updated: Date.now() });
+      else {
+        const open = await leave(it.id);
+        await swapIn(await DB.get('notes', it.id), a, g.vs);
+        if (open) { items = items.filter(x => x !== it); await openNote(it.id, true); }
+      }
+      items = items.filter(x => x !== it); Drive.schedule(1500);
+      toast('Done. The other version is in Trash for 30 days.', 3200);
+      if (!note) await showLibrary(true);
       return it.id;
     }
-    const a = await DB.get('notes', it.id), b = await DB.get('notes', it.copy); if (!a || !b) return null;
+    const a = await DB.get('notes', it.id), b = await DB.get('notes', it.copy); if (!isLive(a) || !isLive(b)) return null;
     const v = await question(a.title, local(a), local(b), 'Original', 'Copy (other device)');
     if (!v) { later.add(lkey(it)); return null; }
-    if (v === 'b') {   // the copy's content moves into the original note (same id, title, folder and share link)
-      const pr = await DB.get('pages', b.id), rekey = k => a.id + k.slice(b.id.length);
-      await DB.delPrefix('imgs', a.id + ':'); await DB.delPrefix('audio', a.id + ':'); await DB.del('audio', a.id);
-      for (const k of await DB.keysPrefix('imgs', b.id + ':')) await DB.put('imgs', rekey(k), await DB.get('imgs', k));
-      for (const k of await DB.keysPrefix('audio', b.id + ':')) await DB.put('audio', rekey(k), await DB.get('audio', k));
-      await DB.put('pages', a.id, { v: 2, pages: ((pr && pr.pages) || []).map(p => p.key ? { ...p, key: rekey(p.key) } : p) });
-      await DB.put('notes', a.id, { ...b, id: a.id, title: a.title, folder: a.folder || null, created: a.created, updated: Date.now(), ...(a.share ? { share: a.share } : { share: undefined }) });
-    }
-    await dropLocal(b.id);
+    if (v === 'b') { const open = await leave(a.id); await swapIn(a, b, ''); if (open) await openNote(a.id, true); }   // the copy's content moves into the original (same id, name, folder, share link)
+    else await DB.put('notes', b.id, { ...b, title: a.title, trashed: Date.now(), gone: { why: 'ver', of: a.id, dev: '', upd: b.updated, at: Date.now() }, updated: Date.now() });
     items = items.filter(x => x !== it); Drive.schedule(1500);
-    toast('Done. One version of this note now.');
+    toast('Done. The other version is in Trash for 30 days.', 3200);
     if (!note) await showLibrary(true);
     return it.id;
   }
@@ -4544,7 +4649,7 @@ const Versions = (() => {
   // ask unprompted (once per session for each, unless chosen): after a sync, on showing the library
   async function nudge() {
     if (asking || !booted || viewer || rec || !$('#scrim').classList.contains('hidden')) return;
-    if (!note) await refresh(LIB_METAS || []);
+    if (!note) await refresh([...(LIB_METAS || []), ...TRASH]);
     else await refresh((await DB.all('notes')).filter(Boolean));
     asking = true;
     try {
@@ -4564,7 +4669,7 @@ const Versions = (() => {
    version.json on GitHub names the newest build. When it differs from this one, the
    version chip offers "Update to …". Updating clears only Notation's stored app files
    and reloads; notes, recordings, folders and the Drive connection are untouched. */
-const APP_VERSION = '0.45', APP_BUILD = 'b487b947e2';
+const APP_VERSION = '0.46', APP_BUILD = 'b80fbb4717';
 const Updates = (() => {
   let latest = null, last = 0;
   const chip = () => $('#verChip');
