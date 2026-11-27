@@ -471,7 +471,7 @@ body.viewer .viewer-only{display:inline-flex}
       <p class="tagline">Write your notation, record the lesson, and let every mark sing back.</p>
     </div>
     <div class="lib-actions">
-      <button class="btn verchip" id="verChip" title="Notation version · tap to check for updates">v0.48</button>
+      <button class="btn verchip" id="verChip" title="Notation version · tap to check for updates">v0.49</button>
       <button class="btn drivechip" id="driveChip" title="Google Drive sync"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M7 18h10.5a4.5 4.5 0 0 0 .6-8.96A6 6 0 0 0 6.6 9.2 4.4 4.4 0 0 0 7 18z"/></svg><span>Google Drive</span></button>
       <button class="btn" id="btnLib" title="Notation templates and covers"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="7" height="16" rx="1.5"/><rect x="12" y="4" width="4" height="16" rx="1"/><path d="M18 5.5l3 .8-3.6 13.4-3-.8"/></svg>Templates</button>
       <button class="btn" id="btnImport" title="Open a shared .html note"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v12m0 0-4-4m4 4 4-4"/><path d="M4 17v2a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-2"/></svg>Open shared note</button>
@@ -579,7 +579,14 @@ const PEN_SIZES = [1.5, 2.2, 3.0, 3.9, 5.0];   // even-weight pen, sizes 1–5 (
 const CALLI_SIZES = [7, 11, 16];               // calligraphy nib widths
 const HL_SIZES = [16, 26, 40];
 // Broad-nib width from pressure: a light touch gives a fine line, a firm press a full one.
-const calliHalf = (size, q) => size * (0.08 + 1.7 * Math.pow(Math.max(0, Math.min(1, q)), 1.6)) / 2;
+// 0.49: the Pencil's working range for lettering is roughly 0.1–0.7, so the full width now arrives at
+// 0.7 (it needed 1.0 before), the lightest touch is finer, and the full width is about 2 px wider at
+// the Fine size. A firm downstroke is now about twice as broad as before; a light upstroke is unchanged.
+const CALLI_P0 = 0.06, CALLI_P1 = 0.70;        // pressure where the swell starts / reaches full width
+const calliHalf = (size, q) => {
+  const t = Math.max(0, Math.min(1, (q - CALLI_P0) / (CALLI_P1 - CALLI_P0)));
+  return size * (0.03 + 2.05 * Math.pow(t, 1.6)) / 2;
+};
 const NIB_ANGLE = -0.7;                        // broad nib held at about 40°
 const ICON_PLAY = '<svg viewBox="0 0 24 24" fill="currentColor"><path d="M8 5.5v13l11-6.5z"/></svg>';
 const ICON_PAUSE = '<svg viewBox="0 0 24 24" fill="currentColor"><rect x="6.5" y="5" width="4" height="14" rx="1"/><rect x="13.5" y="5" width="4" height="14" rx="1"/></svg>';
@@ -718,7 +725,7 @@ function bbox(s) {
   let b = bbCache.get(s); if (b) return b;
   let x0 = 1e9, y0 = 1e9, x1 = -1e9, y1 = -1e9;
   for (const [x, y] of s.pts) { if (x < x0) x0 = x; if (y < y0) y0 = y; if (x > x1) x1 = x; if (y > y1) y1 = y; }
-  const r = s.tool === 'calli' ? s.size * 0.6 : s.size / 2; b = [x0 - r, y0 - r, x1 + r, y1 + r]; bbCache.set(s, b); return b;
+  const r = s.tool === 'calli' ? s.size * 1.1 : s.size / 2; b = [x0 - r, y0 - r, x1 + r, y1 + r]; bbCache.set(s, b); return b;
 }
 function segDist(px, py, ax, ay, bx, by) {
   const dx = bx - ax, dy = by - ay, l = dx * dx + dy * dy;
@@ -4357,7 +4364,7 @@ const Drive = (() => {
   /* Sync record (0.47): the last 400 things sync did to notes, on this device only, so anything that ever
      looks wrong can be traced. Settings → Google Drive → Save sync record. */
   function jlog(act, m, x = {}) {
-    try { const log = LS.get('sync.log', []); log.push({ at: Date.now(), v: '0.48', act, id: m.id, title: m.title || '', ...x }); LS.set('sync.log', log.slice(-400)); } catch (e) { }
+    try { const log = LS.get('sync.log', []); log.push({ at: Date.now(), v: '0.49', act, id: m.id, title: m.title || '', ...x }); LS.set('sync.log', log.slice(-400)); } catch (e) { }
   }
   // a copy holding everything this note has is already in Trash (put there by the other device)
   async function alreadyKept(cur) {
@@ -4612,7 +4619,7 @@ const Drive = (() => {
     acts.push(tokenValid() ? { label: 'Sync now', value: 'sync', primary: true } : { label: 'Reconnect', value: 'again', primary: true });
     const v = await dialog({ title: 'Google Drive', node: box, actions: acts });
     if (v === 'sync') sync();
-    else if (v === 'log') { const a = document.createElement('a'); a.href = URL.createObjectURL(new Blob([JSON.stringify({ device: Versions.device(), version: '0.48', saved: new Date().toISOString(), log: LS.get('sync.log', []) }, null, 1)], { type: 'application/json' })); a.download = `notation-sync-record-${Versions.device().replace(/\W+/g, '-')}.json`; document.body.appendChild(a); a.click(); setTimeout(() => { URL.revokeObjectURL(a.href); a.remove(); }, 1000); }
+    else if (v === 'log') { const a = document.createElement('a'); a.href = URL.createObjectURL(new Blob([JSON.stringify({ device: Versions.device(), version: '0.49', saved: new Date().toISOString(), log: LS.get('sync.log', []) }, null, 1)], { type: 'application/json' })); a.download = `notation-sync-record-${Versions.device().replace(/\W+/g, '-')}.json`; document.body.appendChild(a); a.click(); setTimeout(() => { URL.revokeObjectURL(a.href); a.remove(); }, 1000); }
     else if (v === 'again') { await flushSave(); signIn('again'); }
     else if (v === 'off') {
       const ok = await dialog({ title: 'Disconnect Google Drive?', html: '<p>Syncing stops. Your notes stay on this device and in your Drive; nothing is deleted.</p>', actions: [{ label: 'Cancel', value: false }, { label: 'Disconnect', value: true, danger: true }] });
@@ -4766,7 +4773,7 @@ const Versions = (() => {
    version.json on GitHub names the newest build. When it differs from this one, the
    version chip offers "Update to …". Updating clears only Notation's stored app files
    and reloads; notes, recordings, folders and the Drive connection are untouched. */
-const APP_VERSION = '0.48', APP_BUILD = 'b04df889c8';
+const APP_VERSION = '0.49', APP_BUILD = 'b00f4fcd64';
 const Updates = (() => {
   let latest = null, last = 0;
   const chip = () => $('#verChip');
