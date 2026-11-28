@@ -190,7 +190,7 @@ body.tool-text .tbox,body.tool-lasso .tbox{pointer-events:auto;cursor:move;touch
 /* 0.50: gallery, a bird's-eye grid of every page; drag to rearrange */
 #gallery{grid-column:1/-1;grid-row:1/3;z-index:30;display:flex;flex-direction:column;min-height:0;background:var(--desk)}
 #gallery.hidden{display:none}
-#editor.gal-open #pagePill,#editor.gal-open #backPill,#editor.gal-open #selbar{display:none!important}
+#editor.gal-open #pageNav,#editor.gal-open #backPill,#editor.gal-open #selbar{display:none!important}
 .g-head{display:flex;align-items:center;gap:10px;padding:calc(8px + var(--sat)) calc(14px + var(--sar)) 8px calc(10px + var(--sal));background:var(--paper);border-bottom:1px solid var(--line)}
 .g-t{display:flex;flex-direction:column;min-width:0;flex:1;line-height:1.25}
 .g-t b{font-size:16px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
@@ -332,10 +332,45 @@ body.picking .page canvas.fx{cursor:crosshair}
 body.fingers .page canvas.fx{touch-action:none}
 .page .pno{position:absolute;bottom:6px;right:10px;font-size:11px;color:#aaa;pointer-events:none}
 .addpage{display:flex;justify-content:center;margin:0 auto 30px}
+/* 0.52: slide view, one page at a time; swipe (finger), two-finger swipe (trackpad), ‹ › or Page Up / Down */
+#pages.slide{display:flex;flex-direction:column;overscroll-behavior-x:contain;padding-top:12px;padding-bottom:62px}
+#pages.slide .page{display:none}
+#pages.slide .page.on{display:block;margin:auto;flex:none}
+#pages.slide .addpage{display:none}
+#pages.slide:not(.wide) .page canvas.fx{touch-action:pan-y pinch-zoom}
+#pages.slide .page.dragging{transition:none}
+@keyframes pgInN{from{transform:translateX(56px);opacity:.2}to{transform:none;opacity:1}}
+@keyframes pgInP{from{transform:translateX(-56px);opacity:.2}to{transform:none;opacity:1}}
+#pages.slide .page.in-next{animation:pgInN .22s ease-out}
+#pages.slide .page.in-prev{animation:pgInP .22s ease-out}
+@media (prefers-reduced-motion:reduce){#pages.slide .page.in-next,#pages.slide .page.in-prev{animation:none}}
+/* 0.52: full screen: only the pages and the player; the toolbar slides in from the top when wanted */
+#editor.fs{--pw:100vw;--capL:100000px;--capP:100000px}
+#editor.fs #pside{display:none!important}
+#editor.fs>.topbar{position:absolute;top:0;left:0;right:0;z-index:45;transform:translateY(-102%);transition:transform .2s ease;box-shadow:0 10px 30px -18px rgba(20,24,46,.5)}
+#editor.fs.tools>.topbar{transform:none}
+#editor.fs #tSide{display:none}
+#fsBar{position:absolute;top:calc(10px + var(--sat));right:calc(12px + var(--sar));z-index:46;display:none;gap:8px;transition:opacity .4s,top .2s}
+#editor.fs #fsBar{display:flex}
+#editor.fs.tools #fsBar{top:calc(var(--tbh,56px) + 10px)}
+#editor.fs.idle:not(.tools) #fsBar{opacity:0}
+#fsBar button{width:40px;height:40px;border-radius:20px;border:1px solid var(--line);background:rgba(255,253,249,.94);display:grid;place-items:center;color:var(--ink);box-shadow:0 6px 16px -10px rgba(14,17,32,.5);padding:0;cursor:pointer}
+#fsBar button svg{width:20px;height:20px}
+#fsBar button.on{background:var(--ink);color:#fff;border-color:var(--ink)}
+@media (hover:none){#editor.fs.idle:not(.tools) #fsBar{opacity:.4}}
+#pages.slide{padding-top:12px}#editor.fs #pages.slide{padding-top:8px}
+.fsrow{width:236px;margin:0 0 12px}.fsrow button{width:100%;display:flex;align-items:center;justify-content:center;gap:8px;border:1px solid var(--line);background:#fff;border-radius:10px;padding:9px 8px;font:inherit;font-size:14px;color:inherit;cursor:pointer}.fsrow button svg{width:18px;height:18px}
+.vseg{display:flex;width:236px;margin:2px 0 12px}.vseg button{flex:1;display:flex;align-items:center;justify-content:center;gap:7px;padding:9px 8px;font-size:14px}
+.vseg button svg{width:18px;height:18px;flex:none}
 .page .pmenu{position:absolute;top:8px;right:8px;width:40px;height:40px;border-radius:12px;border:1px solid var(--line);background:rgba(255,253,249,.92);display:grid;place-items:center;z-index:2;opacity:.75}
 .page .pmenu:hover{opacity:1}
 .page .pmenu svg{width:18px;height:18px}
-#pagePill{position:absolute;right:calc(18px + var(--sar));bottom:calc(84px + var(--sab));z-index:4;height:36px;padding:0 14px;border-radius:18px;border:1px solid var(--line);background:rgba(255,253,249,.95);font-weight:600;font-size:13px;font-variant-numeric:tabular-nums;box-shadow:0 6px 16px -10px rgba(14,17,32,.5)}
+#pageNav{position:absolute;right:calc(18px + var(--sar));bottom:calc(84px + var(--sab));z-index:4;display:flex;gap:6px;align-items:center;pointer-events:none}
+#pageNav>*{pointer-events:auto}
+#pageNav .pgstep{width:36px;height:36px;border-radius:18px;border:1px solid var(--line);background:rgba(255,253,249,.95);display:grid;place-items:center;color:var(--ink);box-shadow:0 6px 16px -10px rgba(14,17,32,.5);padding:0;cursor:pointer}
+#pageNav .pgstep svg{width:18px;height:18px}
+#pageNav .pgstep:disabled{opacity:.35;cursor:default}
+#pagePill{height:36px;padding:0 14px;border-radius:18px;border:1px solid var(--line);background:rgba(255,253,249,.95);font-weight:600;font-size:13px;font-variant-numeric:tabular-nums;box-shadow:0 6px 16px -10px rgba(14,17,32,.5)}
 
 /* player */
 .player{display:flex;align-items:center;gap:10px;padding:10px calc(14px + var(--sar)) calc(10px + var(--sab)) calc(14px + var(--sal));background:var(--paper);border-top:1px solid var(--line)}
@@ -535,7 +570,7 @@ body.viewer .viewer-only{display:inline-flex}
       <p class="tagline">Write your notation, record the lesson, and let every mark sing back.</p>
     </div>
     <div class="lib-actions">
-      <button class="btn verchip" id="verChip" title="Notation version · tap to check for updates">v0.51</button>
+      <button class="btn verchip" id="verChip" title="Notation version · tap to check for updates">v0.52</button>
       <button class="btn drivechip" id="driveChip" title="Google Drive sync"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M7 18h10.5a4.5 4.5 0 0 0 .6-8.96A6 6 0 0 0 6.6 9.2 4.4 4.4 0 0 0 7 18z"/></svg><span>Google Drive</span></button>
       <button class="btn" id="btnLib" title="Notation templates and covers"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="7" height="16" rx="1.5"/><rect x="12" y="4" width="4" height="16" rx="1"/><path d="M18 5.5l3 .8-3.6 13.4-3-.8"/></svg>Templates</button>
       <button class="btn" id="btnImport" title="Open a shared .html note"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v12m0 0-4-4m4 4 4-4"/><path d="M4 17v2a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-2"/></svg>Open shared note</button>
@@ -594,7 +629,7 @@ body.viewer .viewer-only{display:inline-flex}
     </div>
     <div class="g-body" id="gBody"><div class="g-grid" id="gGrid"></div></div>
   </section>
-  <button id="pagePill" class="hidden" title="Go to page">1 / 1</button>
+  <div id="fsBar"><button id="fsTools" title="Tools: show the toolbar (move the pointer to the top edge, too)" aria-label="Show tools"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 20h4L19 9a2.8 2.8 0 0 0-4-4L4 16z"/><path d="M13.5 6.5l4 4"/></svg></button><button id="fsExit" title="Exit full screen (Esc)" aria-label="Exit full screen"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M9 4v5H4M15 4v5h5M9 20v-5H4M15 20v-5h5"/></svg></button></div><div id="pageNav"><button id="pgPrev" class="pgstep hidden" title="Previous page (Page Up)" aria-label="Previous page"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 18l-6-6 6-6"/></svg></button><button id="pagePill" class="hidden" title="Go to page">1 / 1</button><button id="pgNext" class="pgstep hidden" title="Next page (Page Down)" aria-label="Next page"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 18l6-6-6-6"/></svg></button></div>
 
   <footer class="player">
     <button class="recbtn edit-only" id="pRec" title="Record"><svg class="mic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="3" width="6" height="11" rx="3"/><path d="M5.5 11a6.5 6.5 0 0 0 13 0M12 17.5V21M8.5 21h7"/></svg><span class="rd"></span><span id="pRecLbl" class="vh">REC</span></button>
@@ -1029,6 +1064,7 @@ async function jumpToGroup(g, scroll = true) {
 }
 function scrollToGroup(g) {
   const v = views[g.page]; if (!v) return;
+  if (View.is() && g.page !== View.index()) View.show(g.page);   // slide view: Follow turns the page
   const host = $('#pages'), wrap = v.wrap;
   const y = wrap.offsetTop + (g.cy / v.pg.h) * wrap.clientHeight;
   const top = host.scrollTop, h = host.clientHeight;
@@ -3115,13 +3151,16 @@ $('#tFingers').onclick = () => { fingers = !fingers; document.body.classList.tog
    Pinching on the iPad and on a Mac trackpad zooms the notebook around your fingers. */
 const Zoom = (() => {
   const STEPS = [0.5, 0.67, 0.75, 0.85, 1, 1.25, 1.5, 1.75, 2, 2.5];
-  let mode = LS.get('zoom', 1);   // a number, or 'fit' for the whole page
+  // a number, or 'fit' for the whole page; scroll and slide views each keep their own (slide starts on the whole page)
+  const zkey = () => View.is() ? 'zoom.slide' : 'zoom', zdef = () => View.is() ? 'fit' : 1;
+  let mode = LS.get('zoom', 1);
   const el = $('#pages');
   function fitValue() {
     if (!note || !note.pages.length) return 1;
     const i = Math.min(currentPage(), note.pages.length - 1), v = views[i]; if (!v) return 1;
     const w1 = v.wrap.offsetWidth / (zoom || 1), h1 = w1 * note.pages[i].h / note.pages[i].w;
-    return Math.max(0.3, Math.min(1, (el.clientHeight - 18 - 26) / h1));
+    const room = View.is() ? el.clientHeight - 12 - 62 - 4 : el.clientHeight - 18 - 26;   // slide view keeps a strip below for ‹ n ›
+    return Math.max(0.3, Math.min(1, room / h1));
   }
   function apply(z, fx, fy) {   // keep the point under (fx, fy) in place
     z = Math.max(0.3, Math.min(3, z)); if (Math.abs(z - zoom) < 0.001) return;
@@ -3129,29 +3168,37 @@ const Zoom = (() => {
     const cx = el.scrollLeft + fx, cy = el.scrollTop + fy, k = z / zoom;
     zoom = z; el.style.setProperty('--zoom', z);
     void el.scrollHeight; el.scrollLeft = cx * k - fx; el.scrollTop = cy * k - fy;
-    label();
+    label(); View.wide();
   }
-  function set(m, fx, fy) { mode = m; LS.set('zoom', m); apply(m === 'fit' ? fitValue() : m, fx, fy); }
+  function set(m, fx, fy) { mode = m; LS.set(zkey(), m); apply(m === 'fit' ? fitValue() : m, fx, fy); }
   function step(dir) {
     const z = zoom, next = dir > 0 ? STEPS.find(s => s > z + 0.01) : [...STEPS].reverse().find(s => s < z - 0.01);
     if (next) set(next); else if (dir < 0) set('fit');
   }
   function label() {
     const t = mode === 'fit' ? 'Whole page' : Math.round(zoom * 100) + '%';
-    $('#tZoom').title = `Zoom (${t})`;
+    $('#tZoom').title = `View and zoom (${View.is() ? 'Slide' : 'Scroll'} view · ${t})`;
+    $$('#popover [data-view]').forEach(b => b.classList.toggle('on', b.dataset.view === (View.is() ? 'slide' : 'scroll')));
     const z = $('#zPct'); if (z) z.textContent = Math.round(zoom * 100) + '%';
     $$('#popover [data-z]').forEach(b => b.classList.toggle('on', String(mode) === b.dataset.z));
   }
   function open() {
-    showPopover($('#tZoom'), `<h5>Zoom</h5>
+    showPopover($('#tZoom'), `<h5>View</h5>
+      <div class="seg vseg" role="group" aria-label="View"><button data-view="scroll" title="Scroll view: scroll through the pages">${ICON_SCROLLV}Scroll</button><button data-view="slide" title="Slide view: one page at a time; swipe to the next">${ICON_SLIDEV}Slide</button></div>
+      <div class="fsrow"><button data-fs title="Full screen: just the pages and the player (F)">${ICON_FS_IN}<span>${Full.on() ? 'Exit full screen' : 'Full screen'}</span></button></div>
+      <h5>Zoom</h5>
       <div class="zrow"><button class="zb" data-d="-1" title="Zoom out">−</button><span id="zPct">${Math.round(zoom * 100)}%</span><button class="zb" data-d="1" title="Zoom in">+</button></div>
       <div class="zgrid"><button data-z="fit">Whole page</button><button data-z="1">Page width</button>${[0.75, 1.25, 1.5, 2].map(v => `<button data-z="${v}">${v * 100}%</button>`).join('')}</div>`, pop => {
       pop.querySelectorAll('[data-d]').forEach(b => b.onclick = () => step(+b.dataset.d));
       pop.querySelectorAll('[data-z]').forEach(b => b.onclick = () => set(b.dataset.z === 'fit' ? 'fit' : +b.dataset.z));
+      pop.querySelectorAll('[data-view]').forEach(b => b.onclick = () => View.set(b.dataset.view));
+      pop.querySelector('[data-fs]').onclick = () => { closePopover(); Full.toggle(); };
       label();
     });
   }
-  function restore() { zoom = 1; el.style.setProperty('--zoom', 1); requestAnimationFrame(() => { apply(mode === 'fit' ? fitValue() : +mode || 1, 0, 0); el.scrollTop = 0; el.scrollLeft = 0; }); }
+  function reload(fx, fy) { mode = LS.get(zkey(), zdef()); apply(mode === 'fit' ? fitValue() : +mode || 1, fx, fy); label(); }   // after switching view
+  function refit() { if (mode === 'fit') apply(fitValue()); }   // slide view: pages of other sizes still fit whole
+  function restore() { mode = LS.get(zkey(), zdef()); zoom = 1; el.style.setProperty('--zoom', 1); requestAnimationFrame(() => { apply(mode === 'fit' ? fitValue() : +mode || 1, 0, 0); el.scrollTop = 0; el.scrollLeft = 0; }); }
   // pinch with two fingers
   let pin = null;
   el.addEventListener('touchstart', e => {
@@ -3163,19 +3210,19 @@ const Zoom = (() => {
     if (!pin) return; const f = [...e.touches].filter(t => t.touchType !== 'stylus'); if (f.length !== 2) return;
     const ratio = Math.hypot(f[0].clientX - f[1].clientX, f[0].clientY - f[1].clientY) / (pin.d0 || 1);
     if (!pin.on && Math.abs(ratio - 1) < 0.06) return;   // a two-finger scroll stays a scroll
-    pin.on = true; e.preventDefault();
+    pin.on = true; e.preventDefault(); View.cancelSwipe();
     if (!pin.raf) pin.raf = requestAnimationFrame(() => { pin && (pin.raf = 0, mode = +(pin.z0 * ratio).toFixed(3), apply(pin.z0 * ratio, pin.fx, pin.fy)); });
   }, { passive: false });
-  el.addEventListener('touchend', e => { if (pin && e.touches.length < 2) { if (pin.on) LS.set('zoom', mode); pin = null; } }, { passive: true });
+  el.addEventListener('touchend', e => { if (pin && e.touches.length < 2) { if (pin.on) LS.set(zkey(), mode); pin = null; } }, { passive: true });
   document.addEventListener('gesturestart', e => { if (!$('#editor').classList.contains('hidden')) e.preventDefault(); });   // Safari: no whole-screen zoom over the notebook
   // Mac trackpad pinch arrives as ctrl + wheel
   el.addEventListener('wheel', e => {
     if (!e.ctrlKey) return; e.preventDefault(); const r = el.getBoundingClientRect();
-    mode = +(zoom * Math.exp(-e.deltaY * 0.01)).toFixed(3); apply(mode, e.clientX - r.left, e.clientY - r.top); LS.set('zoom', mode);
+    mode = +(zoom * Math.exp(-e.deltaY * 0.01)).toFixed(3); apply(mode, e.clientX - r.left, e.clientY - r.top); LS.set(zkey(), mode);
   }, { passive: false });
   addEventListener('resize', () => { if (note && mode === 'fit') apply(fitValue()); });
   $('#tZoom').onclick = e => { e.stopPropagation(); if (!$('#popover').classList.contains('hidden') && $('#popover .zrow')) { closePopover(); return; } open(); };
-  return { set, step, restore, get: () => zoom, mode: () => mode };
+  return { set, step, restore, reload, refit, label, get: () => zoom, mode: () => mode };
 })();
 $('#tMarks').onclick = () => { const d = $('#drawer'); d.classList.toggle('open'); if (d.classList.contains('open')) renderDrawer(); };
 $('#dClose').onclick = () => $('#drawer').classList.remove('open');
@@ -3211,13 +3258,15 @@ document.addEventListener('keydown', e => {
   if (/^(INPUT|TEXTAREA|SELECT)$/.test(e.target.tagName) || e.target.isContentEditable || $('#editor').classList.contains('hidden')) return;   // typing keeps its own keys
   if (e.code === 'Space') { e.preventDefault(); togglePlay(); }
   else if ((e.key === 'ArrowLeft' || e.key === 'ArrowRight') && !sel && !e.metaKey && !e.ctrlKey && !e.altKey && !e.target.closest('#drawer,#popover,#dialog,.takes,[role=dialog],#gallery')) { e.preventDefault(); skipBy(e.key === 'ArrowLeft' ? -10 : 10); }
+  else if ((e.key === 'PageDown' || e.key === 'PageUp') && !e.metaKey && !e.ctrlKey && !e.altKey && !e.target.closest('#drawer,#popover,#dialog,.takes,[role=dialog],#gallery')) { e.preventDefault(); View.step(e.key === 'PageDown' ? 1 : -1); }
   else if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === 'z') { e.preventDefault(); e.shiftKey ? redo() : undo(); }
   else if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === 'c' && sel) { e.preventDefault(); copySel(); }
   else if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === 'x' && sel) { e.preventDefault(); copySel(); deleteSel(); }
   else if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === 'd' && sel) { e.preventDefault(); duplicateSel(); }
   else if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === 'v' && clip && !viewer) { e.preventDefault(); pasteClip(); }
   else if ((e.key === 'Backspace' || e.key === 'Delete') && sel) { e.preventDefault(); deleteSel(); }
-  else if (e.key === 'Escape') { if (sel) clearSel(); stopPicking(); }
+  else if (e.key === 'Escape') { if (sel) clearSel(); else if (Full.on() && !picking && !e.target.closest('#popover,[role=dialog],#gallery')) Full.exit(); stopPicking(); }
+  else if ((e.key === 'f' || e.key === 'F') && !e.metaKey && !e.ctrlKey && !e.altKey && !e.target.closest('#popover,[role=dialog],#gallery,#drawer')) { e.preventDefault(); Full.toggle(); }
 });
 
 /* ---------------- bookmarks drawer ---------------- */
@@ -3266,6 +3315,9 @@ async function drawCrop(cv, g) {
 /* Pages are laid out at full size immediately, but only pages near the screen
    get their image and drawing canvases. This keeps 100+ page books light on iPad. */
 let io = null;
+const ICON_SCROLLV = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="2.5" width="11" height="8" rx="1.3"/><rect x="4" y="13.5" width="11" height="8" rx="1.3"/><path d="M19.5 6v12M17.5 15.5l2 2.5 2-2.5M17.5 8.5l2-2.5 2 2.5"/></svg>';
+const ICON_SLIDEV = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="6.5" y="5" width="11" height="14" rx="1.3"/><path d="M3.5 9.5 1.5 12l2 2.5M20.5 9.5l2 2.5-2 2.5"/></svg>';
+const ICON_FS_IN = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M4 9V4h5M20 9V4h-5M4 15v5h5M20 15v5h-5"/></svg>';
 const ICON_DOTS = '<svg viewBox="0 0 24 24" fill="currentColor"><circle cx="5" cy="12" r="1.8"/><circle cx="12" cy="12" r="1.8"/><circle cx="19" cy="12" r="1.8"/></svg>';
 // 0.48: a page's PDF links glow yellow for a moment as the page comes into view, so they can be seen
 let glowIO = null;
@@ -3285,13 +3337,13 @@ function buildPages() {
   if (io) io.disconnect();
   views.forEach((_, i) => unmountPage(i, true));
   host.innerHTML = ''; views = [];
-  io = new IntersectionObserver(ents => { for (const en of ents) { const i = +en.target.dataset.i; en.isIntersecting ? mountPage(i) : unmountPage(i); } }, { root: host, rootMargin: '100% 0px' });
+  io = new IntersectionObserver(ents => { for (const en of ents) { const i = +en.target.dataset.i; en.isIntersecting ? mountPage(i) : View.keeps(i) || unmountPage(i); } }, { root: host, rootMargin: '100% 0px' });
   if (glowIO) glowIO.disconnect();
   glowIO = new IntersectionObserver(ents => { for (const en of ents) if (en.isIntersecting) glowLinks(+en.target.dataset.i); }, { root: host, threshold: 0.45 });
   note.pages.forEach((pg, i) => {
     const wrap = document.createElement('div'); wrap.className = 'page'; wrap.dataset.i = i;
     wrap.style.aspectRatio = `${pg.w}/${pg.h}`;
-    wrap.style.width = `calc(min(var(--pw, 100vw) - 32px, ${pg.w >= pg.h ? 1320 : 940}px) * var(--zoom,1))`;
+    wrap.style.width = `calc(min(var(--pw, 100vw) - 32px, ${pg.w >= pg.h ? 'var(--capL, 1320px)' : 'var(--capP, 940px)'}) * var(--zoom,1))`;
     const no = document.createElement('div'); no.className = 'pno'; no.textContent = `${i + 1} / ${note.pages.length}`;
     wrap.appendChild(no);
     if (!viewer) {
@@ -3307,6 +3359,7 @@ function buildPages() {
     ap.innerHTML = `<button class="btn"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg>Add pages</button>`;
     ap.firstChild.onclick = () => addPagesMenu(note.pages.length - 1); host.appendChild(ap);
   }
+  View.mark();
   updatePagePill();
 }
 function mountPage(i) {
@@ -3328,13 +3381,17 @@ function unmountPage(i, force) {
   v.img.remove(); if (v.tl) { if (Texts.editingPage() === i) Texts.commit(); v.tl.remove(); } v.ink = v.fx = v.img = v.tl = null;
 }
 function currentPage() {
+  if (View.is()) return Math.min(View.index(), Math.max(0, views.length - 1));
   const host = $('#pages'), mid = host.scrollTop + host.clientHeight * 0.4;
   let k = 0; for (let i = 0; i < views.length; i++) { if (views[i].wrap.offsetTop <= mid) k = i; else break; } return k;
 }
 function updatePagePill() {
   const p = $('#pagePill'); if (!note) return;
   const n = note.pages.length; p.classList.toggle('hidden', n < 2);
-  p.textContent = `${currentPage() + 1} / ${n}`;
+  const c = currentPage(); p.textContent = `${c + 1} / ${n}`;
+  const steps = View.is() && n >= 2;
+  $('#pgPrev').classList.toggle('hidden', !steps); $('#pgNext').classList.toggle('hidden', !steps);
+  $('#pgPrev').disabled = c <= 0; $('#pgNext').disabled = c >= n - 1;
   Side.markCurrent();
 }
 let pillTimer = 0;
@@ -3368,8 +3425,157 @@ const BackPill = (() => {
 })();
 function goToPage(i, smooth = true) {
   const v = views[clamp(i, 0, views.length - 1)]; if (!v) return;
+  if (View.is()) { View.show(clamp(i, 0, views.length - 1), smooth); return; }
   $('#pages').scrollTo({ top: v.wrap.offsetTop - 12, behavior: smooth ? 'smooth' : 'auto' });
 }
+/* ---------------- view: scroll through the pages, or slide from one page to the next (0.52) ----------------
+   Every notebook remembers its own view on this device (a view, not an edit: nothing to sync, no versions to choose).
+   In slide view only the current page shows, centred; its neighbours stay ready so a page turn is instant.
+   Turning: a finger swipe (the Pencil keeps writing), a two-finger swipe on a trackpad, ‹ › beside the page number,
+   Page Up / Page Down (and page-turner pedals that send them), the sidebar, the gallery, links, and Follow. */
+const View = (() => {
+  const host = $('#pages');
+  let slide = false, cur = 0, sw = null, wacc = 0, wt = 0, wlock = 0;
+  const key = () => 'view.' + (viewer ? 'shared' + location.pathname : note && note.id);
+  const calm = () => matchMedia('(prefers-reduced-motion: reduce)').matches;
+  function load() { slide = LS.get(key(), note.view || 'scroll') === 'slide';   // a shared player opens the way it was shared; the learner may switch
+    cur = 0; host.classList.toggle('slide', slide); }
+  function mark() {
+    if (!slide) return;
+    cur = clamp(cur, 0, Math.max(0, views.length - 1));
+    views.forEach((v, i) => v.wrap.classList.toggle('on', i === cur));
+    ready();
+  }
+  function ready() {   // the page on show and its two neighbours are drawn; the rest let go
+    for (let k = 0; k < views.length; k++) Math.abs(k - cur) <= 1 ? mountPage(k) : unmountPage(k);
+  }
+  function keeps(i) { return slide && Math.abs(i - cur) <= 1; }
+  function show(i, animate = true) {
+    if (!slide || !views.length) return;
+    i = clamp(i, 0, views.length - 1); const was = cur, w = views[i].wrap;
+    if (i === was && w.classList.contains('on')) return;
+    if (sel && sel.page !== i) clearSel();
+    if (Texts.editingPage && Texts.editingPage() === was) Texts.commit();
+    cur = i; mark(); host.scrollTop = 0; host.scrollLeft = 0;
+    w.classList.remove('in-next', 'in-prev');
+    if (animate && !calm() && i !== was) { void w.offsetWidth; w.classList.add(i > was ? 'in-next' : 'in-prev'); setTimeout(() => w.classList.remove('in-next', 'in-prev'), 260); }
+    Zoom.refit(); wide(); updatePagePill();
+  }
+  function step(d) { if (slide) show(cur + d); else goToPage(currentPage() + d); }
+  function set(m) {
+    const want = m === 'slide'; if (!note || want === slide) { Zoom.label(); return; }
+    const at = currentPage();
+    slide = want; LS.set(key(), slide ? 'slide' : 'scroll'); host.classList.toggle('slide', slide);
+    if (slide) { cur = at; mark(); }
+    else { views.forEach(v => v.wrap.classList.remove('on', 'in-next', 'in-prev', 'dragging')); views.forEach(v => io.unobserve(v.wrap)); views.forEach(v => io.observe(v.wrap)); }
+    Zoom.reload(0, 0);
+    requestAnimationFrame(() => { if (slide) { host.scrollTop = 0; host.scrollLeft = 0; } else goToPage(at, false); wide(); updatePagePill(); });
+    toast(slide ? 'Slide view: swipe with a finger to turn the page.' : 'Scroll view.', 2200);
+  }
+  // wider than the window (zoomed in)? then a finger pans the page first, and turns it from the edge
+  function wide() { host.classList.toggle('wide', slide && host.scrollWidth > host.clientWidth + 1); }
+  function canLeave(dx) {
+    const max = host.scrollWidth - host.clientWidth; if (max <= 1) return true;
+    return dx < 0 ? host.scrollLeft >= max - 1 : host.scrollLeft <= 1;
+  }
+  function settle(w) { w.classList.remove('dragging'); w.style.transition = w.style.transform = w.style.opacity = ''; }
+  function cancelSwipe() { if (sw && sw.on) settle(sw.w); sw = null; }
+  // finger swipe
+  host.addEventListener('touchstart', e => {
+    sw = null;
+    if (!slide || e.touches.length !== 1 || act || sel || Gallery.isOpen()) return;
+    const t = e.touches[0];
+    if (t.touchType === 'stylus') return;                                   // the Pencil writes
+    if (fingers && !viewer && tool !== 'play') return;                      // fingers are drawing: use ‹ › or the keys
+    if (e.target.closest('button,input,textarea,select,[contenteditable],.tl > *')) return;
+    sw = { x: t.clientX, y: t.clientY, t0: performance.now(), on: false, dx: 0 };
+  }, { passive: true });
+  host.addEventListener('touchmove', e => {
+    if (!sw) return; if (e.touches.length !== 1 || act) { cancelSwipe(); return; }
+    const t = e.touches[0], dx = t.clientX - sw.x, dy = t.clientY - sw.y;
+    if (!sw.on) {
+      if (Math.abs(dy) > 14 && Math.abs(dy) > Math.abs(dx)) { sw = null; return; }   // a scroll up or down
+      if (Math.abs(dx) < 14 || Math.abs(dx) < Math.abs(dy) * 1.4) return;
+      if (!canLeave(dx)) { sw = null; return; }
+      sw.on = true; sw.w = views[cur].wrap; sw.w.classList.add('dragging'); sw.x = t.clientX - Math.sign(dx) * 14;
+    }
+    if (e.cancelable) e.preventDefault();
+    const d = t.clientX - sw.x, end = (d < 0 && cur >= views.length - 1) || (d > 0 && cur <= 0);
+    sw.dx = end ? d * 0.25 : d;                                             // a little give at either end
+    sw.w.style.transform = `translateX(${sw.dx}px)`; sw.w.style.opacity = String(1 - Math.min(0.5, Math.abs(sw.dx) / host.clientWidth));
+  }, { passive: false });
+  const release = () => {
+    if (!sw) return; const s = sw; sw = null; if (!s.on) return;
+    const W = host.clientWidth, ms = Math.max(1, performance.now() - s.t0), to = cur + (s.dx < 0 ? 1 : -1);
+    const go = to >= 0 && to < views.length && (Math.abs(s.dx) > W * 0.2 || (Math.abs(s.dx) > 40 && Math.abs(s.dx) / ms > 0.35));
+    if (go && !calm()) {
+      s.w.style.transition = 'transform .14s ease-in, opacity .14s'; s.w.style.transform = `translateX(${s.dx < 0 ? -W * 0.6 : W * 0.6}px)`; s.w.style.opacity = '0';
+      setTimeout(() => { settle(s.w); show(to); }, 140);
+    } else if (go) { settle(s.w); show(to, false); }
+    else { s.w.style.transition = 'transform .2s ease-out, opacity .2s'; s.w.style.transform = ''; s.w.style.opacity = ''; setTimeout(() => settle(s.w), 220); }
+  };
+  host.addEventListener('touchend', release, { passive: true });
+  host.addEventListener('touchcancel', () => cancelSwipe(), { passive: true });
+  // two-finger swipe on a Mac trackpad (or a sideways mouse wheel); one swipe, one page, however long it glides
+  host.addEventListener('wheel', e => {
+    if (!slide || e.ctrlKey || Math.abs(e.deltaX) <= Math.abs(e.deltaY) * 1.2) return;
+    const now = performance.now();
+    if (now < wlock) { wlock = now + 240; return; }
+    if (!canLeave(-e.deltaX)) { wacc = 0; return; }
+    if (now - wt > 300) wacc = 0; wt = now; wacc += e.deltaX;
+    if (Math.abs(wacc) > 60) { const d = wacc > 0 ? 1 : -1; wacc = 0; wlock = now + 400; show(cur + d); }
+  }, { passive: true });
+  addEventListener('resize', () => { if (note && slide) { Zoom.refit(); wide(); } });
+  $('#pgPrev').onclick = () => step(-1);
+  $('#pgNext').onclick = () => step(1);
+  return { is: () => slide, index: () => cur, load, mark, keeps, show, step, set, wide, cancelSwipe };
+})();
+/* ---------------- full screen (0.52): only the pages and the player, e.g. for teaching over a screen share ----------------
+   The sidebar and the toolbar go; the player stays. The toolbar slides in when the pointer reaches the top edge
+   (or with the pen button at the top right, on the iPad) so a passage can still be highlighted, then slides away.
+   The browser's own full screen is asked for too, where it is allowed; leaving either leaves both. Esc or F to leave. */
+const Full = (() => {
+  const ed = $('#editor'); let on = false, pinned = false, idleT = 0, hideT = 0, hadSide = false;
+  const fsEl = () => document.fullscreenElement || document.webkitFullscreenElement;
+  function relayout(keep) {
+    requestAnimationFrame(() => { Zoom.refit(); View.wide(); if (note) goToPage(keep, false); updatePagePill(); });
+  }
+  function enter() {
+    if (on || !note) return; const keep = currentPage();
+    on = true; pinned = false; hadSide = ed.classList.contains('side-open'); if (hadSide) Side.toggle(false); ed.classList.add('fs'); ed.classList.remove('tools'); $('#fsTools').classList.remove('on');
+    ed.style.setProperty('--tbh', $('#editor .topbar').offsetHeight + 'px');
+    const r = document.documentElement, req = r.requestFullscreen || r.webkitRequestFullscreen;
+    if (req && !fsEl()) { try { const pr = req.call(r); if (pr && pr.catch) pr.catch(() => { }); } catch (e) { } }
+    wake(); relayout(keep);
+    toast(matchMedia('(hover: hover)').matches ? 'Full screen. Move to the top edge for the tools; Esc to leave.' : 'Full screen. The pen button at the top right brings the tools.', 2600);
+  }
+  function exit() {
+    if (!on) return; const keep = currentPage();
+    on = false; pinned = false; clearTimeout(idleT); clearTimeout(hideT); ed.classList.remove('fs', 'tools', 'idle');
+    if (fsEl()) { const x = document.exitFullscreen || document.webkitExitFullscreen; try { const pr = x && x.call(document); if (pr && pr.catch) pr.catch(() => { }); } catch (e) { } }
+    if (hadSide && innerWidth > 820) Side.toggle(true);   // the sidebar comes back if it was open
+    hadSide = false; relayout(keep);
+  }
+  function toggle() { on ? exit() : enter(); }
+  function tools(show) { ed.classList.toggle('tools', show); }
+  function wake() { ed.classList.remove('idle'); clearTimeout(idleT); idleT = setTimeout(() => on && ed.classList.add('idle'), 2500); }
+  const busy = () => !$('#popover').classList.contains('hidden') || !!$('#scrim .dlg') || !!(document.activeElement && document.activeElement.matches('#editor .topbar input'));   // typing the title, or a popover from the toolbar
+  document.addEventListener('pointermove', e => {
+    if (!on) return; wake();
+    if (e.pointerType !== 'mouse' || pinned) return;
+    const tbH = $('#editor .topbar').offsetHeight;
+    if (e.clientY <= 10) { clearTimeout(hideT); tools(true); }
+    else if (ed.classList.contains('tools') && e.clientY > tbH + 24 && !busy()) { clearTimeout(hideT); hideT = setTimeout(() => { if (!pinned && !busy()) tools(false); }, 500); }
+    else if (e.clientY <= tbH + 24) clearTimeout(hideT);
+  }, { passive: true });
+  document.addEventListener('pointerdown', () => on && wake(), { passive: true });
+  const changed = () => { if (on && !fsEl() && document.fullscreenEnabled !== false && wasFs) exit(); wasFs = !!fsEl(); };
+  let wasFs = false;
+  document.addEventListener('fullscreenchange', changed); document.addEventListener('webkitfullscreenchange', changed);
+  $('#fsExit').onclick = () => exit();
+  $('#fsTools').onclick = () => { pinned = !pinned; $('#fsTools').classList.toggle('on', pinned); tools(pinned); wake(); };
+  return { on: () => on, enter, exit, toggle };
+})();
 $('#pagePill').onclick = async () => {
   const box = document.createElement('div');
   box.innerHTML = `<p style="margin-top:0">This note has ${note.pages.length} pages.</p>
@@ -4124,6 +4330,7 @@ const Nudge = (() => {
   return { render, on, set: v => { LS.set('nudge.on', v); render(); } };
 })();
 async function showLibrary(fromSync) {
+  if (typeof Full !== "undefined") Full.exit();
   if (!fromSync) arranging = false;
   Gallery.hide(); Nudge.render();
   note = null; if (io) io.disconnect(); views.forEach((_, i) => unmountPage(i, true)); views = []; $('#pages').innerHTML = ''; releaseImages();
@@ -4343,7 +4550,7 @@ function showEditor() {
   undoStack = []; redoStack = []; updUndo(); activeGroup = -1; loop = false; loopRange = null; $('#pLoop').classList.remove('on');
   audioEl.playbackRate = 1; $('#pSpeed').textContent = '1×'; $('#pSpeed').classList.remove('on');
   setTool(viewer ? 'play' : (tool === 'eraser' ? 'pen' : tool));
-  Gallery.hide(); Side.restore(); computeGroups(); buildPages(); curTake = null; selectTake(note.takes[0] ? note.takes[0].id : null); $('#pages').scrollTop = 0; Zoom.restore();
+  Gallery.hide(); Side.restore(); computeGroups(); View.load(); buildPages(); curTake = null; selectTake(note.takes[0] ? note.takes[0].id : null); $('#pages').scrollTop = 0; Zoom.restore();
 }
 
 /* ---------------- PDF / image templates ---------------- */
@@ -4587,7 +4794,7 @@ const Publish = (() => {
     });
     const big = files.find(f => f.blob.size > 95 * 1048576);
     if (big) throw new Error(`${big.path.split('/').pop()} is ${(big.blob.size / 1048576).toFixed(0)} MB. GitHub accepts files up to 100 MB, so split or compress this recording first.`);
-    const data = { v: 1, title: m.title || 'Untitled', created: m.created, shared: Date.now(), ...(ends ? { until: ends, by: SHARER } : {}), lead, srcs: [...idx.values()], pages, strokes: m.strokes.map(({ id, page, tool, color, size, pts, t, take, shape }) => ({ id, page, tool, color, size, pts, t, take, ...(shape ? { shape } : {}) })), texts: m.texts || [], takes };
+    const data = { v: 1, title: m.title || 'Untitled', created: m.created, shared: Date.now(), ...(ends ? { until: ends, by: SHARER } : {}), ...(LS.get('view.' + m.id, 'scroll') === 'slide' ? { view: 'slide' } : {}), lead, srcs: [...idx.values()], pages, strokes: m.strokes.map(({ id, page, tool, color, size, pts, t, take, shape }) => ({ id, page, tool, color, size, pts, t, take, ...(shape ? { shape } : {}) })), texts: m.texts || [], takes };
     let html = replaceScript(APP_SRC, 'builtin-templates', '[]');
     html = replaceScript(html, 'shared-note', JSON.stringify(data).replace(/</g, '\\u003c'));
     html = html.replace(/url\(fonts\//g, 'url(../../fonts/').replace('<link rel="manifest" href="manifest.webmanifest">', '<meta name="robots" content="noindex, nofollow">')
@@ -4793,7 +5000,7 @@ async function dataToNote(d) {
   const id = uid(), keys = [];
   for (const src of d.srcs) { const k = `${id}:${uid()}`; await putImg(k, await dataURLtoBlob(src)); keys.push(k); }
   const pages = d.pages.map(p => pageRec({ ...p, key: keys[p.s] }));
-  return { id, title: d.title, created: d.created || Date.now(), updated: Date.now(), pages, strokes: d.strokes || [], texts: d.texts || [], takes };
+  return { id, title: d.title, created: d.created || Date.now(), updated: Date.now(), pages, strokes: d.strokes || [], texts: d.texts || [], takes, ...(d.view ? { view: d.view } : {}) };
 }
 $('#btnImport').onclick = () => { $('#fShared').value = ''; $('#fShared').click(); };
 $('#fShared').onchange = async e => {
@@ -5115,7 +5322,7 @@ const Drive = (() => {
   /* Sync record (0.47): the last 400 things sync did to notes, on this device only, so anything that ever
      looks wrong can be traced. Settings → Google Drive → Save sync record. */
   function jlog(act, m, x = {}) {
-    try { const log = LS.get('sync.log', []); log.push({ at: Date.now(), v: '0.51', act, id: m.id, title: m.title || '', ...x }); LS.set('sync.log', log.slice(-400)); } catch (e) { }
+    try { const log = LS.get('sync.log', []); log.push({ at: Date.now(), v: '0.52', act, id: m.id, title: m.title || '', ...x }); LS.set('sync.log', log.slice(-400)); } catch (e) { }
   }
   // a copy holding everything this note has is already in Trash (put there by the other device)
   async function alreadyKept(cur) {
@@ -5370,7 +5577,7 @@ const Drive = (() => {
     acts.push(tokenValid() ? { label: 'Sync now', value: 'sync', primary: true } : { label: 'Reconnect', value: 'again', primary: true });
     const v = await dialog({ title: 'Google Drive', node: box, actions: acts });
     if (v === 'sync') sync();
-    else if (v === 'log') { const a = document.createElement('a'); a.href = URL.createObjectURL(new Blob([JSON.stringify({ device: Versions.device(), version: '0.51', saved: new Date().toISOString(), log: LS.get('sync.log', []) }, null, 1)], { type: 'application/json' })); a.download = `notation-sync-record-${Versions.device().replace(/\W+/g, '-')}.json`; document.body.appendChild(a); a.click(); setTimeout(() => { URL.revokeObjectURL(a.href); a.remove(); }, 1000); }
+    else if (v === 'log') { const a = document.createElement('a'); a.href = URL.createObjectURL(new Blob([JSON.stringify({ device: Versions.device(), version: '0.52', saved: new Date().toISOString(), log: LS.get('sync.log', []) }, null, 1)], { type: 'application/json' })); a.download = `notation-sync-record-${Versions.device().replace(/\W+/g, '-')}.json`; document.body.appendChild(a); a.click(); setTimeout(() => { URL.revokeObjectURL(a.href); a.remove(); }, 1000); }
     else if (v === 'again') { await flushSave(); signIn('again'); }
     else if (v === 'off') {
       const ok = await dialog({ title: 'Disconnect Google Drive?', html: '<p>Syncing stops. Your notes stay on this device and in your Drive; nothing is deleted.</p>', actions: [{ label: 'Cancel', value: false }, { label: 'Disconnect', value: true, danger: true }] });
@@ -5524,7 +5731,7 @@ const Versions = (() => {
    version.json on GitHub names the newest build. When it differs from this one, the
    version chip offers "Update to …". Updating clears only Notation's stored app files
    and reloads; notes, recordings, folders and the Drive connection are untouched. */
-const APP_VERSION = '0.51', APP_BUILD = '141261de24';
+const APP_VERSION = '0.52', APP_BUILD = '218c35f9f2';
 const Updates = (() => {
   let latest = null, last = 0;
   const chip = () => $('#verChip');
