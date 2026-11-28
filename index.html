@@ -278,6 +278,24 @@ body.ended{display:flex;align-items:center;justify-content:center;min-height:100
 .endpage p{margin:0;font-size:16px;line-height:1.5;color:var(--ink)}
 .endpage .endt{color:var(--muted);font-size:14px;margin-bottom:4px}.endpage .endn{margin-top:26px;color:var(--saffron-2);font-family:var(--serif);font-size:15px;letter-spacing:.02em}
 .dlfmt label:has(input:checked){border-color:var(--saffron);box-shadow:0 0 0 3px var(--saffron-soft)}.dlfmt input{margin-top:3px;accent-color:var(--saffron-2)}
+.nudge{position:fixed;left:50%;bottom:88px;transform:translateX(-50%);z-index:60;display:flex;align-items:center;gap:10px;background:var(--card);border:1px solid var(--line);border-radius:14px;padding:8px 10px 8px 14px;box-shadow:0 10px 30px -12px rgba(0,0,0,.35);font-size:14.5px;max-width:calc(100vw - 24px)}
+.nudge span{flex:1}
+.takeopts .tbtns{display:flex;gap:8px;margin-left:auto}
+.takes .take.sel{cursor:pointer;user-select:none;-webkit-user-select:none}.takes .take.sel.picked{border-color:var(--saffron);background:var(--saffron-soft)}
+.takes .tsel{width:26px;height:26px;border-radius:50%;border:2px solid var(--line);flex:none;display:grid;place-items:center;background:var(--card);color:#fff}
+.takes .take.picked .tsel{background:var(--saffron);border-color:var(--saffron)}.takes .tsel svg{width:15px;height:15px}
+.takes .selhint{margin:0 0 10px;color:var(--muted);font-size:13.5px}
+.mergebar{display:flex;justify-content:flex-end;gap:10px;margin-top:12px;position:sticky;bottom:0;background:var(--paper,#fff);padding-top:8px}
+.dlg.selecting>.acts{display:none}
+.mergedlg .mergeplan{border:1px solid var(--line);border-radius:12px;padding:6px 12px;background:var(--card)}
+.mergedlg .mp{display:flex;align-items:baseline;gap:10px;padding:6px 0}.mergedlg .mp b{flex:1;min-width:0;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.mergedlg .mp small{color:var(--muted);font-variant-numeric:tabular-nums}.mergedlg .tno{font-variant-numeric:tabular-nums;font-weight:700;color:var(--saffron-2);width:24px}
+.mergedlg .mj{margin-left:34px;padding:2px 0 2px 12px;border-left:2px dotted var(--saffron);color:var(--muted);font-size:13px;font-style:italic}
+.mergedlg .mj.warn{border-left-color:#b45309;color:#92400e}
+.mergedlg .mtotal{margin:8px 2px;color:var(--muted);font-size:13.5px}
+.mergedlg .mwarn{border:1px solid #f0c27a;background:#fff7e8;border-radius:10px;padding:8px 12px;margin:8px 0;font-size:14px}.mergedlg .mwarn p{margin:4px 0}
+.mergedlg .mname{display:flex;align-items:center;gap:10px;margin:12px 0 4px}.mergedlg .mname input{flex:1}
+.mergedlg .mnote{color:var(--muted);font-size:13px;margin:6px 2px 0}
 .takeopts{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-top:12px;flex-wrap:wrap;font-size:14px}
 .takeopts input{width:18px;height:18px;vertical-align:-3px;accent-color:var(--saffron)}
 .speeds{display:flex;gap:6px}
@@ -517,7 +535,7 @@ body.viewer .viewer-only{display:inline-flex}
       <p class="tagline">Write your notation, record the lesson, and let every mark sing back.</p>
     </div>
     <div class="lib-actions">
-      <button class="btn verchip" id="verChip" title="Notation version · tap to check for updates">v0.50</button>
+      <button class="btn verchip" id="verChip" title="Notation version · tap to check for updates">v0.51</button>
       <button class="btn drivechip" id="driveChip" title="Google Drive sync"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M7 18h10.5a4.5 4.5 0 0 0 .6-8.96A6 6 0 0 0 6.6 9.2 4.4 4.4 0 0 0 7 18z"/></svg><span>Google Drive</span></button>
       <button class="btn" id="btnLib" title="Notation templates and covers"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="7" height="16" rx="1.5"/><rect x="12" y="4" width="4" height="16" rx="1"/><path d="M18 5.5l3 .8-3.6 13.4-3-.8"/></svg>Templates</button>
       <button class="btn" id="btnImport" title="Open a shared .html note"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v12m0 0-4-4m4 4 4-4"/><path d="M4 17v2a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-2"/></svg>Open shared note</button>
@@ -1084,7 +1102,7 @@ function tickLoop() {
 }
 function updateTime() {
   let ct, d;
-  if (rec) { ct = (performance.now() - rec.start) / 1000; d = ct; $('#pTime').innerHTML = `<b style="color:var(--rec)">● ${fmt(ct)}</b>`; setKnob(1); return; }
+  if (rec) { ct = (performance.now() - rec.start) / 1000; d = ct; if (ct >= recLong() && !rec.asked) recNudge(rec); $('#pTime').innerHTML = `<b style="color:var(--rec)">● ${fmt(ct)}</b>`; setKnob(1); return; }
   ct = audioEl.currentTime || 0; d = audioDur();
   $('#pTime').innerHTML = `<b>${fmt(ct)}</b><span class="tot"> / ${fmt(d)}</span>`;
   setKnob(d ? ct / d : 0);
@@ -1160,7 +1178,7 @@ const RecQ = {
     return /built-?in|internal|\b(ipad|iphone|macbook|imac|mac mini|mac studio|mac pro)\b/i.test(l);
   },
   lift: (mic, db) => { const m = LS.get('rec.lift', {}) || {}; if (db === undefined) return m[mic || '-'] || 0; m[mic || '-'] = db; LS.set('rec.lift', m); },
-  describe(q) { return q ? [q.sr ? `${Math.round(q.sr / 100) / 10} kHz` : '', q.ch === 2 ? 'stereo' : q.ch === 1 ? 'mono' : '', q.kbps ? `${q.kbps} kbps` : '', q.mic, q.lift ? `level +${q.lift} dB` : '', q.shruti ? 'with śruti' : '', q.talam ? `tāḷam ${q.talam}` : ''].filter(Boolean).join(' · ') : ''; },
+  describe(q) { return q ? [q.sr ? `${Math.round(q.sr / 100) / 10} kHz` : '', q.ch === 2 ? 'stereo' : q.ch === 1 ? 'mono' : '', q.kbps ? `${q.kbps} kbps` : '', q.mic, q.lift ? `level +${q.lift} dB` : '', q.shruti ? 'with śruti' : '', q.talam ? `tāḷam ${q.talam}` : '', q.merged ? `merged from ${q.merged}` : ''].filter(Boolean).join(' · ') : ''; },
   async mics() { try { return (await navigator.mediaDevices.enumerateDevices()).filter(d => d.kind === 'audioinput'); } catch (e) { return []; } },
 };
 /* ---------------- Śruti: a tambura beside the record button ----------------
@@ -1192,9 +1210,9 @@ const Shruti = (() => {
   let heard = false;
   let ctx = null, master, out, recTap = null, buffers = null, token = 0, playing = false, timer = null, nextTime = 0, step = 0, cycleStart = 0;
   const last = [null, null, null, null], PATTERN = [0, 0.23, 0.46, 0.69];
-  function makeIR(sec){
-    const sr = ctx.sampleRate, n = Math.floor(sec * sr);
-    const ir = ctx.createBuffer(2, n, sr);
+  function makeIR(sec, c = ctx){
+    const sr = c.sampleRate, n = Math.floor(sec * sr);
+    const ir = c.createBuffer(2, n, sr);
     const modes = [[118, .32, .55], [232, .24, .38], [405, .18, .26], [690, .11, .16], [1140, .07, .10], [1720, .04, .07]];
     for (let ch = 0; ch < 2; ch++){
       const d = ir.getChannelData(ch); let lp = 0;
@@ -1281,33 +1299,38 @@ const Shruti = (() => {
     worker.onmessage = e => { const j = jobs.get(e.data.id); if (j) { jobs.delete(e.data.id); j(e.data); } };
     worker.onerror = () => { worker = null; };
   } catch (e) { worker = null; }
-  const renderAsync = (f, bright, dur, seed) => {
-    const sr = ctx.sampleRate;
+  const renderAsync = (f, bright, dur, seed, sr = ctx.sampleRate) => {
     if (!worker) return new Promise(r => setTimeout(() => r(renderString(f, bright, dur, sr, seed)), 0));
     return new Promise(r => { const id = ++jobId; jobs.set(id, r); worker.postMessage({ id, f, bright, dur, sr, seed }); });
   };
   const toBuffer = r => { const b = ctx.createBuffer(2, r.L.length, ctx.sampleRate); b.getChannelData(0).set(r.L); b.getChannelData(1).set(r.R); return b; };
 
+  // The tambura's sound chain, in any audio context: the live one, or an offline one that renders the
+  // bridge between merged recordings (0.51) so the bridge sounds exactly like the bed in the recordings.
+  function buildChain(c, vol) {
+    const m = c.createGain(); m.gain.value = vol;
+    const hp = c.createBiquadFilter(); hp.type = 'highpass'; hp.frequency.value = 42; hp.Q.value = 0.7;
+    const warm = c.createBiquadFilter(); warm.type = 'peaking'; warm.frequency.value = 190; warm.Q.value = 0.9; warm.gain.value = 1.5;
+    const air = c.createBiquadFilter(); air.type = 'highshelf'; air.frequency.value = 3800; air.gain.value = 0.5;
+    const comp = c.createDynamicsCompressor(); comp.threshold.value = -12; comp.ratio.value = 2.5; comp.attack.value = 0.01; comp.release.value = 0.4;
+    const dry = c.createGain(); dry.gain.value = 0.64; const wet = c.createGain(); wet.gain.value = 0.27;   // 0.36: about 3 dB softer at the same volume
+    const conv = c.createConvolver(); conv.buffer = makeIR(3.2, c);
+    // Mellow (0.36): her ear found the tambura sharp. Two gentle stages after the engine, which stays as it
+    // is: a soft low-pass that rounds off the jivāri's top and the fingertip tick of each pluck, and a shelf
+    // that lowers the 2.5 kHz-and-up region the ear hears as harsh. The body of Sa and Pa is untouched.
+    const soft1 = c.createBiquadFilter(); soft1.type = 'lowpass'; soft1.frequency.value = 2600; soft1.Q.value = 0.5;   // 0.44: 3200 → 2600 Hz
+    const soft2 = c.createBiquadFilter(); soft2.type = 'highshelf'; soft2.frequency.value = 1500; soft2.gain.value = -9;   // 0.44: gentler still
+    m.connect(hp); hp.connect(warm); warm.connect(air); air.connect(soft1); soft1.connect(soft2);
+    soft2.connect(dry); soft2.connect(conv); conv.connect(wet);
+    const o = c.createGain(); o.gain.value = 0.7; dry.connect(comp);   // 0.44: about 3 dB softer, so the tāḷam sits above it
+    wet.connect(comp); comp.connect(o);
+    return { master: m, out: o };
+  }
   function ensureCtx() {
     if (ctx) return ctx;
     const AC = window.AudioContext || window.webkitAudioContext;
     try { ctx = new AC({ latencyHint: 'playback', sampleRate: 48000 }); } catch (e) { ctx = new AC(); }
-    master = ctx.createGain(); master.gain.value = st.vol;
-    const hp = ctx.createBiquadFilter(); hp.type = 'highpass'; hp.frequency.value = 42; hp.Q.value = 0.7;
-    const warm = ctx.createBiquadFilter(); warm.type = 'peaking'; warm.frequency.value = 190; warm.Q.value = 0.9; warm.gain.value = 1.5;
-    const air = ctx.createBiquadFilter(); air.type = 'highshelf'; air.frequency.value = 3800; air.gain.value = 0.5;
-    const comp = ctx.createDynamicsCompressor(); comp.threshold.value = -12; comp.ratio.value = 2.5; comp.attack.value = 0.01; comp.release.value = 0.4;
-    const dry = ctx.createGain(); dry.gain.value = 0.64; const wet = ctx.createGain(); wet.gain.value = 0.27;   // 0.36: about 3 dB softer at the same volume
-    const conv = ctx.createConvolver(); conv.buffer = makeIR(3.2);
-    // Mellow (0.36): her ear found the tambura sharp. Two gentle stages after the engine, which stays as it
-    // is: a soft low-pass that rounds off the jivāri's top and the fingertip tick of each pluck, and a shelf
-    // that lowers the 2.5 kHz-and-up region the ear hears as harsh. The body of Sa and Pa is untouched.
-    const soft1 = ctx.createBiquadFilter(); soft1.type = 'lowpass'; soft1.frequency.value = 2600; soft1.Q.value = 0.5;   // 0.44: 3200 → 2600 Hz
-    const soft2 = ctx.createBiquadFilter(); soft2.type = 'highshelf'; soft2.frequency.value = 1500; soft2.gain.value = -9;   // 0.44: gentler still
-    master.connect(hp); hp.connect(warm); warm.connect(air); air.connect(soft1); soft1.connect(soft2);
-    soft2.connect(dry); soft2.connect(conv); conv.connect(wet);
-    out = ctx.createGain(); out.gain.value = 0.7; dry.connect(comp);   // 0.44: about 3 dB softer, so the tāḷam sits above it
-     wet.connect(comp); comp.connect(out); out.connect(ctx.destination);
+    ({ master, out } = buildChain(ctx, st.vol)); out.connect(ctx.destination);
     return ctx;
   }
   // iPad and iPhone: play even with the silent switch on, and wake the audio inside the tap
@@ -1343,7 +1366,7 @@ const Shruti = (() => {
   // āvartanam evenly (as close to your cycle setting as it can), so Pa, the first string, falls on samam,
   // and each string is placed on the half-count grid, so a pluck never lands just beside a count of the
   // tāḷam. On its own the tambura keeps its free cycle, as before.
-  let syncKey = null, rLen = st.cycle, offs = PATTERN.map(p => p * st.cycle), fresh = false;
+  let syncKey = null, rLen = st.cycle, offs = PATTERN.map(p => p * st.cycle), fresh = false, pgen = 0;
   function planFor(ck) {
     let k = Math.max(1, Math.round(ck.A / st.cycle)); while (k > 1 && ck.A / k < 2.4) k--;
     const R = ck.A / k, g = ck.spc / 2, o = PATTERN.map(p => Math.round(p * R / g) * g);
@@ -1356,7 +1379,7 @@ const Shruti = (() => {
     if (ck) {
       const key = ck.gen + '|' + st.cycle;
       if (key !== syncKey) {
-        syncKey = key; ({ R: rLen, o: offs } = planFor(ck));
+        syncKey = key; pgen++; ({ R: rLen, o: offs } = planFor(ck));
         const now = ctx.currentTime + 0.005;   // a samam just ahead still gets its Pa
         cycleStart = ck.sam + Math.floor((now - ck.sam) / rLen) * rLen; step = 0;
         while (cycleStart + offs[step] < now) { step++; if (step === 4) { step = 0; cycleStart += rLen; } }
@@ -1365,7 +1388,7 @@ const Shruti = (() => {
         nextTime = cycleStart + offs[step];
       }
     } else {
-      if (syncKey !== null) { syncKey = null; nextTime = Math.max(ctx.currentTime + 0.05, cycleStart + offs[step]); }
+      if (syncKey !== null) { syncKey = null; pgen++; nextTime = Math.max(ctx.currentTime + 0.05, cycleStart + offs[step]); }
       rLen = st.cycle; offs = PATTERN.map(p => p * st.cycle);
     }
     fresh = false;
@@ -1379,7 +1402,7 @@ const Shruti = (() => {
     unlock(); playing = true; ui();
     try { if (ctx.state !== 'running') await ctx.resume(); } catch (e) { }
     if (!buffers) await rebuild(); if (!playing) return;
-    cycleStart = ctx.currentTime + 0.08; step = 0; nextTime = cycleStart; syncKey = null; fresh = true;
+    cycleStart = ctx.currentTime + 0.08; step = 0; nextTime = cycleStart; syncKey = null; fresh = true; pgen++;
     clearInterval(timer); timer = setInterval(scheduler, 25); scheduler(); if (recTap) heard = true;
   }
   function stop() {
@@ -1483,6 +1506,43 @@ const Shruti = (() => {
           nodes.forEach(n => { try { n.disconnect(); } catch (e) { } }); if (tap) { try { out.disconnect(tap); tap.disconnect(); } catch (e) { } if (recTap === tap) recTap = null; } } };
     } catch (e) { return null; }
   }
+  // ---- for merging recordings (0.51) ----
+  // What a recording needs to remember of the drone, so a bridge can carry it on later: the sound's settings,
+  // and where the rounds of four strings fall. phase() gives the context time of the Pa that begins a round,
+  // the round's length and the strings' places in it, and a number that changes whenever that grid moves.
+  const snap = () => ({ k: st.kattai, tun: st.tuning, cents: st.cents, cycle: st.cycle, jiv: st.jivari, vol: st.vol, inRec: st.inRec });
+  const phase = () => playing && buffers ? { cs: cycleStart, R: rLen, offs: offs.slice(), gen: pgen, key: syncKey } : null;
+  const pitchOf = sp => { const x = KATTAI.find(y => y.id === sp.k) || cur(); return 440 * Math.pow(2, (x.midi - 69) / 12) * Math.pow(2, (sp.cents || 0) / 1200); };
+  const pitchName = sp => { const x = KATTAI.find(y => y.id === sp.k); return x ? `${x.k} ${(TUN[sp.tun] || TUN.pa).name}` : '?'; };
+  // Render the drone into an offline context: the same strings and chain as the live tambura, plucked on the
+  // grid of a recording (p0: the time, in the offline timeline, of a Pa that begins a round), until `until`,
+  // at the gain it had in the recording.
+  const strCache = new Map();
+  async function renderInto(oc, dest, sp, R, offs, p0, until, gain) {
+    const sa = pitchOf(sp), hz = [sa * (TUN[sp.tun] || TUN.pa).ratio, sa, sa, sa / 2], dur = Math.max(6, R + 3), j = sp.jiv != null ? sp.jiv : DEF.jivari, sr = oc.sampleRate;
+    const key = [sp.k, sp.tun, sp.cents || 0, j, dur, sr].join('|');
+    let parts = strCache.get(key);
+    if (!parts) { parts = await Promise.all([renderAsync(hz[0], j, dur, 101, sr), renderAsync(hz[1], j, dur, 202, sr), renderAsync(hz[2] * Math.pow(2, 0.6 / 1200), j, dur, 303, sr), renderAsync(hz[3], j * 0.92, dur, 404, sr)]); strCache.clear(); strCache.set(key, parts); }
+    const bufs = parts.map(r => { const b = oc.createBuffer(2, r.L.length, sr); b.getChannelData(0).set(r.L); b.getChannelData(1).set(r.R); return b; });
+    const ch = buildChain(oc, sp.vol != null ? sp.vol : DEF.vol), g = oc.createGain(); g.gain.value = gain; ch.out.connect(g); g.connect(dest);
+    const prev = [null, null, null, null];
+    let n = Math.floor((0 - dur - p0) / R);
+    for (; ; n++) {
+      const c0 = p0 + n * R; if (c0 >= until) break;
+      for (let i = 0; i < 4; i++) {
+        const when = c0 + offs[i]; if (when >= until) break; if (when + dur < 0) continue;
+        const w = Math.max(0, when), src = oc.createBufferSource(); src.buffer = bufs[i];
+        const gg = oc.createGain(); gg.gain.setValueAtTime(0, w); gg.gain.linearRampToValueAtTime([0.6, 0.52, 0.5, 0.7][i] * 0.96, w + 0.02);
+        const pan = oc.createStereoPanner ? oc.createStereoPanner() : null;
+        if (pan) { pan.pan.value = [-0.22, -0.07, 0.07, 0.22][i]; src.connect(gg); gg.connect(pan); pan.connect(ch.master); } else { src.connect(gg); gg.connect(ch.master); }
+        const pv = prev[i]; if (pv) { try { pv.g.gain.setTargetAtTime(0, w, 0.03); pv.src.stop(w + 0.3); } catch (e) { } }
+        if (when < 0) src.start(0, -when); else src.start(when);
+        prev[i] = { src, g: gg };
+      }
+    }
+    // after `until` no string is plucked again: those still sounding ring on and fade, as when the tambura stops
+    prev.forEach(v => { if (v) { try { v.g.gain.setTargetAtTime(0, until, 0.4); } catch (e) { } } });
+  }
   function ui() {
     const b = $('#pShruti'); if (!b) return;
     b.classList.toggle('on', playing); $('#pShrLbl').textContent = playing ? 'Stop' : 'Śruti';
@@ -1533,7 +1593,7 @@ const Shruti = (() => {
   $('#pShrMore').onclick = e => { e.stopPropagation(); if (!$('#popover').classList.contains('hidden') && $('#popover .shrpop')) { closePopover(); return; } openPanel(); };
   document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'visible' && ctx && playing && ctx.state !== 'running') { try { ctx.resume(); } catch (e) { } } });
   ui();
-  return { start, stop, mixInto, session, settingsHtml, wireSettings, isPlaying: () => playing, state: st, KATTAI, ctx: () => ensureCtx(), unlock };
+  return { start, stop, mixInto, session, settingsHtml, wireSettings, isPlaying: () => playing, state: st, KATTAI, ctx: () => ensureCtx(), unlock, snap, phase, renderInto, pitchName, tapGain: () => recTap ? recTap.gain.value : 0 };
 })();
 /* ---------------- Tāḷam: hands keeping the beat, beside the Śruti (0.44) ----------------
    The sound is Lakshmi's Samam (lakshmiganesan.github.io/viswiz/samam) in its "Hands" voice: the clap,
@@ -1673,7 +1733,7 @@ const Talam = (() => {
     const an = follow ? ac.createAnalyser() : null, buf = an ? new Float32Array(2048) : null, hist = new Float32Array(200); let hi = 0;
     if (an) { an.fftSize = 2048; out.connect(an); }
     out.connect(dl); dl.connect(g); g.connect(dest);
-    const me = tap = { heard: playing, lat, tala: cur().short, bpm: st.bpm,
+    const me = tap = { heard: playing, lat, tala: cur().short, bpm: st.bpm, gain: () => g.gain.value,
       setInRec(v) { if (!follow) g.gain.value = REC_FIXED[v] || 0; },
       // called every 50 ms with the voice's typical peak level (after the lift)
       follow(voice) {
@@ -1688,6 +1748,30 @@ const Talam = (() => {
     return me;
   }
 
+  // ---- for merging recordings (0.51) ----
+  const snap = () => ({ tala: st.tala, bpm: st.bpm, nadai: st.nadai, pulses: st.pulses, vol: st.vol, inRec: st.inRec });
+  const talaName = sp => { const t = TALAS.find(x => x.id === sp.tala); return `${t ? t.short : sp.tala}, ${sp.bpm}/min${sp.nadai !== 4 ? ` · ${(NADAI.find(x => x.n === sp.nadai) || {}).name || sp.nadai} nadai` : ''}`; };
+  const avOf = sp => { const t = TALAS.find(x => x.id === sp.tala); return t ? cycleOf(t).length * 60 / sp.bpm : 0; };
+  // Render the tāḷam into an offline context, on a recording's grid (sam0: the time of a samam in the
+  // offline timeline), until `until`, at the gain it had in the recording. The same sounds as the live hands:
+  // the sound functions are pointed at the offline context for the moment and then pointed back.
+  function renderInto(oc, dest, sp, sam0, until, gain) {
+    const t = TALAS.find(x => x.id === sp.tala); if (!t) return;
+    ensure();
+    const keep = [ac, nb, OUT], cyc = cycleOf(t), nd = sp.nadai || 4, P = cyc.length * nd, spq = 60 / sp.bpm / nd;
+    const b = oc.createGain(); b.gain.value = sp.vol != null ? sp.vol : DEF.vol; const g = oc.createGain(); g.gain.value = gain; b.connect(g); g.connect(dest);
+    const n2 = oc.createBuffer(1, oc.sampleRate * .5, oc.sampleRate), d = n2.getChannelData(0); for (let i = 0; i < d.length; i++) d[i] = Math.random() * 2 - 1;
+    ac = oc; nb = n2; OUT = b;
+    try {
+      for (let k = Math.ceil(-sam0 / spq); ; k++) {
+        const tt = sam0 + k * spq; if (tt >= until) break; if (tt < 0) continue;
+        const idx = ((k % P) + P) % P, ci = Math.floor(idx / nd), di = idx % nd;
+        if (di === 0) { SND[cyc[ci].kind](tt); if (ci === 0) SND.samam(tt); } else if (sp.pulses) SND.pulse(tt);
+      }
+    } finally { [ac, nb, OUT] = keep; }
+  }
+  // where the next samam falls (context time), the āvartanam's length, and the number that changes when the time is reset
+  const phase = () => { const c = clock(); return c ? { sam: c.sam, A: c.A, gen: c.gen } : null; };
   function ui() {
     const b = $('#pTalam'); if (!b) return;
     b.classList.toggle('on', playing); b.setAttribute('aria-pressed', playing ? 'true' : 'false');
@@ -1731,7 +1815,7 @@ const Talam = (() => {
   $('#pTalam').onclick = () => playing ? stop() : start();
   document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'visible' && ac && playing && ac.state !== 'running') { try { ac.resume(); } catch (e) { } } });
   ui();
-  return { start, stop, recInto, settingsHtml, wireSettings, isPlaying: () => playing, state: st, TALAS, cycleOf, restart, clock, setBpm };
+  return { start, stop, recInto, settingsHtml, wireSettings, isPlaying: () => playing, state: st, TALAS, cycleOf, restart, clock, setBpm, snap, phase, renderInto, talaName, avOf };
 })();
 /* A small level light inside the REC button while recording: it grows with your voice and turns amber
    when the microphone itself is at its limit (then turn the mic's gain knob down a little). */
@@ -1767,35 +1851,58 @@ async function startRecording() {
   const bps = opus ? (ch > 1 ? 192000 : 160000) : (ch > 1 ? 256000 : 192000);   // generous: music, not a phone call
   const q = { sr: st.sampleRate || 0, ch, kbps: bps / 1000, mic: micName, mode: RecQ.mode() };
   let mr;
-  try { mr = new MediaRecorder(stream, mime ? { mimeType: mime, audioBitsPerSecond: bps } : { audioBitsPerSecond: bps }); }
+  const mopts = mime ? { mimeType: mime, audioBitsPerSecond: bps } : { audioBitsPerSecond: bps };
+  try { mr = new MediaRecorder(stream, mopts); }
   catch (e) { micStream.getTracks().forEach(t => t.stop()); if (mix) mix.end(); RecQ.release(); dialog({ title: 'Recording not supported', html: '<p>This browser cannot record audio. Please update Safari/Chrome, or import an audio file instead.</p>' }); return; }
   audioEl.pause();
   const chunks = [];
   mr.ondataavailable = e => { if (e.data && e.data.size) chunks.push(e.data); };
-  rec = { mr, stream: micStream, mix, chunks, start: performance.now(), mime: mr.mimeType || mime || 'audio/webm', wake: null, hidden: false, take: 't' + uid(), q };
+  rec = { mr, stream: micStream, mix, chunks, start: performance.now(), mime: mr.mimeType || mime || 'audio/webm', wake: null, hidden: false, take: 't' + uid(), q, rs: stream, mopts, q0: { ...q } };
   try { if (navigator.wakeLock) rec.wake = await navigator.wakeLock.request('screen'); } catch (e) { }
   mr.start(1000);
+  if (mix) { rec.ct0 = Shruti.ctx().currentTime; rec.head = bedNow(rec); }
   if (mix) recMeter(rec);
   activeGroup = -1; renderAllFx();
   updatePlayer(); tickLoop();
   toast(`Recording ${takeNo(note.takes.length)}. Any mark you draw now becomes an audio bookmark.`, 3600);
 }
-function stopRecording() {
+/* What a new recording remembers of its bed (0.51), at its start and at its end: the śruti's settings and
+   the grid of its rounds, the tāḷam's settings and where samam falls, each as a time in the recording
+   (0 = its first sample), and the gain each had in it. Merging uses these to build a bridge that carries
+   the bed on from the end of one part into the start of the next. */
+const pmod = (x, m) => ((x % m) + m) % m;
+function bedNow(r) {
+  if (!r || r.ct0 == null || !r.mix) return null;
+  const o = {}, c0 = r.ct0;
+  const sp = r.mix.drone && Shruti.phase();
+  if (sp) o.s = { ...Shruti.snap(), g: +Shruti.tapGain().toFixed(4), R: sp.R, offs: sp.offs.map(x => +x.toFixed(4)), p: +pmod(sp.cs - c0, sp.R).toFixed(4) };
+  const tp = r.mix.tal && Talam.phase();
+  if (tp) o.t = { ...Talam.snap(), g: +r.mix.tal.gain().toFixed(4), A: tp.A, p: +pmod(tp.sam - c0 + r.mix.tal.lat, tp.A).toFixed(4) };
+  return o;
+}
+// `next`: carrying on in a new recording (0.51, at 60 minutes); the microphone, the bed and the screen stay on
+function stopRecording(next = null, r0 = null) {
+  if (!next) { const nd = $('#recNudge'); if (nd) nd.remove(); }
   return new Promise(res => {
-    if (!rec) return res();
-    const r = rec;
+    const r = r0 || rec;
+    if (!r) return res();
     r.mr.onstop = async () => {
       const elapsed = (performance.now() - r.start) / 1000;
-      r.stream.getTracks().forEach(t => t.stop()); if (r.mix) r.mix.end(); RecQ.release(); Shruti.session();
-      try { r.wake && r.wake.release(); } catch (e) { }
+      const tail = bedNow(r);
+      if (!next) {
+        r.stream.getTracks().forEach(t => t.stop()); if (r.mix) r.mix.end(); RecQ.release(); Shruti.session();
+        try { r.wake && r.wake.release(); } catch (e) { }
+      }
       const blob = new Blob(r.chunks, { type: r.mime.split(';')[0] });
-      rec = null;
+      if (rec === r) rec = null;
       if (r.q && r.mix && r.mix.heard) r.q.shruti = true;
       if (r.q && r.mix && r.mix.tal && r.mix.tal.heard) r.q.talam = `${r.mix.tal.tala}, ${r.mix.tal.bpm}/min`;
       if (r.q && r.mix && r.mix.lift) r.q.lift = r.mix.lift;
       if (r.q && elapsed > 1) r.q.kbps = Math.round(blob.size * 8 / elapsed / 1000);   // what was actually written
-      const t = { id: r.take, label: '', mime: blob.type, duration: elapsed, created: Date.now(), size: blob.size, ...(r.q ? { q: r.q } : {}) };
+      const bed = (r.head || tail) ? { head: r.head || {}, tail: tail || {} } : null;
+      const t = { id: r.take, label: '', mime: blob.type, duration: elapsed, created: Date.now(), size: blob.size, ...(r.q ? { q: r.q } : {}), ...(bed ? { bed } : {}) };
       note.takes.push(t); takeBlobs.set(t.id, blob); await saveTake(t, blob);
+      if (next) { computeGroups(); renderAllFx(); scheduleSave(); updatePlayer(); toast(`Saved recording ${takeNo(note.takes.length - 1)} (${fmt(elapsed)}). Carrying on as recording ${takeNo(note.takes.length)}.`, 4200); return res(); }
       curTake = null; await selectTake(t.id); computeGroups(); renderAllFx(); scheduleSave();
       const n = groups.filter(g => g.take === t.id).length;
       if (r.hidden) dialog({ title: 'Recording may have a gap', html: '<p>The app went into the background or the screen locked while recording. On iPad, recording in a web app pauses when that happens, so marks made after it may be slightly early. You can nudge them in the bookmarks list.</p>' });
@@ -1805,6 +1912,29 @@ function stopRecording() {
     try { r.mr.requestData(); } catch (e) { }
     r.mr.stop();
   });
+}
+/* At 60 minutes (0.51; her choice: attention, and files, stay manageable within an hour), a gentle offer to carry on in a new recording, so files stay a manageable length.
+   It doesn't stop anything: ignore it and the recording simply goes on. Yes starts the next recording on
+   the same microphone and bed first, then closes this one, so not a moment falls between them. */
+const recLong = () => window.__recLong || 60 * 60;   // (tests shorten it)
+function recNudge(r) {
+  if (!r || r.asked || rec !== r) return;
+  r.asked = true;
+  const el = document.createElement('div'); el.id = 'recNudge'; el.className = 'nudge'; el.setAttribute('role', 'status');
+  el.innerHTML = `<span><b>${Math.round(recLong() / 60)} minutes.</b> Carry on in a new recording?</span><button class="btn" data-v="keep">Keep going</button><button class="btn primary" data-v="new">New recording</button>`;
+  document.body.appendChild(el);
+  el.onclick = e => { const b = e.target.closest('[data-v]'); if (!b) return; el.remove(); if (b.dataset.v === 'new' && rec === r) rolloverRecording(); };
+}
+async function rolloverRecording() {
+  const r = rec; if (!r) return;
+  let mr2; try { mr2 = new MediaRecorder(r.rs, r.mopts); } catch (e) { return toast('Could not start a new recording; this one carries on.'); }
+  const chunks = []; mr2.ondataavailable = e => { if (e.data && e.data.size) chunks.push(e.data); };
+  const nx = { ...r, mr: mr2, chunks, start: performance.now(), take: 't' + uid(), q: { ...r.q0 }, hidden: false, asked: false, head: null, ct0: null };
+  mr2.start(1000);
+  if (nx.mix) { nx.ct0 = Shruti.ctx().currentTime; nx.head = bedNow(nx); }
+  rec = nx; if (nx.mix) recMeter(nx);
+  await stopRecording(nx, r);
+  rec = nx; updatePlayer(); tickLoop();
 }
 document.addEventListener('visibilitychange', async () => {
   if (document.hidden) { if (rec) rec.hidden = true; flushSave(); }
@@ -1860,6 +1990,26 @@ const AudioExport = (() => {
     };
     return run().finally(() => { wk.terminate(); URL.revokeObjectURL(url); });
   }
+  // A streaming MP3 encoder (0.51, for merging): push() blocks of samples as they are made, then end().
+  function encoder(ch, sr, rate) {
+    const code = 'let enc;onmessage=e=>{const m=e.data;try{if(m.init){importScripts(m.lib);enc=new lamejs.Mp3Encoder(m.ch,m.sr,m.kbps);postMessage({ok:1});return;}' +
+      'const out=m.end?enc.flush():(m.ch===2?enc.encodeBuffer(m.l,m.r):enc.encodeBuffer(m.l));postMessage({out},[out.buffer]);}catch(x){postMessage({err:String(x&&x.message||x)});}};';
+    const url = URL.createObjectURL(new Blob([code], { type: 'text/javascript' })), wk = new Worker(url), parts = [];
+    const ask = (m, tr = []) => new Promise((res, rej) => { wk.onmessage = e => e.data.err ? rej(new Error(e.data.err)) : res(e.data); wk.onerror = e => { e.preventDefault(); rej(new Error('The MP3 maker could not start.')); }; wk.postMessage(m, tr); });
+    const ready = ask({ init: 1, lib: new URL('lib/lame/lame.min.js', location.href).href, ch, sr, kbps: rate || kbps(ch) });
+    const close = () => { wk.terminate(); URL.revokeObjectURL(url); };
+    return {
+      async push(L, R) {   // Float32 blocks
+        await ready;
+        for (let a = 0; a < L.length; a += 1152 * 100) {
+          const b = Math.min(L.length, a + 1152 * 100), l = toI16(L, a, b), r = ch === 2 ? toI16(R || L, a, b) : null;
+          const { out } = await ask({ ch, l, r }, r ? [l.buffer, r.buffer] : [l.buffer]); if (out.length) parts.push(out);
+        }
+      },
+      async end() { await ready; const { out } = await ask({ end: 1 }); if (out.length) parts.push(out); close(); return new Blob(parts, { type: TYPE.mp3 }); },
+      close,
+    };
+  }
   // The file for recording i in format fmt ('mp3' | 'wav' | 'orig'); converts only when it has to.
   async function make(i, fmt, progress = () => { }) {
     const t = note.takes[i], blob = takeBlobs.get(t.id); if (!blob) throw new Error('This recording is not on this device yet.');
@@ -1906,15 +2056,311 @@ const AudioExport = (() => {
     }
     download(file); toast(`Downloaded ${file.name}`);
   }
-  return { offer, make, extOf };
+  return { offer, make, extOf, decode, encoder, kbps };
+})();
+
+/* ---------------- Merging recordings (0.51) ----------------
+   Parts recorded one at a time (a verse, a section of a song) become one recording, laid end to end in the
+   order they sit in the Recordings list, in the place of the first; the parts themselves go. Bookmarks stay
+   where they are on the page and are retimed to the new recording.
+   Joins, decided once (her choices, 28 Nov 2026), never asked each time:
+   - the tāḷam in both parts: the plain bed between her singing becomes exactly one āvartanam, samam to
+     samam: part A up to the first samam after its last sound, part B from the last samam before its first
+     sound, and one āvartanam of the same bed (tāḷam, with the śruti if it was on) between them. The opening
+     and close are trimmed the same way, to one āvartanam before the first sound and after the last;
+   - only the śruti: the same, with one round of the tambura;
+   - neither: a seamless join, untrimmed (a 10 ms crossfade, too short to hear, so there's no click).
+   Her rule when recording: at least one āvartanam of plain bed before she begins and after she ends. The
+   sound is only the marker; only plain bed is removed; where Notation can't be sure, that end keeps all
+   its bed and she is told. Only when the parts disagree (pitch, tāḷa, laya, nadai, a bed in one but not the
+   other, or a recording from before the bed was remembered) does she decide: she's told, and may join
+   those seamlessly.
+   The bridge is rendered offline by the Śruti and Tāḷam themselves, at the level each had in the part, and
+   each part's bed is lined up from the audio itself (a rendered copy of the bed compared with the part's
+   first or last seconds), which corrects for each browser's own recording delay.
+   The result is an MP3 (192 kbps stereo, 160 kbps mono), built a block at a time so memory stays small.
+   Over an hour in all, the dialog says so first. */
+const Merge = (() => {
+  const SR = 48000, F = Math.round(0.01 * SR), RING = 0.8, PRE = 8, WIN = 6, MAX = 60 * 60;   // her choice: an hour at most
+  const legacy = t => !t.bed && t.q && (t.q.shruti || t.q.talam);
+  const ends = t => (t.bed || {});
+  const samePitch = (a, b) => a.k === b.k && a.tun === b.tun && Math.abs((a.cents || 0) - (b.cents || 0)) <= 2;
+  const sameTala = (a, b) => a.tala === b.tala && +a.bpm === +b.bpm && (a.nadai || 4) === (b.nadai || 4);
+  function joinOf(a, b, na, nb) {
+    if (legacy(a) || legacy(b)) return { kind: 'seamless', problem: `${legacy(a) ? na : nb} was recorded before Notation kept the śruti's pitch and the tāḷam's timing, so the bed can't be carried across.` };
+    const x = ends(a).tail || {}, y = ends(b).head || {};
+    const ts = !!x.t, tb = !!y.t, ss = !!x.s, sb = !!y.s;
+    if (!ts && !tb && !ss && !sb) return { kind: 'seamless' };
+    if (ss && sb && !samePitch(x.s, y.s)) return { kind: 'seamless', problem: `${na} and ${nb} are at different pitches (${Shruti.pitchName(x.s)}; ${Shruti.pitchName(y.s)}).` };
+    if (ts && tb && !sameTala(x.t, y.t)) return { kind: 'seamless', problem: `${na} and ${nb} keep different tāḷams or layas (${Talam.talaName(x.t)}; ${Talam.talaName(y.t)}).` };
+    if (ts !== tb) return { kind: 'seamless', problem: ts ? `${na} ends with the tāḷam, but ${nb} begins without it.` : `${nb} begins with the tāḷam, but ${na} ends without it.` };
+    if (ss !== sb) return { kind: 'seamless', problem: ss ? `${na} ends with the śruti, but ${nb} begins without it.` : `${nb} begins with the śruti, but ${na} ends without it.` };
+    return { kind: ts ? 'avartanam' : 'strum' };
+  }
+  // A bridge's length. With the tāḷam: as close to one āvartanam as the beat allows. The next part began
+  // somewhere in the cycle, so the bridge must end exactly there for the beat to run on unbroken; of the
+  // lengths that do, it takes the one nearest one āvartanam (between ½ and 1½, never two). With the śruti
+  // alone: one round of the tambura.
+  const bridgeLen = (x, y, dA) => { if (!x.t) return x.s.R; const A = x.t.A, r = pmod(x.t.p - dA - y.t.p, A); return r < A / 2 ? r + A : r; };
+  function plan(ids) {
+    const idx = ids.map(takeIdx).filter(i => i >= 0).sort((p, q) => p - q), parts = idx.map(i => note.takes[i]);
+    const joins = [];
+    for (let k = 0; k + 1 < parts.length; k++) joins.push(joinOf(parts[k], parts[k + 1], takeNo(idx[k]), takeNo(idx[k + 1])));
+    let total = parts.reduce((a, t) => a + Math.max(0, (t.duration || 0) - ((t.q && t.q.lead) || 0)), 0);
+    joins.forEach((j, k) => { if (j.kind !== 'seamless') { const x = ends(parts[k]).tail, y = ends(parts[k + 1]).head; total += bridgeLen(x, y, parts[k].duration || 0); } });
+    const ch = joins.some(j => j.kind !== 'seamless') || parts.some(t => !t.q || (t.q.ch || 2) > 1) ? 2 : 1;
+    return { idx, parts, joins, total, ch };
+  }
+  const joinText = (j, x) => j.kind === 'avartanam' ? `one āvartanam of ${Talam.talaName(x.t)}${x.s ? ', with the śruti' : ''}` : j.kind === 'strum' ? 'one round of the tambura' : 'joined seamlessly';
+
+  // ---- lining the bed up with the audio ----
+  function mono(ab, a, b) {
+    const n = Math.max(0, b - a), o = new Float32Array(n), c = ab.numberOfChannels;
+    for (let k = 0; k < c; k++) { const d = ab.getChannelData(k); for (let i = 0; i < n; i++) { const j = a + i; if (j >= 0 && j < d.length) o[i] += d[j] / c; } }
+    return o;
+  }
+  function onsets(x) {   // 2.5 ms frames: how sharply the sound rises (strokes and plucks stand out; held notes don't)
+    const H = 120, n = Math.floor(x.length / H), e = new Float32Array(n), o = new Float32Array(n);
+    for (let k = 0; k < n; k++) { let s = 0; for (let i = k * H + 1; i < (k + 1) * H; i++) s += Math.abs(x[i] - x[i - 1]); e[k] = s; }
+    for (let k = 1; k < n; k++) o[k] = Math.max(0, e[k] - e[k - 1]);
+    return o;
+  }
+  function lagOf(recd, ref) {   // seconds by which the recorded bed falls later than predicted, and how sure
+    const a = onsets(recd), b = onsets(ref), M = 100, sc = [];
+    for (let L = -M; L <= M; L++) { let s = 0; for (let k = Math.max(0, -L); k < b.length && k + L < a.length; k++) s += a[k + L] * b[k]; sc.push(s); }
+    let bi = 0; sc.forEach((v, i) => { if (v > sc[bi]) bi = i; });
+    const m = sc.reduce((p, v) => p + v, 0) / sc.length, sd = Math.sqrt(sc.reduce((p, v) => p + (v - m) * (v - m), 0) / sc.length) || 1e-9;
+    return { lag: (bi - M) * 120 / SR, z: (sc[bi] - m) / sd };
+  }
+  // the bed {s, t} (positions p in the part's own time), rendered for [w0, w1), with no new strokes from `until`
+  async function renderBed(bed, w0, w1, until, gains) {
+    const s0 = w0 - PRE, oc = new OfflineAudioContext(2, Math.ceil((w1 - s0) * SR), SR);
+    if (bed.s) await Shruti.renderInto(oc, oc.destination, bed.s, bed.s.R, bed.s.offs, bed.s.p - s0, until - s0, gains ? bed.s.g : 1);
+    if (bed.t) Talam.renderInto(oc, oc.destination, bed.t, bed.t.p - s0, until - s0, gains ? bed.t.g : 1);
+    const r = await oc.startRendering(), a = Math.round(PRE * SR), n = Math.round((w1 - w0) * SR);
+    return [r.getChannelData(0).slice(a, a + n), r.getChannelData(1).slice(a, a + n)];
+  }
+  const shift = (bed, d) => { const o = {}; if (bed.s) o.s = { ...bed.s, p: +pmod(bed.s.p + d, bed.s.R).toFixed(4) }; if (bed.t) o.t = { ...bed.t, p: +pmod(bed.t.p + d, bed.t.A).toFixed(4) }; return o; };
+  async function lineUp(P, end) {   // P: a decoded part; end: 'tail' or 'head'
+    const bed = ends(P.t)[end]; if (!bed || (!bed.s && !bed.t)) return null;
+    const d = P.n / SR, w0 = end === 'tail' ? Math.max(0, d - WIN) : 0, w1 = end === 'tail' ? d : Math.min(d, WIN);
+    if (w1 - w0 < 1.5) return null;
+    const ref = await renderBed(bed, w0, w1, w1, false), r = lagOf(mono(P.ab, P.lead + Math.round(w0 * SR), P.lead + Math.round(w1 * SR)), mono({ numberOfChannels: 2, getChannelData: k => ref[k] }, 0, ref[0].length));
+    return r.z >= 5 ? r.lag : null;
+  }
+
+  // ---- writing: segments laid end to end, each overlapping the next by a little ----
+  function writer(enc, ch, onPos) {
+    let tail = null; const w = { pos: 0 };
+    w.add = async (L, R, fi, ov) => {   // fi: fade-in samples; ov: how much of the end overlaps what comes next
+      const n = L.length;
+      for (let i = 0; i < fi && i < n; i++) { const g = i / fi; L[i] *= g; if (R) R[i] *= g; }
+      if (tail) { const m = Math.min(tail[0].length, n); for (let i = 0; i < m; i++) { L[i] += tail[0][i]; if (R) R[i] += tail[1][i]; } tail = null; }
+      const c = Math.max(0, n - ov);
+      if (ov) { const tl = L.slice(c), tr = R ? R.slice(c) : null, m = tl.length; for (let i = 0; i < m; i++) { const g = 1 - (i + 1) / m; tl[i] *= g; if (tr) tr[i] *= g; } tail = [tl, tr]; }
+      await enc.push(L.subarray(0, c), R ? R.subarray(0, c) : null); w.pos += c; onPos(w.pos);
+    };
+    w.end = async () => { if (tail) { await enc.push(tail[0], tail[1]); w.pos += tail[0].length; tail = null; } return enc.end(); };
+    return w;
+  }
+  const leadCache = {};
+  async function leadFor(ch) {   // the MP3 encoder's own delay at the start, as this browser decodes it
+    if (leadCache[ch] != null) return leadCache[ch];
+    const e = AudioExport.encoder(ch, SR, ch === 2 ? 192 : 160), L = new Float32Array(SR / 2), at = Math.round(SR * 0.1); L[at] = 0.9;
+    await e.push(L, ch === 2 ? L.slice() : null); const ab = await AudioExport.decode(await e.end(), SR), d = ab.getChannelData(0);
+    let k = 0, m = 0; for (let i = 0; i < d.length; i++) if (Math.abs(d[i]) > m) { m = Math.abs(d[i]); k = i; }
+    return leadCache[ch] = Math.max(0, k - at) / SR;
+  }
+  async function load(t) {
+    const blob = takeBlobs.get(t.id); if (!blob) throw new Error('One of these recordings is not on this device yet. Open the note again once it has synced.');
+    const ab = await AudioExport.decode(blob, SR), lead = Math.min(ab.length, Math.round(((t.q && t.q.lead) || 0) * SR));
+    return { t, ab, lead, n: ab.length - lead };
+  }
+  function samples(P, ch, s0 = 0, s1 = P.n) {
+    const c = P.ab.numberOfChannels, a = P.lead + s0, b = P.lead + Math.min(P.n, s1);
+    if (ch === 1) return [mono(P.ab, a, b), null];
+    return [P.ab.getChannelData(0).slice(a, b), P.ab.getChannelData(Math.min(1, c - 1)).slice(a, b)];
+  }
+
+  // ---- where the singing is (0.51, compact joins) ----
+  // Her rule: at least one āvartanam of plain bed before she begins and after she ends. Notation finds the
+  // first and last sound in a part by comparing it with the bed rendered on its own, band by band across the
+  // spectrum, 25 ms at a time. It first learns, from a stretch of her plain top (or tail), how the recorded
+  // bed relates to the rendered one in each band; then wherever the part rises clearly above that in some
+  // bands, there is a voice, a hum, or any other sound. Looking band by band is what lets a soft hum show
+  // even where it sits on the tambura's own overtones. The sound is only a marker for where to cut, and only
+  // plain bed is ever removed. If it can't be sure, it returns null and that end keeps everything.
+  const NW = 2048, HOP = 1200, B0 = 4, B1 = 256, BW = 2, NB = (B1 - B0) / BW;   // 94 Hz – 6 kHz, in 47 Hz bands
+  const hann = (() => { const w = new Float32Array(NW); for (let i = 0; i < NW; i++) w[i] = 0.5 - 0.5 * Math.cos(2 * Math.PI * i / (NW - 1)); return w; })();
+  function fftPow(x, off, out) {   // band powers of one windowed frame
+    const re = new Float32Array(NW), im = new Float32Array(NW);
+    for (let i = 0; i < NW; i++) re[i] = (x[off + i] || 0) * hann[i];
+    for (let i = 1, j = 0; i < NW; i++) { let b = NW >> 1; for (; j & b; b >>= 1) j ^= b; j ^= b; if (i < j) { let t = re[i]; re[i] = re[j]; re[j] = t; } }
+    for (let len = 2; len <= NW; len <<= 1) { const a = -2 * Math.PI / len, wr = Math.cos(a), wi = Math.sin(a);
+      for (let i = 0; i < NW; i += len) { let cr = 1, ci = 0; for (let j = 0; j < len / 2; j++) { const p = i + j, q = p + len / 2, tr = re[q] * cr - im[q] * ci, ti = re[q] * ci + im[q] * cr; re[q] = re[p] - tr; im[q] = im[p] - ti; re[p] += tr; im[p] += ti; const nr = cr * wr - ci * wi; ci = cr * wi + ci * wr; cr = nr; } } }
+    for (let b = 0; b < NB; b++) { let s = 0; for (let k = B0 + b * BW; k < B0 + (b + 1) * BW; k++) s += re[k] * re[k] + im[k] * im[k]; out[b] = s; }
+  }
+  const median = a => { const s = Array.from(a).sort((p, q) => p - q); return s.length ? s[s.length >> 1] : 0; };
+  const SCAN = 30;
+  async function soundEdge(P, bed, end) {
+    const d = P.n / SR; if (d < 3) return null;
+    const w0 = end === 'tail' ? Math.max(0, d - SCAN) : 0, w1 = end === 'tail' ? d : Math.min(d, SCAN);
+    const ref = await renderBed(bed, w0, w1, w1, true), rec = mono(P.ab, P.lead + Math.round(w0 * SR), P.lead + Math.round(w1 * SR));
+    const rb = new Float32Array(ref[0].length); for (let i = 0; i < rb.length; i++) rb[i] = (ref[0][i] + ref[1][i]) / 2;
+    const nf = Math.floor((Math.min(rec.length, rb.length) - NW) / HOP); if (nf < 40) return null;
+    const PR = [], PB = [];
+    for (let f = 0; f < nf; f++) { const a = new Float32Array(NB), b = new Float32Array(NB); fftPow(rec, f * HOP, a); fftPow(rb, f * HOP, b); PR.push(a); PB.push(b); }
+    const tOf = f => w0 + f * HOP / SR;
+    // the plain stretch to learn from: her top after the bed's first second (it fades in as recording starts), or her tail
+    const cal = []; for (let f = 0; f < nf; f++) { const t = tOf(f) - w0, u = w1 - (tOf(f) + NW / SR); if (end === 'head' ? (t >= 1.2 && t <= 3.6) : (u >= 0.1 && u <= 2.5)) cal.push(f); }
+    if (cal.length < 20) return null;
+    let top = 0; PB.forEach(b => b.forEach(v => { if (v > top) top = v; }));
+    const fl = top * 1e-6 + 1e-12, c = new Float32Array(NB), q = new Float32Array(NB);
+    for (let b = 0; b < NB; b++) { c[b] = median(cal.map(f => PR[f][b] / (PB[f][b] + fl))); q[b] = median(cal.map(f => PR[f][b])); }
+    const nov = new Float32Array(nf);
+    for (let f = 0; f < nf; f++) { let ex = 0, tot = 0; for (let b = 0; b < NB; b++) { const e = Math.max(c[b] * PB[f][b], q[b]) + fl; ex += Math.max(0, PR[f][b] - 4 * e); tot += e; } nov[f] = ex / tot; }
+    // plain bed scores near 0 with the odd brief flicker (a pluck a few ms off); a voice scores tens, a soft hum 2 or more.
+    // A sound must hold for 125 ms (five frames in a row), which no flicker does.
+    const calN = cal.map(f => nov[f]).sort((p, q2) => p - q2), T = Math.min(1.5, Math.max(0.6, 3 * calN[Math.floor(calN.length * 0.95)], 1.3 * calN[calN.length - 1]));
+    const on = f => f >= 0 && f < nf && nov[f] > T;
+    let t = null;
+    if (end === 'tail') { for (let f = nf - 1; f >= 4; f--) if (on(f) && on(f - 1) && on(f - 2) && on(f - 3) && on(f - 4)) { t = tOf(f) + NW / SR; break; } }   // the frame's end: the latest it could be
+    else { for (let f = 0; f + 4 < nf; f++) if (on(f) && on(f + 1) && on(f + 2) && on(f + 3) && on(f + 4)) { t = tOf(f) + NW / 2 / SR - HOP / 2 / SR; break; } }   // centred: within ±21 ms
+    if (window.__edgeDbg) window.__edgeDbg.push({ end, T, t });   // (for tests)
+    if (t == null) return null;   // no sound found in the stretch looked at: unsure
+    // sound inside the stretch it learned from, or right at the edge: she didn't leave a plain top or tail here
+    if (end === 'head' ? t < w0 + 3.8 : t > w1 - 2.7) return null;
+    return t;
+  }
+  // the grid a cut may fall on: samam with the tāḷam, the Pa that begins a round with the śruti alone
+  const period = b => b.t ? b.t.A : b.s.R, gp = b => b.t ? b.t.p : b.s.p;
+  const gridAfter = (b, t) => gp(b) + Math.ceil((t - gp(b)) / period(b) - 1e-9) * period(b);
+  const gridBefore = (b, t) => gp(b) + Math.floor((t - gp(b)) / period(b) + 1e-9) * period(b);
+  // Cuts fall 60 ms before the samam, so its stroke is whole. A voice that begins up to 40 ms ahead of samam
+  // counts as beginning on it (and is kept whole); further ahead, the cut moves back one samam. The close fades over 0.7 s.
+  const EPS = 0.06, OUTFADE = 0.7;
+
+  async function run(pl, label, onP) {
+    const { parts, ch } = pl, kb = ch === 2 ? 192 : 160, enc = AudioExport.encoder(ch, SR, kb);
+    const est = Math.max(1, pl.total * SR), w = writer(enc, ch, pos => onP(Math.min(0.99, pos / est)));
+    const placed = [], lags = [], bridges = [], kept = [], learned = +LS.get('bedLag', 0) || 0;
+    const fix = (bed, lag) => shift(bed, lag == null ? (lags.length ? lags.slice().sort((a, b) => a - b)[lags.length >> 1] : learned) : lag);
+    const measure = async (Q, end) => { const l = await lineUp(Q, end); if (l != null) lags.push(l); return l; };
+    const has = b => b && (b.s || b.t);
+    let headBed = null, tailBed = null;
+    try {
+      let P = await load(parts[0]); P.s0 = 0;
+      // the opening: one āvartanam (or one round) of plain bed before the first sound
+      { const hb = ends(P.t).head; if (has(hb)) { const y = fix(hb, await measure(P, 'head')); headBed = y; const fs = await soundEdge(P, y, 'head');
+          if (fs != null) { const st = gridBefore(y, fs + 0.04) - period(y) - EPS; if (st > 0.05) P.s0 = st; } else kept.push(`the start of ${takeNo(pl.idx[0])}`); } }
+      for (let k = 0; k < parts.length; k++) {
+        const last = k === parts.length - 1, J = last ? null : pl.joins[k], dA = P.n / SR;
+        let s1 = dA, Q = null, bridge = null, outFade = 0;
+        if (last) {
+          const tb = ends(P.t).tail;
+          if (has(tb)) { const x = fix(tb, await measure(P, 'tail')); tailBed = { bed: x }; const ls = await soundEdge(P, x, 'tail');
+            if (ls != null) { const en = gridAfter(x, ls + 0.3) + period(x) + OUTFADE - EPS; if (en < dA - 0.05) { s1 = en; outFade = OUTFADE; } } else kept.push(`the end of ${takeNo(pl.idx[k])}`); }
+        } else {
+          Q = await load(parts[k + 1]); Q.s0 = 0;
+          if (J.kind !== 'seamless') {
+            const x = fix(ends(P.t).tail, await measure(P, 'tail')), y = fix(ends(Q.t).head, await measure(Q, 'head'));
+            const ls = await soundEdge(P, x, 'tail'), fs = await soundEdge(Q, y, 'head');
+            if (ls != null) { const c = gridAfter(x, ls + 0.3) - EPS; if (c < dA - 0.02) s1 = c; }
+            if (fs != null) { const c = gridBefore(y, fs + 0.04) - EPS; if (c > 0.02) Q.s0 = c; }
+            if (s1 === dA || Q.s0 === 0) kept.push(`${takeNo(pl.idx[k])} → ${takeNo(pl.idx[k + 1])}`);
+            // exactly one āvartanam (or round) when both ends fall on the grid; otherwise the length nearest one that keeps it
+            let L;
+            if (!x.t) L = x.s.R;
+            else { const A = x.t.A, r = pmod(x.t.p - s1 - y.t.p + Q.s0, A); L = r < A / 2 ? r + A : r; }
+            bridge = { x, L };
+          }
+        }
+        // write the part, from s0 to s1
+        const a = Math.round(P.s0 * SR), b = Math.round(s1 * SR);
+        const [L0, R0] = samples(P, ch, a, b);
+        if (k === 0 && P.s0 > 0) { const m = Math.min(L0.length, Math.round(0.25 * SR)); for (let i = 0; i < m; i++) { const g = i / m; L0[i] *= g; if (R0) R0[i] *= g; } }
+        if (outFade) { const m = Math.min(L0.length, Math.round(outFade * SR)); for (let i = 0; i < m; i++) { const g = i / m, j = L0.length - 1 - i; L0[j] *= g; if (R0) R0[j] *= g; } }
+        placed.push({ at: w.pos / SR, s0: P.s0, s1 });
+        await w.add(L0, R0, k ? F : 0, last ? 0 : F);
+        if (last) { if (tailBed) tailBed.at = placed[k].at - P.s0; break; }
+        if (bridge) {
+          bridges.push(bridge.L);
+          const [bl, br] = await renderBed(bridge.x, s1 - F / SR, s1 + bridge.L + RING, s1 + bridge.L, true);
+          await w.add(bl, ch === 2 ? br : null, F, Math.round(RING * SR));
+        }
+        P.ab = null; P = Q;
+      }
+      const blob = await w.end(), lead = await leadFor(ch);
+      return { blob, lead, placed, dur: w.pos / SR + lead, head: headBed ? shift(headBed, -placed[0].s0) : null,
+        tail: tailBed ? shift(tailBed.bed, tailBed.at) : null, lags, bridges, kept };
+    } catch (e) { try { enc.close(); } catch (_) { } throw e; }
+  }
+
+  // ---- the dialog, and putting the result in place ----
+  async function offer(ids) {
+    const pl = plan(ids); if (pl.parts.length < 2) return;
+    const problems = [...new Set(pl.joins.filter(j => j.problem).map(j => j.problem))], long = pl.total > MAX, first = pl.idx[0];
+    const rows = pl.parts.map((t, k) => `<div class="mp"><span class="tno">${takeNo(pl.idx[k])}</span><b>${esc(takeName(note, pl.idx[k]))}</b><small>${fmt(t.duration)}</small></div>` +
+      (k < pl.joins.length ? `<div class="mj${pl.joins[k].problem ? ' warn' : ''}">${esc(joinText(pl.joins[k], ends(t).tail || {}))}</div>` : '')).join('');
+    const box = document.createElement('div'); box.className = 'mergedlg';
+    box.innerHTML = `<div class="mergeplan">${rows}</div><p class="mtotal">${pl.joins.some(j => j.kind !== 'seamless') ? `At most ${fmt(pl.total)}: plain bed at the joins and at both ends is trimmed to one ${pl.joins.some(j => j.kind === 'avartanam') ? 'āvartanam' : 'round'}.` : `About ${fmt(pl.total)} in all.`}</p>` +
+      (problems.length ? `<div class="mwarn"><b>Please check</b>${problems.map(p => `<p>${esc(p)}</p>`).join('')}<p>${problems.length === 1 ? 'That join' : 'Those joins'} will be seamless, without a bridge.</p></div>` : '') +
+      (long ? `<div class="mwarn"><b>Longer than an hour</b><p>Together these come to ${fmt(pl.total)}. A recording this long is harder to find your way around in; you may prefer to keep them as they are.</p></div>` : '') +
+      `<label class="mname"><span>Name</span><input class="tinput" id="mName" value="${esc(autoTakeName(note.title, first))}" maxlength="80"></label>
+      <p class="mnote">The ${pl.parts.length} parts become this one recording, in place of ${takeNo(first)}. This can't be undone.</p>`;
+    const go = await dialog({ title: `Merge ${pl.parts.length} recordings`, node: box, actions: [{ label: 'Cancel', value: false }, { label: problems.length || long ? 'Merge anyway' : 'Merge', value: true, primary: true }] });
+    if (!go) return false;
+    const nm = (box.querySelector('#mName').value || '').trim();
+    toast('Merging… 0%', 60000);
+    let res;
+    try { res = await run(pl, nm, p => toast(`Merging… ${Math.round(p * 100)}%`, 60000)); }
+    catch (e) { $('#toast').classList.remove('show'); dialog({ title: 'Could not merge', html: `<p>${esc(e.message || e)}</p><p>Nothing was changed.</p>` }); return false; }
+    window.__merged = { placed: res.placed, bridges: res.bridges, kept: res.kept, lags: res.lags };   // (for tests)
+    if (res.lags.length) LS.set('bedLag', +res.lags.slice().sort((a, b) => a - b)[res.lags.length >> 1].toFixed(4));
+    await place(pl, res, nm);
+    toast(`Merged into recording ${takeNo(first)}: ${fmt(res.dur)}.` + (res.kept.length ? ` Plain bed kept as recorded at ${res.kept.join(', ')}: Notation couldn't hear clearly where the singing was.` : ''), res.kept.length ? 6500 : 3200);
+    return true;
+  }
+  async function place(pl, res, nm) {
+    const first = pl.idx[0], id = 't' + uid(), parts = pl.parts, ids = new Set(parts.map(t => t.id));
+    const q0 = parts.map(t => t.q || {}), mics = [...new Set(q0.map(q => q.mic || ''))], tal = q0.find(q => q.talam);
+    const bed = (res.head || res.tail) ? { head: res.head || {}, tail: res.tail || {} } : null;
+    const t = { id, label: nm && nm !== autoTakeName(note.title, first) ? nm : '', mime: 'audio/mpeg', duration: res.dur, created: Date.now(), size: res.blob.size,
+      q: { sr: SR, ch: pl.ch, kbps: pl.ch === 2 ? 192 : 160, ...(mics.length === 1 && mics[0] ? { mic: mics[0] } : {}), ...(q0.some(q => q.shruti) ? { shruti: true } : {}), ...(tal ? { talam: tal.talam } : {}), merged: parts.length, lead: +res.lead.toFixed(5) },
+      ...(bed ? { bed } : {}) };
+    // bookmarks: each part's marks move to the new recording, at their part's place in it
+    note.strokes.forEach(s => {
+      if (s.t == null || !ids.has(s.take)) return;
+      const k = parts.findIndex(p => p.id === s.take), lp = (parts[k].q && parts[k].q.lead) || 0, pc = res.placed[k];
+      const tc = Math.min(pc.s1, Math.max(pc.s0, s.t - lp));   // a mark made in plain bed that was trimmed moves to the nearest kept moment
+      s.take = id; s.t = Math.round((pc.at + tc - pc.s0 + res.lead) * 100) / 100;
+    });
+    takeBlobs.set(id, res.blob); note.takes.splice(first, 0, t); await saveTake(t, res.blob);
+    note.takes = note.takes.filter(x => !ids.has(x.id));
+    for (const p of parts) { takeBlobs.delete(p.id); if (!viewer) await DB.del('audio', note.id + ':' + p.id); }
+    if (!curTake || ids.has(curTake)) curTake = null;
+    await selectTake(id); computeGroups(); renderAllFx(); scheduleSave(); updatePlayer();
+  }
+  return { offer, plan, run, MAX, _lagOf: lagOf, _leadFor: leadFor, _load: load, _edge: soundEdge, _shift: shift };
 })();
 
 /* ---- the Recordings list: order, labels, delete, import ---- */
 async function openTakes() {
   if (!note) return;
   const box = document.createElement('div'); box.className = 'takes';
+  let selecting = false; const picked = new Set();   // Select (0.51): choose recordings to merge
   const render = () => {
     const n = note.takes.length;
+    if (selecting) {
+      box.innerHTML = '<p class="selhint">Choose the parts to merge. They join in the order they sit here; drag to reorder first if needed.</p>' + note.takes.map((t, i) => `<div class="take sel ${picked.has(t.id) ? 'picked' : ''}" data-id="${t.id}" data-a="pick" role="checkbox" aria-checked="${picked.has(t.id)}" tabindex="0">
+        <span class="tsel">${picked.has(t.id) ? '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg>' : ''}</span>
+        <span class="tno">${takeNo(i)}</span>
+        <span class="tinfo"><b>${esc(takeName(note, i))}</b><small>${fmt(t.duration)}${t.q ? ` · ${esc(RecQ.describe(t.q))}` : ''}</small></span></div>`).join('') +
+        `<div class="mergebar"><button class="btn" data-a="selcancel">Cancel</button><button class="btn primary" data-a="merge" ${picked.size < 2 ? 'disabled' : ''}>${picked.size < 2 ? 'Merge' : `Merge ${picked.size} recordings`}</button></div>`;
+      const dl = box.closest('.dlg'); if (dl) dl.classList.add('selecting');
+      return;
+    }
+    { const dl = box.closest('.dlg'); if (dl) dl.classList.remove('selecting'); }
     box.innerHTML = (n ? '' : '<p style="margin-top:0;color:var(--muted)">No recordings yet. Press Record during your lesson, or bring in an audio file.</p>') + note.takes.map((t, i) => {
       const marks = groups.filter(g => g.take === t.id).length;
       return `<div class="take ${t.id === curTake ? 'on' : ''}" data-id="${t.id}">
@@ -1924,12 +2370,16 @@ async function openTakes() {
         <span class="tinfo"><b>${esc(takeName(note, i))}</b><small>${fmt(t.duration)} · ${new Date(t.created).toLocaleDateString(undefined, { day: 'numeric', month: 'short' })}${marks ? ` · ${marks} bookmark${marks === 1 ? '' : 's'}` : ''}${t.q ? `<br>${esc(RecQ.describe(t.q))}` : ''}</small></span>
         ${viewer ? '' : `<button class="mini" data-a="dl" title="Download or share this recording" aria-label="Download">${ICON_DOWNLOAD}</button><button class="mini" data-a="ren" title="Rename">✎</button><button class="mini" data-a="del" title="Delete">✕</button>`}
       </div>`;
-    }).join('') + (viewer ? '' : `<div class="takeopts"><label><input type="checkbox" id="playOn" ${playOn ? 'checked' : ''}> Play recordings one after another</label><button class="btn" data-a="import">Add an audio file</button></div>`);
+    }).join('') + (viewer ? '' : `<div class="takeopts"><label><input type="checkbox" id="playOn" ${playOn ? 'checked' : ''}> Play recordings one after another</label><span class="tbtns">${n >= 2 ? '<button class="btn" data-a="select">Select</button>' : ''}<button class="btn" data-a="import">Add an audio file</button></span></div>`);
     const po = box.querySelector('#playOn'); if (po) po.onchange = () => { playOn = po.checked; LS.set('playOn', playOn); };
   };
   box.onclick = async e => {
     const b = e.target.closest('[data-a]'); if (!b) return;
     const row = b.closest('.take'), id = row && row.dataset.id, i = id ? takeIdx(id) : -1, a = b.dataset.a;
+    if (a === 'select') { selecting = true; picked.clear(); return render(); }
+    if (a === 'selcancel') { selecting = false; picked.clear(); return render(); }
+    if (a === 'pick') { picked.has(id) ? picked.delete(id) : picked.add(id); return render(); }
+    if (a === 'merge') { if (picked.size < 2) return; const ids = [...picked]; closeDialog(null); await Merge.offer(ids); return openTakes(); }
     if (a === 'import') { closeDialog(null); $('#fAudio').value = ''; $('#fAudio').click(); return; }
     if (a === 'play') { if (id === curTake && !audioEl.paused) audioEl.pause(); else { await selectTake(id); audioEl.currentTime = 0; audioEl.play().catch(() => { }); } }
     else if (a === 'dl') { closeDialog(null); await AudioExport.offer(i); return openTakes(); }
@@ -1956,6 +2406,7 @@ async function openTakes() {
     computeGroups(); renderAllFx(); scheduleSave(); updatePlayer(); render(); return true;
   };
   box.addEventListener('keydown', e => {
+    if (selecting && (e.key === ' ' || e.key === 'Enter') && e.target.closest('.take.sel')) { e.preventDefault(); e.target.closest('.take.sel').click(); return; }
     const g = e.target.closest('.grip'); if (!g || (e.key !== 'ArrowUp' && e.key !== 'ArrowDown')) return;
     e.preventDefault(); const id = g.closest('.take').dataset.id, i = takeIdx(id);
     if (moveTake(i, i + (e.key === 'ArrowUp' ? -1 : 1))) box.querySelector(`.take[data-id="${id}"] .grip`).focus();
@@ -4664,7 +5115,7 @@ const Drive = (() => {
   /* Sync record (0.47): the last 400 things sync did to notes, on this device only, so anything that ever
      looks wrong can be traced. Settings → Google Drive → Save sync record. */
   function jlog(act, m, x = {}) {
-    try { const log = LS.get('sync.log', []); log.push({ at: Date.now(), v: '0.50', act, id: m.id, title: m.title || '', ...x }); LS.set('sync.log', log.slice(-400)); } catch (e) { }
+    try { const log = LS.get('sync.log', []); log.push({ at: Date.now(), v: '0.51', act, id: m.id, title: m.title || '', ...x }); LS.set('sync.log', log.slice(-400)); } catch (e) { }
   }
   // a copy holding everything this note has is already in Trash (put there by the other device)
   async function alreadyKept(cur) {
@@ -4919,7 +5370,7 @@ const Drive = (() => {
     acts.push(tokenValid() ? { label: 'Sync now', value: 'sync', primary: true } : { label: 'Reconnect', value: 'again', primary: true });
     const v = await dialog({ title: 'Google Drive', node: box, actions: acts });
     if (v === 'sync') sync();
-    else if (v === 'log') { const a = document.createElement('a'); a.href = URL.createObjectURL(new Blob([JSON.stringify({ device: Versions.device(), version: '0.50', saved: new Date().toISOString(), log: LS.get('sync.log', []) }, null, 1)], { type: 'application/json' })); a.download = `notation-sync-record-${Versions.device().replace(/\W+/g, '-')}.json`; document.body.appendChild(a); a.click(); setTimeout(() => { URL.revokeObjectURL(a.href); a.remove(); }, 1000); }
+    else if (v === 'log') { const a = document.createElement('a'); a.href = URL.createObjectURL(new Blob([JSON.stringify({ device: Versions.device(), version: '0.51', saved: new Date().toISOString(), log: LS.get('sync.log', []) }, null, 1)], { type: 'application/json' })); a.download = `notation-sync-record-${Versions.device().replace(/\W+/g, '-')}.json`; document.body.appendChild(a); a.click(); setTimeout(() => { URL.revokeObjectURL(a.href); a.remove(); }, 1000); }
     else if (v === 'again') { await flushSave(); signIn('again'); }
     else if (v === 'off') {
       const ok = await dialog({ title: 'Disconnect Google Drive?', html: '<p>Syncing stops. Your notes stay on this device and in your Drive; nothing is deleted.</p>', actions: [{ label: 'Cancel', value: false }, { label: 'Disconnect', value: true, danger: true }] });
@@ -5073,7 +5524,7 @@ const Versions = (() => {
    version.json on GitHub names the newest build. When it differs from this one, the
    version chip offers "Update to …". Updating clears only Notation's stored app files
    and reloads; notes, recordings, folders and the Drive connection are untouched. */
-const APP_VERSION = '0.50', APP_BUILD = '0d32adf200';
+const APP_VERSION = '0.51', APP_BUILD = '141261de24';
 const Updates = (() => {
   let latest = null, last = 0;
   const chip = () => $('#verChip');
